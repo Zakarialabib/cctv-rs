@@ -1,16 +1,21 @@
 [package]
-name = "cctv"
+name = "cctv-rs"
+description = "Facade over the cctv-rs workspace: discovery, frames, PTZ, stats and fleet reconciliation behind one API."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Facade over the cctv-rs workspace."
-readme = "../../README.md"
-repository = { workspace = true }
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "camera", "facade", "ptz", "signage"]
+categories = ["multimedia", "hardware-support"]
 
 [dependencies]
-cctv-core = { path = "../cctv-core" }
-cctv-ezviz = { path = "../cctv-ezviz" }
-cctv-discovery = { path = "../cctv-discovery" }
-cctv-transport = { path = "../cctv-transport" }
-cctv-agent = { path = "../cctv-agent" }
+cctv-core.workspace = true
+cctv-ezviz.workspace = true
+cctv-discovery.workspace = true
+cctv-transport.workspace = true
+cctv-agent.workspace = true
+
+[lints]
+workspace = true
