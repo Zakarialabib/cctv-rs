@@ -13,6 +13,18 @@ and frame reads are time-budgeted so one slow camera can never stall the others.
 - `reader` — budgeted, protocol-agnostic frame reading.
   - `FrameReader` — `new`, `try_fill`, `set_budget`.
   - `Frame` — width, height and raw payload bytes off the wire.
+- `xml` — the total, namespace-prefix-agnostic XML scanner the drivers parse
+  device responses with: `elements`, `element_text`, `element_body`,
+  `attribute`, `soap_fault`, `escape` / `unescape`.
+- `http` (feature `http`) — the shared async HTTP client: `reqwest` with
+  **rustls only**, HTTP Digest (MD5 / SHA-256, `qop=auth`) and Basic negotiated
+  from the 401 challenge.
+  - `HttpClient::request`, `HttpConfig`, `HttpResponse`, `HttpError`.
+  - `digest_authorization`, `parse_challenge`, `basic_authorization` — pure,
+    tested against the RFC 2617 worked example.
+- `fixture` (feature `fixture`) — `FixtureServer` / `Route`: a canned-response
+  HTTP server (optionally demanding Digest auth) that the driver conformance
+  tests run against instead of a live camera.
 
 See [`docs/architecture.md`](../../docs/architecture.md) for the full
 architecture.

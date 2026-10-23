@@ -1,18 +1,36 @@
 [package]
 name = "cctv-transport"
-description = "TLS policy + budgeted frame reader for cctv-rs."
+description = "TLS policy, budgeted frame reader, XML scanner and Digest-capable HTTP transport for cctv-rs drivers."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-keywords = ["cctv", "rtsp", "tls", "frames", "streaming"]
+keywords = ["cctv", "rtsp", "tls", "digest-auth", "streaming"]
 categories = ["multimedia::video", "network-programming"]
+
+[features]
+default = []
+# The async HTTP client (reqwest + rustls, Digest / Basic auth) the drivers share.
+http = ["dep:reqwest", "dep:md-5", "dep:sha2", "dep:base64"]
+# A canned-response HTTP server for driver tests. Pulls tokio's network stack.
+fixture = ["dep:tokio"]
 
 [dependencies]
 # Policy is data: pinned certs, minimum TLS version, ALPN preference.
 serde.workspace = true
+reqwest = { workspace = true, optional = true }
+md-5 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["net", "io-util", "rt"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util"] }
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lints]
 workspace = true

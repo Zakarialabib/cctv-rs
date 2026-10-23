@@ -189,6 +189,10 @@ pub struct CameraConfig {
     /// What the device is.
     #[serde(default = "default_camera_type")]
     pub ty: CameraType,
+    /// Accept a self-signed / mismatched HTTPS certificate (common on
+    /// cameras).  Off by default.
+    #[serde(default)]
+    pub accept_invalid_certs: bool,
     /// Request timeout in milliseconds; the driver's default when absent.
     #[serde(default)]
     pub timeout_ms: Option<u64>,
@@ -216,6 +220,7 @@ impl CameraConfig {
             channel: None,
             service_url: None,
             label: None,
+            accept_invalid_certs: false,
             ty: default_camera_type(),
             timeout_ms: None,
             extra: serde_json::Value::Null,
