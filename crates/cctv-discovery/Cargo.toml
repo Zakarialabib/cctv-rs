@@ -1,0 +1,11 @@
+[package]
+name = "cctv-discovery"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Camera discovery: SSDP / multicast / USB probe."
+readme = "../../README.md"
+repository = { workspace = true }
+
+[dependencies]

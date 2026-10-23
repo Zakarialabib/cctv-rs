@@ -1,0 +1,17 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+license = "MIT"
+repository = "https://github.com/<owner>/cctv-rs"
+keywords = ["cctv", "camera", "ptz", "onvif", "ezviz", "hikvision", "dahua", "signage"]
+categories = ["multimedia", "hardware-abstraction", "camera"]
+description = "Pure-Rust CCTV backend for SignageMaster: discovery, stream, PTZ, zones, AI, fleet reconciliation."
+
+# [workspace.dependencies]
+# Placeholder for shared dependency versions (e.g. tokio, serde, thiserror) that
+# every crate pins. Each crate declares its own direct dependencies instead.

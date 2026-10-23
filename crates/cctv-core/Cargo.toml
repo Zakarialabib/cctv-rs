@@ -1,0 +1,20 @@
+[package]
+name = "cctv-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Camera device model for cctv-rs: traits, state, error taxonomy, mock backend, conformance. NO tokio, NO protocol."
+readme = "../README.md"
+repository = { workspace = true }
+
+[lib]
+path = "src/lib.rs"
+
+# No external dependencies. The embeddable core must be buildable in a Tauri app,
+# a Node host, a WASM worker, or a headless CLI with no network and no async runtime.
+
+[dependencies]
+
+[dev-dependencies]
+insta = { version = "1.42", features = ["json"] }

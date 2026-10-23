@@ -1,0 +1,19 @@
+[package]
+name = "cctv-ezviz"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Ezviz Open Platform (open.ys7.com) driver for cctv-rs: token, device list, stream, PTZ, alarms, capture."
+readme = "../../README.md"
+repository = { workspace = true }
+
+[dependencies]
+ezviz-openapi = { path = "../../../ezviz-openapi-rs" }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["sync", "time", "fs"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls"] }
+serde_json = "1"
+thiserror = "2"
+url = "2"
+keyboard-types = "0.8"

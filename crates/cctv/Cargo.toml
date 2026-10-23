@@ -1,0 +1,16 @@
+[package]
+name = "cctv"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Facade over the cctv-rs workspace."
+readme = "../../README.md"
+repository = { workspace = true }
+
+[dependencies]
+cctv-core = { path = "../cctv-core" }
+cctv-ezviz = { path = "../cctv-ezviz" }
+cctv-discovery = { path = "../cctv-discovery" }
+cctv-transport = { path = "../cctv-transport" }
+cctv-agent = { path = "../cctv-agent" }

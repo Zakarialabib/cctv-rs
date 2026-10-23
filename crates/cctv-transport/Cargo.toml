@@ -1,0 +1,11 @@
+[package]
+name = "cctv-transport"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "TLS policy + budgeted frame reader."
+readme = "../../README.md"
+repository = { workspace = true }
+
+[dependencies]

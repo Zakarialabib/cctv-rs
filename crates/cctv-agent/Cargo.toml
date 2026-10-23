@@ -1,0 +1,12 @@
+[package]
+name = "cctv-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Fleet reconciler: desired state -> graded remediation, audit trail."
+readme = "../../README.md"
+repository = { workspace = true }
+
+[dependencies]
+cctv-core = { path = "../cctv-core" }
