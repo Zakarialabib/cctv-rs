@@ -1,20 +1,24 @@
 [package]
 name = "cctv-core"
+description = "Camera device model for cctv-rs: traits, state, error taxonomy, mock backend, conformance. NO tokio, NO protocol."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Camera device model for cctv-rs: traits, state, error taxonomy, mock backend, conformance. NO tokio, NO protocol."
-readme = "../README.md"
-repository = { workspace = true }
-
-[lib]
-path = "src/lib.rs"
-
-# No external dependencies. The embeddable core must be buildable in a Tauri app,
-# a Node host, a WASM worker, or a headless CLI with no network and no async runtime.
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "camera", "device-model", "fleet", "no-tokio"]
+categories = ["api-bindings", "hardware-support"]
 
 [dependencies]
+# Serialization only: the command-result contract is plain data. No runtime,
+# no protocol, no async. This crate is embeddable in a Tauri app, a CLI, or
+# even a WASM worker, so only the types that cross the seam own serde.
+serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
-insta = { version = "1.42", features = ["json"] }
+insta.workspace = true
+
+[lints]
+workspace = true

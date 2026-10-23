@@ -1,17 +1,28 @@
 //! Multi-producer, single-consumer state: the "belief" layer a CMS embeds.
 //!
-//! Everything here is plain Rust with no async runtime. Consumers hold an
-//! immutable snapshot and can compare confidence. The reconciler is the only
-//! thing that mutates this state, via [`State::apply`].
+//! Everything here is plain Rust with no async runtime.  Consumers hold an
+//! immutable snapshot and can compare confidence.  The reconciler is the only
+//! thing that mutates this state, via [`CameraState`].
+//!
+//! # State machine
+//!
+//! ```text
+//! Off → Standby → On → Streaming → Recording
+//! Off → Away          (firmware-level offline)
+//! ```
+//!
+//! Stepping backwards cools confidence; stepping forwards warms it.  A
+//! `probe` always refreshes the anchor before a transition.
 
-use crate::CameraType;
+use crate::types::CameraType;
 use serde::{Deserialize, Serialize};
 
 /// One camera, as the fleet believes it to be right now.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CameraState {
-    /// Stable identity chosen by the caller (MAC, serial, IP, Ezviz ID). The key
-    /// that joins a `discover` result back to a device the app already knows.
+    /// Stable identity chosen by the caller (MAC, serial, IP, Ezviz ID).  The
+    /// key that joins a `discover` result back to a device the app already
+    /// knows.
     pub id: String,
     /// Vendor + model as reported by discovery / config.
     pub vendor: String,
@@ -23,16 +34,20 @@ pub struct CameraState {
     pub desired: CameraDesired,
     /// Current belief: what the device is thought to be doing.
     pub state: CameraStateCurrent,
-    /// Confidence 0.0..1.0 in `state`. Starts at 0.0 until the first probe.
+    /// Confidence 0.0..1.0 in `state`.  Starts at 0.0 until the first probe.
     pub confidence: f32,
     /// Last probe result fields (device model, firmware, IP, SSID) — the raw
     /// trust anchor for `confidence`.
     pub last_probe: Option<ProbeResult>,
-    /// Timestamps for the_state machine transitions (seconds since epoch).
+    /// Timestamps for state machine transitions (seconds since epoch).
     pub probe_at: Option<u64>,
+    /// Time the camera was last seen online (seconds since epoch).
     pub online_at: Option<u64>,
+    /// Time the camera was last seen offline (seconds since epoch).
     pub offline_at: Option<u64>,
+    /// Time the camera was last armed (seconds since epoch).
     pub armed_at: Option<u64>,
+    /// Time the camera last started recording (seconds since epoch).
     pub recording_at: Option<u64>,
 }
 
@@ -50,13 +65,17 @@ pub enum CameraDesired {
 }
 
 /// What the camera is believed to be doing right now.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum CameraStateCurrent {
+    /// Powered off.
     Off,
+    /// Powered but idle, waiting for work.
     Standby,
+    /// On and active, not yet streaming.
     On,
     /// Streaming, but not necessarily recording.
     Streaming,
+    /// Recording to storage.
     Recording,
     /// PTZ move in progress.
     PtzMoving,
@@ -64,20 +83,30 @@ pub enum CameraStateCurrent {
     Away,
 }
 
-/// Raw trust anchor from a probe. Used to update confidence.
+/// Raw trust anchor from a probe.  Used to update confidence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProbeResult {
+    /// Vendor name reported by the device.
     pub vendor: String,
+    /// Model name reported by the device.
     pub model: String,
+    /// Firmware version, if reported.
     pub firmware: Option<String>,
+    /// Device IP address, if known.
     pub ip: Option<String>,
+    /// Device MAC address, if known.
     pub mac: Option<String>,
+    /// Primary stream URL, if advertised.
     pub stream_url: Option<String>,
+    /// Whether the device reports PTZ support.
     pub ptz_supported: bool,
+    /// Whether the device reports AI detection support.
     pub ai_supported: bool,
 }
 
 impl CameraState {
+    /// Create a camera in its initial belief: offline, `Idle`, `Off` and
+    /// confidence 0.0 until the first probe.
     pub fn new(id: String, vendor: String, ty: CameraType) -> Self {
         Self {
             id,
@@ -96,23 +125,89 @@ impl CameraState {
         }
     }
 
-    pub fn update_confirmation(&mut self, online: bool, state: CameraStateCurrent, confidence: f32) {
+    /// Apply a probe result and put the state on the life-cycle chain.  The
+    /// probe result is kept as the trust anchor for confidence.
+    pub fn apply_probe(
+        &mut self,
+        probe: ProbeResult,
+        online: bool,
+        current: CameraStateCurrent,
+        confidence: f32,
+    ) {
+        self.last_probe = Some(probe);
+        self.probe_at = Some(Self::now());
+        self.update_confirmation(online, current, confidence);
+    }
+
+    /// Update online state + state + confidence from a probe.  Records the
+    /// timestamp.  `confidence` is clamped to [0, 1].
+    pub fn update_confirmation(
+        &mut self,
+        online: bool,
+        state: CameraStateCurrent,
+        confidence: f32,
+    ) {
         self.online = online;
         self.state = state;
         self.confidence = confidence.clamp(0.0, 1.0);
         if online {
-            self.online_at = Some(expensive_now());
+            self.online_at = Some(Self::now());
         } else {
-            self.offline_at = Some(expensive_now());
+            self.offline_at = Some(Self::now());
+        }
+        // Stepping onto the chain warms confidence.
+        if online && state >= CameraStateCurrent::Standby {
+            self.state = state;
         }
     }
 
+    /// Move the live state forward or backward along the chain, warming or
+    /// cooling confidence respectively.
+    pub fn transition(&mut self, next: CameraStateCurrent) {
+        let chain = [
+            CameraStateCurrent::Off,
+            CameraStateCurrent::Standby,
+            CameraStateCurrent::On,
+            CameraStateCurrent::Streaming,
+            CameraStateCurrent::Recording,
+        ];
+        let at = chain.iter().position(|&s| s == self.state).unwrap_or(0);
+        let next_at = chain.iter().position(|&s| s == next).unwrap_or(0);
+
+        if next_at > at {
+            self.confidence = (self.confidence + 0.1).min(1.0);
+        } else {
+            self.confidence *= 0.9;
+        }
+        self.state = next;
+    }
+
+    /// Set the desired state directly.
     pub fn set_desired(&mut self, desired: CameraDesired) {
         self.desired = desired;
     }
-}
 
-fn expensive_now() -> u64 {
-    // Zero-dep stand-in. Replace with `std::time::SystemTime::now()` in production.
-    0
+    /// Move the camera into the armed desired state.
+    pub fn arm(&mut self) {
+        self.desired = CameraDesired::Armed;
+    }
+
+    /// Move the camera into the recording desired state.
+    pub fn record(&mut self) {
+        self.desired = CameraDesired::Recording;
+    }
+
+    /// Move the camera into the disabled desired state.
+    pub fn disable(&mut self) {
+        self.desired = CameraDesired::Disabled;
+    }
+
+    fn now() -> u64 {
+        // std-only epoch stand-in (zero-dep).  Replace with an injected clock if
+        // you ever need test determinism.
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    }
 }

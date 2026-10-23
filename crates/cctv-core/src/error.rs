@@ -1,18 +1,22 @@
 //! Camera error taxonomy.
 //!
-//! The rule of the device model is: *nothing panics*, and a capability a camera
+//! The rule of the device model: *nothing panics*, and a capability a camera
 //! does not have is a typed error, never `unimplemented!()` or `unwrap()`.
 //!
-//! Errors are intended to flow across a `Result<T, CameraError>` seam. The
+//! Errors are intended to flow across a `Result<T, CameraError>` seam.  The
 //! reconciler maps them to graded remediation.
 
 use core::fmt;
 
+/// The typed failure taxonomy every camera driver returns.
+///
+/// A capability the device does not have is one of these variants rather than a
+/// panic, so callers can map each failure to graded remediation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CameraError {
-    /// The device refused the command (401/403/405). Check auth state.
+    /// The device refused the command (401/403/405).  Check auth state.
     Refused,
-    /// The device is not reachable. Reconnect attempts are warranted.
+    /// The device is not reachable.  Reconnect attempts are warranted.
     Offline,
     /// The stream dropped or the frame was invalid.
     StreamFailed,
