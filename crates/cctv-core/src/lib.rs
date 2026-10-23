@@ -11,13 +11,30 @@
 //! (`cctv-ezviz`, `cctv-discovery`, `cctv-transport`) are pure **ports**: they
 //! translate hardware into this aggregate and nothing else.
 //!
+//! Drivers implement [`CameraBackend`] for one connected camera and prove it
+//! with the [`conformance`] suite.  The trait is object safe and returns
+//! `std`-only boxed futures, so the contract still links no async runtime.
+//!
+//! # Example
+//!
+//! ```
+//! use cctv_core::{redact_uri, CameraConfig, PtzCommand};
+//!
+//! let cfg = CameraConfig::new("lobby", "onvif", "192.168.1.64").with_credentials("admin", "pw");
+//! assert_eq!(cfg.base_url(80), "http://192.168.1.64");
+//! assert_eq!(PtzCommand::from_direction("stop", 1.0), PtzCommand::Stop);
+//! assert_eq!(redact_uri("rtsp://admin:pw@cam/s"), "rtsp://***:***@cam/s");
+//! ```
+//!
 //! The crate carries no runtime and no network — `serde` / `serde_json` are only
 //! used for the command-result value types.  That makes the aggregate embeddable
 //! in a Tauri app, a terminal CLI, or even a WASM worker.
 
 #![forbid(unsafe_code)]
 
+pub mod backend;
 pub mod commands;
+pub mod conformance;
 pub mod error;
 pub mod mock;
 pub mod quirks;
@@ -34,6 +51,10 @@ pub mod types;
 // never widen it.
 // ---------------------------------------------------------------------------
 
+pub use backend::{
+    jpeg_dimensions, redact_uri, with_credentials, BoxFuture, CameraBackend, CameraConfig,
+    PtzCommand, Snapshot, StreamInfo, StreamQuality,
+};
 pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,

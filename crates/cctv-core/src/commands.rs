@@ -80,6 +80,8 @@ pub enum CommandId {
     /// Self-test every camera.
     CameraTestAll,
     // -- presets -----------------------------------------------------------
+    /// List the presets stored for a camera.
+    CameraGetPresets,
     /// Save a preset (position + config).
     CameraSavePreset,
     /// Apply a saved preset.
@@ -185,37 +187,38 @@ impl CommandId {
             Self::CameraGetStats => 22,
             Self::CameraGetAllStats => 23,
             Self::CameraTestAll => 24,
-            Self::CameraSavePreset => 25,
-            Self::CameraGotoPreset => 26,
-            Self::CameraDeletePreset => 27,
-            Self::CameraScreenshot => 28,
-            Self::CameraResetSettings => 29,
-            Self::ZoneList => 30,
-            Self::ZoneSave => 31,
-            Self::ZoneDelete => 32,
-            Self::RunZoneDetection => 33,
-            Self::ZoneMotionGetConfig => 34,
-            Self::ZoneMotionSaveConfig => 35,
-            Self::ZoneMotionStartMonitor => 36,
-            Self::ZoneMotionStopMonitor => 37,
-            Self::ZoneMotionListEvents => 38,
-            Self::ZoneMotionAcknowledgeEvent => 39,
-            Self::CameraSaveSnapshot => 40,
-            Self::CameraDeleteSnapshot => 41,
-            Self::CameraGetSnapshots => 42,
-            Self::CameraSnapshotExists => 43,
-            Self::CameraGetReconnectionInfo => 44,
-            Self::CameraConfigGet => 45,
-            Self::CameraConfigSet => 46,
-            Self::CameraPopCorrectedImage => 47,
-            Self::CameraStartComposite => 48,
-            Self::CameraStopComposite => 49,
-            Self::CameraGetAvailableModels => 50,
-            Self::CameraSetDetectionModel => 51,
-            Self::CameraAiDetectionSetEnabled => 52,
-            Self::CameraAiDetectionGetEnabled => 53,
-            Self::CameraGetMonitorHealth => 54,
-            Self::CameraGetMonitorStreamHealth => 55,
+            Self::CameraGetPresets => 25,
+            Self::CameraSavePreset => 26,
+            Self::CameraGotoPreset => 27,
+            Self::CameraDeletePreset => 28,
+            Self::CameraScreenshot => 29,
+            Self::CameraResetSettings => 30,
+            Self::ZoneList => 31,
+            Self::ZoneSave => 32,
+            Self::ZoneDelete => 33,
+            Self::RunZoneDetection => 34,
+            Self::ZoneMotionGetConfig => 35,
+            Self::ZoneMotionSaveConfig => 36,
+            Self::ZoneMotionStartMonitor => 37,
+            Self::ZoneMotionStopMonitor => 38,
+            Self::ZoneMotionListEvents => 39,
+            Self::ZoneMotionAcknowledgeEvent => 40,
+            Self::CameraSaveSnapshot => 41,
+            Self::CameraDeleteSnapshot => 42,
+            Self::CameraGetSnapshots => 43,
+            Self::CameraSnapshotExists => 44,
+            Self::CameraGetReconnectionInfo => 45,
+            Self::CameraConfigGet => 46,
+            Self::CameraConfigSet => 47,
+            Self::CameraPopCorrectedImage => 48,
+            Self::CameraStartComposite => 49,
+            Self::CameraStopComposite => 50,
+            Self::CameraGetAvailableModels => 51,
+            Self::CameraSetDetectionModel => 52,
+            Self::CameraAiDetectionSetEnabled => 53,
+            Self::CameraAiDetectionGetEnabled => 54,
+            Self::CameraGetMonitorHealth => 55,
+            Self::CameraGetMonitorStreamHealth => 56,
         }
     }
 
@@ -261,7 +264,10 @@ impl CommandId {
             | Self::CameraSetEnabled
             | Self::CameraSetCritical
             | Self::CameraReorder => true,
-            Self::CameraSavePreset | Self::CameraGotoPreset | Self::CameraDeletePreset => true,
+            Self::CameraGetPresets
+            | Self::CameraSavePreset
+            | Self::CameraGotoPreset
+            | Self::CameraDeletePreset => true,
             Self::CameraScreenshot
             | Self::CameraSaveSnapshot
             | Self::CameraDeleteSnapshot
@@ -326,6 +332,9 @@ pub enum CommandResultPayload {
         handle: u64,
         /// Opaque handle for addressing the started stream.
         stream: StreamHandle,
+        /// The stream URI **without credentials** (safe to log and serialise);
+        /// the facade hands out the credentialed URI separately.
+        uri: String,
     },
     /// Live stats for a single camera.
     Stats {
@@ -431,6 +440,7 @@ impl CommandResultPayload {
             crate::CommandId::StartCameraStream => CommandResultPayload::Stream {
                 handle: 0,
                 stream: StreamHandle::new(0),
+                uri: String::new(),
             },
             crate::CommandId::CameraGetStats => CommandResultPayload::Stats {
                 fps: 0.0,
@@ -444,7 +454,8 @@ impl CommandResultPayload {
                 passed: false,
                 detail: String::new(),
             },
-            crate::CommandId::CameraSavePreset
+            crate::CommandId::CameraGetPresets
+            | crate::CommandId::CameraSavePreset
             | crate::CommandId::CameraGotoPreset
             | crate::CommandId::CameraDeletePreset => CommandResultPayload::Presets {
                 presets: Vec::new(),
