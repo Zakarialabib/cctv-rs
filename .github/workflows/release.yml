@@ -1,0 +1,36 @@
+name: Release Crate
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (package and verify, but do not upload)"
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+
+      # LICENSE is required because the workspace declares MIT.
+      - name: Verify LICENSE file exists
+        run: test -f LICENSE || (echo "LICENSE file missing — cargo publish requires it" && exit 1)
+
+      # Six crates must be published in dependency order; a single root-level
+      # `cargo publish` cannot do that (path deps are stripped at publish time).
+      # The order itself lives in `scripts/publish.sh`.
+      - name: Dry run the ordered release
+        run: bash scripts/publish.sh --dry-run
+
+      - name: Publish in dependency order
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: bash scripts/publish.sh --publish
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}

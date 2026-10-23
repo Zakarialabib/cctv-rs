@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  core:
+    name: core (tokio-free + conformance)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      # The device model must stay embeddable by consumers that never link tokio.
+      # This is the compile-time guarantee the spec makes, so CI has to hold it.
+      - name: Core has no tokio in its graph
+        run: |
+          cargo tree -p cctv-core -e normal > /tmp/core-tree.txt
+          if grep -qE '(^| )tokio v' /tmp/core-tree.txt; then
+            echo "::error::cctv-core must not depend on tokio"
+            exit 1
+          fi
+      # The conformance suite runs against the mock backend, so it needs no
+      # camera and no network.
+      - run: cargo test -p cctv-core
+      - run: cargo clippy -p cctv-core --all-targets
+        env:
+          RUSTFLAGS: -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Nothing here talks to a live camera: the driver tests use a local mock
+      # server and the rest is pure logic.
+      - run: cargo test --workspace
+      - run: cargo check --workspace --all-targets
+
+  crates:
+    name: per-crate build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Feature unification in `--workspace` hides a crate that only compiles
+      # because a sibling is in the build. Each published crate is built alone.
+      - run: cargo check -p cctv-core
+      - run: cargo check -p cctv-transport
+      - run: cargo check -p cctv-discovery
+      - run: cargo check -p cctv-ezviz
+      - run: cargo check -p cctv-agent
+      - run: cargo check -p cctv-rs
+      # `cargo publish --dry-run` is what actually reaches crates.io: it verifies
+      # the manifest Cargo would upload — a bad `readme` path, a path dependency
+      # without a `version`, metadata crates.io would reject — and builds the
+      # crate from the packaged sources. `cargo package --list` is not enough:
+      # it lists files and passes even with a `version`-less path dependency.
+      #
+      # On the first release the dependents cannot resolve their workspace deps
+      # from the index yet; the script reports that as a warning, not a failure.
+      - run: bash scripts/publish.sh --dry-run
+
+  msrv:
+    name: msrv (${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.89.0"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+      # `rust-version` is a promise; this job is the only thing that checks it.
+      - run: cargo check --workspace --all-targets
+
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
+  docs:
+    name: rustdoc
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --workspace --no-deps
