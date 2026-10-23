@@ -1,11 +1,17 @@
 [package]
 name = "cctv-discovery"
+description = "Camera discovery for cctv-rs: SSDP / multicast / USB probe."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Camera discovery: SSDP / multicast / USB probe."
-readme = "../../README.md"
-repository = { workspace = true }
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "camera", "ssdp", "discovery", "onvif"]
+categories = ["network-programming", "hardware-support"]
 
 [dependencies]
+cctv-core.workspace = true
+
+[lints]
+workspace = true
