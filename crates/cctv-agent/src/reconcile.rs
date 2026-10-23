@@ -8,17 +8,21 @@
 //! Everything here is runtime-only. No commands cross into `cctv-core`.
 
 use crate::audit::Audit;
-use cctv_core::{CameraDesired, CameraState, CameraStateCurrent, CameraType};
+use cctv_core::CameraState;
 
+/// Brings a fleet's observed state back to the desired state, recording each
+/// remediation it applies.
 pub struct Reconciler {
     audit: Audit,
 }
 
 impl Reconciler {
+    /// Create a reconciler that records changes in `audit`.
     pub fn new(audit: Audit) -> Self {
         Self { audit }
     }
 
+    /// Diff desired against observed state for `camera` and apply graded remediation.
     pub fn reconcile(&mut self, camera: &mut CameraState) {
         // Desired vs observed diff.
         // Produce a graded remediation from the cctv-core error taxonomy.

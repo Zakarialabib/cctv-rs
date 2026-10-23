@@ -1,12 +1,17 @@
 [package]
 name = "cctv-agent"
+description = "Fleet reconciler for cctv-rs: desired state -> graded remediation, audit trail."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Fleet reconciler: desired state -> graded remediation, audit trail."
-readme = "../../README.md"
-repository = { workspace = true }
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "camera", "reconciler", "fleet", "audit"]
+categories = ["hardware-support", "development-tools"]
 
 [dependencies]
-cctv-core = { path = "../cctv-core" }
+cctv-core.workspace = true
+
+[lints]
+workspace = true
