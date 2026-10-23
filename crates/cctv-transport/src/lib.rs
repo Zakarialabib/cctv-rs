@@ -6,5 +6,7 @@
 //! TLS policy is injected, not compiled — the reconciler can swap the loader at
 //! runtime for different deployments (VPS mirror, office player, kiosk).
 
+#![forbid(unsafe_code)]
+
 pub mod policy;
 pub mod reader;
