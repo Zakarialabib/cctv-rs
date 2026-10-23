@@ -34,3 +34,6 @@ allow-wildcard-paths = true
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+# The Ezviz client is developed in its own repository and consumed at a pinned
+# rev until development builds can use the crates.io release.
+allow-git = ["https://github.com/Zakarialabib/ezviz-openapi-rs"]

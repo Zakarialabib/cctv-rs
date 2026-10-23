@@ -230,6 +230,7 @@ dependencies = [
 [[package]]
 name = "ezviz-openapi"
 version = "0.1.0"
+source = "git+https://github.com/Zakarialabib/ezviz-openapi-rs?rev=5049972fcdc3346ced79ab26873e55d556ee3c28#5049972fcdc3346ced79ab26873e55d556ee3c28"
 dependencies = [
  "reqwest",
  "serde",
