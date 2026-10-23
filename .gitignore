@@ -1,0 +1,29 @@
+# Rust build output
+/target
+**/*.rs.bk
+
+# Camera credentials and TLS material must never be committed.
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+
+# Toolchain / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+.rustc_info.json
+
+# Crash dumps
+*.dmp
+*.stackdump
+
+# Scratch notes
+.git-msg.txt
+
+# Cargo.lock IS committed: this workspace is a publishable library set and the
+# lockfile is what CI builds against.
