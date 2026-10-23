@@ -6,6 +6,10 @@
 //! authentication so the auth path is exercised too.  It holds no
 //! credentials of any real device.
 //!
+//! Response bodies may contain the placeholder `{{base}}`, replaced by the
+//! server's own `http://127.0.0.1:<port>` — so a fixture can advertise service
+//! URLs (ONVIF `XAddr`, snapshot URIs) that point back at itself.
+//!
 //! HTTP/1.1 only, one request per connection (`Connection: close`).
 
 use std::net::SocketAddr;
@@ -128,6 +132,7 @@ impl RecordedRequest {
 }
 
 struct Shared {
+    base: String,
     routes: Vec<Route>,
     digest_user: Option<String>,
     requests: Mutex<Vec<RecordedRequest>>,
@@ -157,6 +162,7 @@ impl FixtureServer {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let addr = listener.local_addr()?;
         let shared = Arc::new(Shared {
+            base: format!("http://{addr}"),
             routes,
             digest_user,
             requests: Mutex::new(Vec::new()),
@@ -262,7 +268,7 @@ async fn serve(mut stream: TcpStream, shared: &Shared) -> std::io::Result<()> {
     }
 
     let (status, content_type, body) = match shared.routes.iter().find(|r| r.matches(&req)) {
-        Some(r) => (r.status, r.content_type.clone(), r.body.clone()),
+        Some(r) => (r.status, r.content_type.clone(), substitute_base(&r.body, &shared.base)),
         None => (404, "text/plain".to_string(), b"no fixture route".to_vec()),
     };
     let head = format!(
@@ -273,6 +279,22 @@ async fn serve(mut stream: TcpStream, shared: &Shared) -> std::io::Result<()> {
     stream.write_all(head.as_bytes()).await?;
     stream.write_all(&body).await?;
     stream.shutdown().await
+}
+
+fn substitute_base(body: &[u8], base: &str) -> Vec<u8> {
+    const NEEDLE: &[u8] = b"{{base}}";
+    let mut out = Vec::with_capacity(body.len());
+    let mut i = 0;
+    while i < body.len() {
+        if body[i..].starts_with(NEEDLE) {
+            out.extend_from_slice(base.as_bytes());
+            i += NEEDLE.len();
+        } else {
+            out.push(body[i]);
+            i += 1;
+        }
+    }
+    out
 }
 
 fn reason(status: u16) -> &'static str {
