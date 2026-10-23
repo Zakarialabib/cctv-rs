@@ -9,19 +9,23 @@ engineered Ezviz Open Platform client, `ezviz-openapi-rs`).
 
 ## Workspace
 
-```
-|cctv-core          device model: traits, state, errors, mock, conformance (no tokio)
-|cctv               facade: discover, frame, ptz, start/stop, stats, config, presets
-|cctv-discovery     SSDP / multicast / USB camera discovery
-|cctv-transport     TLS policy, pinning, budgeted frame reader
-|cctv-ezviz         Ezviz Open-Platform driver (from ezviz-openapi-rs)
-|cctv-agent         fleet reconciler: offline→armed→streaming, audit trail
-```
+| Crate | Role |
+|---|---|
+| `cctv-core` | device model: types, state, commands, errors, mock, conformance (`no tokio`) |
+| `cctv-transport` | TLS policy, pinning, budgeted frame reader |
+| `cctv-discovery` | SSDP / multicast / USB camera discovery |
+| `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |
+| `cctv-agent` | fleet reconciler: offline→armed→streaming, audit trail |
+| `cctv-rs` | facade: discover, frame, ptz, start/stop, stats, config, presets |
+
+The six crates are versioned and published together. `cctv-core` depends on nothing
+in the workspace, the facade depends on everything, and only `cctv-rs` is meant to
+be consumed by the application.
 
 ## Quick start
 
-```
-git clone <cctv-rs>
+```bash
+git clone https://github.com/Zakarialabib/cctv-rs
 cd cctv-rs
 cargo check --workspace
 cargo test --workspace
@@ -36,5 +40,29 @@ cargo test --workspace
 
 ## Documentation
 
-See [`docs/ARCHITECTURE-SPEC.md`](docs/ARCHITECTURE-SPEC.md) — the full architecture,
-protocol matrix, command taxonomy and implementation phases.
+Start at [`docs/README.md`](docs/README.md). The architecture — use surface, crate
+map, protocol matrix, event taxonomy and the integration seam — is
+[`docs/architecture.md`](docs/architecture.md); the command inventory is
+[`docs/commands.md`](docs/commands.md) and the plan is
+[`docs/roadmap.md`](docs/roadmap.md). The house engineering standard is
+[`docs/04-rust-package-standard.md`](docs/04-rust-package-standard.md).
+
+## Contributing
+
+Prerequisites, the local gates CI enforces, commit conventions and the versioning
+policy are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Releasing
+
+The six crates publish in dependency order via
+[`scripts/publish.sh`](scripts/publish.sh) — crates.io yanks rather than deletes,
+so the order and the dry run matter. The order itself lives in that script.
+
+## Security
+
+Report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md). There is no
+`unsafe` in this workspace; every crate root forbids it.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE). Changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
