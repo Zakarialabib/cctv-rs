@@ -8,13 +8,18 @@ use crate::types::EzvizCamera;
 
 /// The Ezviz driver.
 pub struct Driver {
-    client: client::EzvizClient,
+    client: EzvizClient,
 }
 
 impl Driver {
     /// Build from a configured Ezviz account token.
     pub fn new(client: EzvizClient) -> Self {
         Self { client }
+    }
+
+    /// The underlying Ezviz Open API client.
+    pub fn client(&self) -> &EzvizClient {
+        &self.client
     }
 
     /// List online cameras.

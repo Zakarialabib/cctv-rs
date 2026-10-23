@@ -5,8 +5,10 @@
 //!
 //! The Ezviz IP camera's proprietary PC Open SDK is enabled with the `pc-sdk` feature.
 
-pub mod client;
+#![forbid(unsafe_code)]
+
 pub mod camera;
+pub mod client;
 pub mod types;
 
 pub use ezviz_openapi::*;
