@@ -135,6 +135,162 @@ impl MockBackend {
     }
 }
 
+/// In-memory [`CameraBackend`](crate::backend::CameraBackend): one fake camera
+/// with a stream, a snapshot, PTZ and device-side presets.
+///
+/// It is the reference subject of the conformance suite, and a stand-in for a
+/// real driver in application tests.
+pub struct MockCamera {
+    presets: std::sync::Mutex<Vec<crate::Preset>>,
+    next_preset: std::sync::atomic::AtomicU32,
+    /// Every PTZ command received, in order.
+    pub ptz_log: std::sync::Mutex<Vec<crate::backend::PtzCommand>>,
+}
+
+impl MockCamera {
+    /// A fake camera with no presets.
+    pub fn new() -> Self {
+        Self {
+            presets: std::sync::Mutex::new(Vec::new()),
+            next_preset: std::sync::atomic::AtomicU32::new(1),
+            ptz_log: std::sync::Mutex::new(Vec::new()),
+        }
+    }
+}
+
+impl Default for MockCamera {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn poisoned() -> crate::CameraError {
+    crate::CameraError::Other("mock state lock poisoned".into())
+}
+
+impl crate::backend::CameraBackend for MockCamera {
+    fn driver(&self) -> &'static str {
+        "mock"
+    }
+
+    fn probe(&self) -> crate::backend::BoxFuture<'_, Result<ProbeResult, crate::CameraError>> {
+        Box::pin(async {
+            Ok(ProbeResult {
+                vendor: "Mock".into(),
+                model: "MockCam".into(),
+                firmware: Some("1.0".into()),
+                ip: Some("127.0.0.1".into()),
+                mac: None,
+                stream_url: Some("rtsp://127.0.0.1/main".into()),
+                ptz_supported: true,
+                ai_supported: false,
+            })
+        })
+    }
+
+    fn stream(
+        &self,
+        quality: crate::backend::StreamQuality,
+    ) -> crate::backend::BoxFuture<'_, Result<crate::backend::StreamInfo, crate::CameraError>> {
+        Box::pin(async move {
+            let path = match quality {
+                crate::backend::StreamQuality::Main => "main",
+                crate::backend::StreamQuality::Sub => "sub",
+            };
+            Ok(crate::backend::StreamInfo {
+                uri: format!("rtsp://127.0.0.1/{path}"),
+                profile: path.into(),
+                quality,
+                width: None,
+                height: None,
+                codec: Some("H264".into()),
+            })
+        })
+    }
+
+    fn snapshot(
+        &self,
+    ) -> crate::backend::BoxFuture<'_, Result<crate::backend::Snapshot, crate::CameraError>> {
+        Box::pin(async {
+            Ok(crate::backend::Snapshot::from_bytes(
+                vec![0xFF, 0xD8, 0xFF, 0xD9],
+                "image/jpeg",
+            ))
+        })
+    }
+
+    fn ptz(
+        &self,
+        command: crate::backend::PtzCommand,
+    ) -> crate::backend::BoxFuture<'_, Result<(), crate::CameraError>> {
+        Box::pin(async move {
+            self.ptz_log.lock().map_err(|_| poisoned())?.push(command);
+            Ok(())
+        })
+    }
+
+    fn presets(
+        &self,
+    ) -> crate::backend::BoxFuture<'_, Result<Vec<crate::Preset>, crate::CameraError>> {
+        Box::pin(async { Ok(self.presets.lock().map_err(|_| poisoned())?.clone()) })
+    }
+
+    fn save_preset<'a>(
+        &'a self,
+        name: &'a str,
+        id: Option<&'a str>,
+    ) -> crate::backend::BoxFuture<'a, Result<crate::Preset, crate::CameraError>> {
+        Box::pin(async move {
+            let id = match id {
+                Some(id) => id.to_string(),
+                None => self
+                    .next_preset
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                    .to_string(),
+            };
+            let preset = crate::Preset {
+                id: id.clone(),
+                name: name.to_string(),
+                pan: 0.0,
+                tilt: 0.0,
+                zoom: 0.0,
+                config: serde_json::Value::Null,
+            };
+            let mut all = self.presets.lock().map_err(|_| poisoned())?;
+            all.retain(|p| p.id != id);
+            all.push(preset.clone());
+            Ok(preset)
+        })
+    }
+
+    fn goto_preset<'a>(
+        &'a self,
+        id: &'a str,
+    ) -> crate::backend::BoxFuture<'a, Result<(), crate::CameraError>> {
+        Box::pin(async move {
+            let all = self.presets.lock().map_err(|_| poisoned())?;
+            if all.iter().any(|p| p.id == id) {
+                Ok(())
+            } else {
+                Err(crate::CameraError::Other(format!("no preset {id}")))
+            }
+        })
+    }
+
+    fn delete_preset<'a>(
+        &'a self,
+        id: &'a str,
+    ) -> crate::backend::BoxFuture<'a, Result<(), crate::CameraError>> {
+        Box::pin(async move {
+            self.presets
+                .lock()
+                .map_err(|_| poisoned())?
+                .retain(|p| p.id != id);
+            Ok(())
+        })
+    }
+}
+
 /// Build a mock camera state for conformance tests.
 pub fn mock_camera(id: &str, vendor: &str) -> crate::CameraState {
     crate::CameraState::new(
@@ -164,6 +320,67 @@ mod tests {
     fn forward_transition_warms_confidence() {
         let b = MockBackend::new();
         b.conformance_forward_warms_confidence();
+    }
+
+    /// Minimal `std`-only executor: the mock's futures never wait on I/O.
+    fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+        let waker = std::task::Waker::noop();
+        let mut cx = std::task::Context::from_waker(waker);
+        let mut fut = std::pin::pin!(fut);
+        loop {
+            if let std::task::Poll::Ready(v) = fut.as_mut().poll(&mut cx) {
+                return v;
+            }
+            std::thread::yield_now();
+        }
+    }
+
+    #[test]
+    fn mock_camera_passes_the_conformance_suite() {
+        let cam = super::MockCamera::new();
+        let report = block_on(crate::conformance::run(
+            &cam,
+            crate::conformance::Expectations::FULL,
+        ));
+        assert!(report.is_ok(), "{report}");
+        assert_eq!(report.passed.len(), 7);
+    }
+
+    struct Bare;
+
+    impl crate::backend::CameraBackend for Bare {
+        fn driver(&self) -> &'static str {
+            "bare"
+        }
+        fn probe(
+            &self,
+        ) -> crate::backend::BoxFuture<'_, Result<crate::ProbeResult, crate::CameraError>> {
+            Box::pin(async { super::MockCamera::new().probe().await })
+        }
+        fn stream(
+            &self,
+            q: crate::backend::StreamQuality,
+        ) -> crate::backend::BoxFuture<'_, Result<crate::backend::StreamInfo, crate::CameraError>>
+        {
+            Box::pin(async move { super::MockCamera::new().stream(q).await })
+        }
+    }
+
+    #[test]
+    fn a_backend_that_supports_nothing_fails_with_typed_errors() {
+        let none = crate::conformance::Expectations {
+            snapshot: false,
+            ptz: false,
+            presets: false,
+        };
+        let report = block_on(crate::conformance::run(&Bare, none));
+        assert!(report.is_ok(), "{report}");
+        // Claiming what the backend lacks is caught and reported, not panicked on.
+        let full = block_on(crate::conformance::run(
+            &Bare,
+            crate::conformance::Expectations::FULL,
+        ));
+        assert_eq!(full.failures.len(), 3, "{full}");
     }
 
     #[test]

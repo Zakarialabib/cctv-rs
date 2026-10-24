@@ -46,7 +46,7 @@ reason to exist.
 - `cctv-core` is the device model. It must not gain a network stack, an async
   runtime or vendor vocabulary.
 - A driver crate is protocol only. `cctv-ezviz` wraps `ezviz-openapi-rs` through a
-  path dependency; it never copies vendor code and never reaches the app directly.
+  git dependency pinned to a rev (published crates use the crates.io release); it never copies vendor code and never reaches the app directly.
 - The app talks to `cctv-rs` (the facade), and nothing else. Vendor names must not
   appear in the facade's public surface.
 - Library code must never panic and must never use `unimplemented!()`. A capability
