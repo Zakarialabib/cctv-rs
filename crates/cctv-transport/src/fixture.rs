@@ -268,7 +268,11 @@ async fn serve(mut stream: TcpStream, shared: &Shared) -> std::io::Result<()> {
     }
 
     let (status, content_type, body) = match shared.routes.iter().find(|r| r.matches(&req)) {
-        Some(r) => (r.status, r.content_type.clone(), substitute_base(&r.body, &shared.base)),
+        Some(r) => (
+            r.status,
+            r.content_type.clone(),
+            substitute_base(&r.body, &shared.base),
+        ),
         None => (404, "text/plain".to_string(), b"no fixture route".to_vec()),
     };
     let head = format!(
