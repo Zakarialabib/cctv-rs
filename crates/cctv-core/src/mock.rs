@@ -325,7 +325,7 @@ mod tests {
     /// Minimal `std`-only executor: the mock's futures never wait on I/O.
     fn block_on<F: std::future::Future>(fut: F) -> F::Output {
         let waker = std::task::Waker::noop();
-        let mut cx = std::task::Context::from_waker(&waker);
+        let mut cx = std::task::Context::from_waker(waker);
         let mut fut = std::pin::pin!(fut);
         loop {
             if let std::task::Poll::Ready(v) = fut.as_mut().poll(&mut cx) {
