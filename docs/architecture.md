@@ -70,7 +70,8 @@ application talks to.
   async runtime, so it never gains tokio — CI fails the build if tokio appears in
   its dependency graph.
 - **Drivers are protocol only.** `cctv-ezviz` wraps the standalone
-  `ezviz-openapi` crate through a path dependency. It never copies vendor code and
+  `ezviz-openapi` crate through a git dependency pinned to a rev (published
+  crates resolve the crates.io release instead). It never copies vendor code and
   never reaches the application directly.
 - **The facade is the only public surface.** Vendor names must not appear in it.
 - **Commands are addressed by `CommandId`** — the *what*. Drivers answer the *how*.

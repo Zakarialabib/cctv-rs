@@ -36,8 +36,11 @@ reason.
    error, and the member list doubles as the publish order.
 3. **Ezviz.** The Ezviz Open Platform client is **one crate** here
    (`cctv-ezviz`). The standalone `ezviz-openapi-rs` repository is kept and
-   published separately; `cctv-ezviz` consumes it through a path dependency and
-   never copies vendor code.
+   published separately; `cctv-ezviz` never copies vendor code. The workspace
+   consumes it as a **git dependency pinned to a rev for development; published
+   crates depend on the crates.io release** (the manifest carries both `git` +
+   `rev` and `version`, and `cargo publish` keeps only the latter). Owner
+   decision, 2026-10-23.
 4. **Vendor range.** `cctv-rs` owns Ezviz, Hikvision, Dahua and others — **one
    driver crate per vendor**, and a driver crate is protocol only.
 5. **Publish scope.** `cctv-core` ships the device model now: traits,
