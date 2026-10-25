@@ -1,12 +1,30 @@
 //! `cctv-rs` — the facade crate.
 //!
-//! The only crate that SignageMaster's `cctv.ts` talks to. Nothing in here is
-//! vendor-specific: the app sees only the `cctv-core` device model and our
-//! event bus.
+//! The only crate that SignageMaster's `cctv.ts` talks to.  Nothing in here is
+//! vendor-specific: the application sees only the `cctv-core` device model, the
+//! reconciler's graded remediations, and the discovery sweep.
+//!
+//! - [`Facade`] — the single handle: register cameras, run commands, reconcile
+//!   the fleet, sweep the LAN.
+//! - [`DriverFactory`] — how a connection record's `driver` key becomes a live
+//!   backend, so no vendor name is part of this API.
+//! - `CameraError`, `CameraHandle`, `CommandId`, `CommandResult` — re-exported
+//!   from `cctv-core`: the device model the application codes against.
+//! - [`Remediation`], [`Grade`], [`Action`], [`Audit`] — re-exported from
+//!   `cctv-agent`: what the reconciler decided, and why.
 
 #![forbid(unsafe_code)]
 
+pub mod drivers;
 pub mod facade;
 
-pub use cctv_core::CameraError;
-pub use cctv_core::CameraHandle;
+pub use drivers::{DriverFactory, EZVIZ};
+pub use facade::Facade;
+
+pub use cctv_agent::{Action, Audit, AuditEntry, Grade, Reconciler, Remediation};
+pub use cctv_core::{
+    CameraConfig, CameraError, CameraHandle, CameraState, CameraStateCurrent, CameraType,
+    CommandId, CommandResult, CommandResultPayload, Preset, PtzCommand, Snapshot, StreamInfo,
+    StreamQuality,
+};
+pub use cctv_discovery::DiscoveredCamera;
