@@ -132,6 +132,7 @@ dependencies = [
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-transport",
+ "serde_json",
 ]
 
 [[package]]
