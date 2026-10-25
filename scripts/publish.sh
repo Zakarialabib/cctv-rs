@@ -67,17 +67,23 @@ case "$MODE" in
         PUBLISH_ARGS=(--dry-run --allow-dirty)
         ;;
     --publish)
-        if [ -z "${CRATES_IO_TOKEN:-}" ]; then
-            echo "error: CRATES_IO_TOKEN is not set" >&2
+        # A token can arrive two ways: the environment (handed to cargo through
+        # CARGO_REGISTRY_TOKEN, never argv — `--token` is visible in the process
+        # list), or `cargo login`'s stored credentials. Accept either.
+        if [ -n "${CRATES_IO_TOKEN:-}" ]; then
+            export CARGO_REGISTRY_TOKEN="$CRATES_IO_TOKEN"
+        elif [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials.toml" ] \
+            || [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials" ]; then
+            echo "==> no CRATES_IO_TOKEN in the environment; using cargo's stored credentials"
+        else
+            echo "error: no crates.io token. Either export CRATES_IO_TOKEN, or run" >&2
+            echo "       \`cargo login\` once to store one in ~/.cargo/credentials.toml." >&2
             exit 1
         fi
         if [ -n "$(git status --porcelain)" ]; then
             echo "error: working tree is dirty; commit or stash before publishing" >&2
             exit 1
         fi
-        # Hand the token to cargo through the environment, never argv: `--token`
-        # is visible in the process list to every user on the box.
-        export CARGO_REGISTRY_TOKEN="$CRATES_IO_TOKEN"
         PUBLISH_ARGS=()
         ;;
     *)
