@@ -39,6 +39,15 @@ All seven crates are versioned and released together.
   requires one and `PtzCommand::Stop` does not carry it.
 - The facade's registry ships an `onvif` factory beside `ezviz`, so
   `Facade::with_builtin_drivers().attach(config)` can build either.
+- `cctv-core` gains the `quirks` table — model- and firmware-specific camera
+  defects as **data**, ported from `tv-rs`: a TOML file keyed by
+  `(vendor, model prefix, firmware prefix)` with a fixed `action` vocabulary
+  (`start_at_<port>`, `rtsp_udp_only`, `auth_not_permitted`, `read_probe_flags`,
+  `retry_substream`, `point_user_at_settings`). Order is precedence, and an
+  unrecognised action is preserved rather than dropped. Behind the `quirks`
+  feature, so a build that only needs the device model pays no TOML parser; the
+  bundled table ships **empty** because no defect in this workspace has a source
+  yet, and an unverified row is worse than no row.
 - `cctv-rs` facade: the command surface behind one handle — `get_camera_frame`,
   `start_camera_stream`, `ptz_move`, `camera_config_get` / `camera_config_set`,
   `camera_set_enabled`, the preset round trip, the health / stats / reconnection
