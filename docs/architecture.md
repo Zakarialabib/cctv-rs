@@ -49,7 +49,7 @@ cctv-rs
 ├── cctv-transport ──────── serde
 ├── cctv-discovery ──────── cctv-core, cctv-transport
 ├── cctv-onvif ──────────── cctv-core, cctv-transport (http)
-├── cctv-ezviz ──────────── ezviz-openapi   (published from its own repository)
+├── cctv-ezviz ──────────── cctv-core, ezviz-openapi   (published from its own repository)
 └── cctv-agent ──────────── cctv-core
 ```
 
@@ -62,7 +62,7 @@ application talks to.
 | `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader, the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
 | `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
 | `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth. Protocol only — shared by every ONVIF vendor. |
-| `cctv-ezviz` | `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, alarms, capture. Translates vendor responses into the device model. |
+| `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, presets, alarms, capture. `EzvizCameraBackend` implements `CameraBackend`, so the conformance suite covers it. |
 | `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation, with an audit trail. |
 | `cctv-rs` | all six | The facade. Discovery orchestration and vendor identification behind one handle. |
 
