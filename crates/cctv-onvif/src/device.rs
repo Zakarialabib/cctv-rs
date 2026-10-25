@@ -31,9 +31,8 @@ pub struct DeviceInformation {
 
 /// Parse a `GetDeviceInformationResponse`.
 pub fn parse_device_information(body: &str) -> Result<DeviceInformation, OnvifError> {
-    let scope = xml::element_body(body, "GetDeviceInformationResponse").ok_or_else(|| {
-        OnvifError::Parse("no GetDeviceInformationResponse in the reply".into())
-    })?;
+    let scope = xml::element_body(body, "GetDeviceInformationResponse")
+        .ok_or_else(|| OnvifError::Parse("no GetDeviceInformationResponse in the reply".into()))?;
     Ok(DeviceInformation {
         manufacturer: xml::element_text(scope, "Manufacturer").unwrap_or_default(),
         model: xml::element_text(scope, "Model").unwrap_or_default(),

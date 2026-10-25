@@ -93,7 +93,7 @@ driver, a new fixture in the conformance suite, a new field on a struct that is
 days, because remedy mapping lives in downstream retry code. Add a variant, add its
 default result, add the conformance case — in the same PR.
 
-All six crates are versioned together and published together by
+All seven crates are versioned together and published together by
 [`scripts/publish.sh`](scripts/publish.sh). A partial release is worse than a late
 one.
 
