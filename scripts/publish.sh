@@ -62,24 +62,62 @@ MAX_RATE_LIMIT_ATTEMPTS=12
 
 MODE="${1:---dry-run}"
 
+# The workspace version every crate inherits. Read with `sed` rather than a
+# `cargo metadata` + JSON parser so the script has no interpreter dependency.
+VERSION="$(sed -n '/^\[workspace.package\]/,/^\[/p' Cargo.toml \
+    | sed -n 's/^version *= *"\(.*\)"/\1/p' | head -1)"
+if [ -z "$VERSION" ]; then
+    echo "error: could not read [workspace.package] version from Cargo.toml" >&2
+    exit 1
+fi
+
+# Is this exact version already on crates.io? (200 = yes, 404 = no)
+#
+# Checked before attempting an upload, for two reasons: a published version is
+# immutable so a second attempt can only fail, and `cargo publish` demands a
+# token before it discovers that — which would make a re-run, or a tag push on a
+# machine that never logged in, fail on a release that is already complete.
+already_on_registry() {
+    local code
+    # `|| true`, not `|| echo 000`: the fallback would concatenate onto whatever
+    # curl already printed (`200` + `000` = `200000`, which compares unequal to
+    # `200` and silently re-attempts an upload). An empty value reads as "not
+    # published", which is the safe direction, and the `||` keeps `set -e` from
+    # aborting the whole run on a network hiccup.
+    code="$(curl -s -o /dev/null -w '%{http_code}' \
+        -H 'User-Agent: cctv-rs-publish' \
+        "https://crates.io/api/v1/crates/$1/$2" 2>/dev/null || true)"
+    [ "$code" = "200" ]
+}
+
+# Resolve a crates.io token, once, the first time something needs uploading.
+# Two sources: the environment (handed to cargo through CARGO_REGISTRY_TOKEN,
+# never argv — `--token` is visible in the process list), or `cargo login`'s
+# stored credentials.
+TOKEN_READY=0
+ensure_token() {
+    [ "$TOKEN_READY" = "1" ] && return 0
+    if [ -n "${CRATES_IO_TOKEN:-}" ]; then
+        export CARGO_REGISTRY_TOKEN="$CRATES_IO_TOKEN"
+    elif [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials.toml" ] \
+        || [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials" ]; then
+        echo "==> no CRATES_IO_TOKEN in the environment; using cargo's stored credentials"
+    else
+        echo "error: no crates.io token, and something still needs uploading." >&2
+        echo "       Either export CRATES_IO_TOKEN, or run \`cargo login\` once." >&2
+        exit 1
+    fi
+    TOKEN_READY=1
+}
+
 case "$MODE" in
     --dry-run)
         PUBLISH_ARGS=(--dry-run --allow-dirty)
         ;;
     --publish)
-        # A token can arrive two ways: the environment (handed to cargo through
-        # CARGO_REGISTRY_TOKEN, never argv — `--token` is visible in the process
-        # list), or `cargo login`'s stored credentials. Accept either.
-        if [ -n "${CRATES_IO_TOKEN:-}" ]; then
-            export CARGO_REGISTRY_TOKEN="$CRATES_IO_TOKEN"
-        elif [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials.toml" ] \
-            || [ -f "${CARGO_HOME:-$HOME/.cargo}/credentials" ]; then
-            echo "==> no CRATES_IO_TOKEN in the environment; using cargo's stored credentials"
-        else
-            echo "error: no crates.io token. Either export CRATES_IO_TOKEN, or run" >&2
-            echo "       \`cargo login\` once to store one in ~/.cargo/credentials.toml." >&2
-            exit 1
-        fi
+        # The token is resolved lazily, right before the first crate that actually
+        # needs uploading: a re-run after a finished release (or a tag push on a
+        # machine that never logged in) must be able to no-op without one.
         if [ -n "$(git status --porcelain)" ]; then
             echo "error: working tree is dirty; commit or stash before publishing" >&2
             exit 1
@@ -124,6 +162,17 @@ skipped_count=0
 
 for crate in "${ORDER[@]}"; do
     echo "==> $MODE $crate"
+
+    # A published version is immutable, so never attempt a second upload: it can
+    # only fail, and it would demand a token for a release that is already done.
+    if [ "$MODE" = "--publish" ] && already_on_registry "$crate" "$VERSION"; then
+        echo "==> $crate $VERSION is already on crates.io; skipping"
+        continue
+    fi
+    if [ "$MODE" = "--publish" ]; then
+        ensure_token
+    fi
+
     attempt=1
     rate_attempt=1
     while :; do
