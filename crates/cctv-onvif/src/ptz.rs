@@ -26,7 +26,13 @@ fn clamp_unit(v: f32) -> f32 {
 
 /// `ContinuousMove` body.  Velocities are clamped to `-1..=1`; the timeout
 /// defaults to 30 s, after which the camera stops on its own.
-pub fn build_continuous_move(profile_token: &str, pan: f32, tilt: f32, zoom: f32, timeout_secs: Option<u64>) -> String {
+pub fn build_continuous_move(
+    profile_token: &str,
+    pan: f32,
+    tilt: f32,
+    zoom: f32,
+    timeout_secs: Option<u64>,
+) -> String {
     format!(
         "<tptz:ContinuousMove><tptz:ProfileToken>{}</tptz:ProfileToken><tptz:Velocity><tt:PanTilt x=\"{}\" y=\"{}\" space=\"{VELOCITY_PT}\"/><tt:Zoom x=\"{}\" space=\"{VELOCITY_Z}\"/></tptz:Velocity><tptz:Timeout>PT{}S</tptz:Timeout></tptz:ContinuousMove>",
         xml::escape(profile_token),
@@ -97,7 +103,9 @@ pub fn build_remove_preset(profile_token: &str, preset_token: &str) -> String {
 
 fn attr_f32(tag_scope: &str, element: &str, attr: &str) -> Option<f32> {
     let span = xml::find_element(tag_scope, element, 0)?;
-    xml::attribute(&tag_scope[span.start..span.open_end], attr)?.parse().ok()
+    xml::attribute(&tag_scope[span.start..span.open_end], attr)?
+        .parse()
+        .ok()
 }
 
 /// Parse a `GetPresetsResponse` into device-model presets.  Presets without
@@ -156,16 +164,23 @@ mod tests {
     #[test]
     fn stop_and_goto_carry_their_flags_and_tokens() {
         let s = build_stop("pt", true, false);
-        assert!(s.contains("<tptz:PanTilt>true</tptz:PanTilt>") && s.contains("<tptz:Zoom>false</tptz:Zoom>"));
+        assert!(
+            s.contains("<tptz:PanTilt>true</tptz:PanTilt>")
+                && s.contains("<tptz:Zoom>false</tptz:Zoom>")
+        );
         let g = build_goto_preset("profile-1", "preset-5");
-        assert!(g.contains("profile-1") && g.contains("<tptz:PresetToken>preset-5</tptz:PresetToken>"));
+        assert!(
+            g.contains("profile-1") && g.contains("<tptz:PresetToken>preset-5</tptz:PresetToken>")
+        );
     }
 
     #[test]
     fn set_preset_overwrites_only_when_a_token_is_given() {
         assert!(!build_set_preset("p", "Door", None).contains("PresetToken"));
         let s = build_set_preset("p", "D&R", Some("7"));
-        assert!(s.contains("<tptz:PresetName>D&amp;R</tptz:PresetName><tptz:PresetToken>7</tptz:PresetToken>"));
+        assert!(s.contains(
+            "<tptz:PresetName>D&amp;R</tptz:PresetName><tptz:PresetToken>7</tptz:PresetToken>"
+        ));
         assert!(build_remove_preset("p", "7").contains("RemovePreset"));
     }
 
@@ -182,6 +197,10 @@ mod tests {
         assert_eq!((p[0].id.as_str(), p[0].name.as_str()), ("1", "Door"));
         assert_eq!((p[0].pan, p[0].tilt, p[0].zoom), (0.5, -0.25, 0.1));
         assert_eq!((p[1].pan, p[1].tilt, p[1].zoom), (0.0, 0.0, 0.0));
-        assert_eq!(parse_set_preset("<SetPresetResponse><PresetToken>9</PresetToken></SetPresetResponse>").as_deref(), Some("9"));
+        assert_eq!(
+            parse_set_preset("<SetPresetResponse><PresetToken>9</PresetToken></SetPresetResponse>")
+                .as_deref(),
+            Some("9")
+        );
     }
 }

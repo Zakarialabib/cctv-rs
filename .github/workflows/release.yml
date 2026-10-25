@@ -23,7 +23,7 @@ jobs:
       - name: Verify LICENSE file exists
         run: test -f LICENSE || (echo "LICENSE file missing — cargo publish requires it" && exit 1)
 
-      # Six crates must be published in dependency order; a single root-level
+      # Seven crates must be published in dependency order; a single root-level
       # `cargo publish` cannot do that (path deps are stripped at publish time).
       # The order itself lives in `scripts/publish.sh`.
       - name: Dry run the ordered release

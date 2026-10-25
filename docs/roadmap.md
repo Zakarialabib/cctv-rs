@@ -8,12 +8,13 @@ What is built, what is next, and what is deliberately deferred.
 | --- | --- | --- | --- |
 | 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green |
 | 2 | `cctv-transport` (TLS policy + budgeted frame reader) and `cctv-discovery` (SSDP / multicast / USB) | both compile | crates landed and compile; the discovery transports are not wired yet — `Probe::scan` finds nothing |
-| 3 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | driver surface landed; mock-server tests pending |
-| 4 | `cctv-rs` facade, and rewriting the application's camera surface onto it | `cargo check -p cctv-rs` | facade handle landed (`new`, `list_cameras`); the application-side rewrite is not started |
-| 5 | `cctv-agent`: the reconciler — desired state → graded remediation, audit trail | `cargo test -p cctv-agent` | crate landed; reconciler logic pending |
-| 6 | Integration *with* the application — no vendor vocabulary left in it | the application surface contains no vendor name | not started |
+| 3 | `cctv-onvif`: the ONVIF driver — Device / Media / PTZ SOAP builders and parsers, WS-Security `UsernameToken` | `cargo test -p cctv-onvif` | landed — builders, parsers and the SOAP / WS-Security tests green; the HTTP session that drives them is not wired yet |
+| 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | driver surface landed; mock-server tests pending |
+| 5 | `cctv-rs` facade, and rewriting the application's camera surface onto it | `cargo check -p cctv-rs` | facade handle landed (`new`, `list_cameras`); the application-side rewrite is not started |
+| 6 | `cctv-agent`: the reconciler — desired state → graded remediation, audit trail | `cargo test -p cctv-agent` | crate landed; reconciler logic pending |
+| 7 | Integration *with* the application — no vendor vocabulary left in it | the application surface contains no vendor name | not started |
 
-Phases 1–4 are the path to a working driver. Phase 5 is post-V1, and phase 6 is
+Phases 1–5 are the path to a working driver. Phase 6 is post-V1, and phase 7 is
 the point at which the camera half of the refactor is finished.
 
 ## Deliberately out of scope
@@ -43,23 +44,28 @@ reason.
    decision, 2026-10-23.
 4. **Vendor range.** `cctv-rs` owns Ezviz, Hikvision, Dahua and others — **one
    driver crate per vendor**, and a driver crate is protocol only.
-5. **Publish scope.** `cctv-core` ships the device model now: traits,
+5. **ONVIF.** ONVIF is a *protocol*, not a vendor: it gets its own driver crate
+   (`cctv-onvif`) that every ONVIF vendor shares, the same way `cctv-transport`
+   carries the wire helpers all drivers share.
+6. **Publish scope.** `cctv-core` ships the device model now: traits,
    `CameraHandle`, `CameraError`, the conformance suite. That is the public
    contract.
-6. **App facade.** The application's camera module becomes a pure facade over the
+7. **App facade.** The application's camera module becomes a pure facade over the
    workspace; no vendor name survives in it.
-7. **Facade package name.** The facade publishes as **`cctv-rs`**, because `cctv`
+8. **Facade package name.** The facade publishes as **`cctv-rs`**, because `cctv`
    is already taken on crates.io by an unrelated project.
 
 ## Open items
 
+- Wire the ONVIF HTTP session: the builders and parsers are done, but nothing yet
+  drives `soap::envelope` through `cctv-transport`'s `HttpClient`.
 - Wire the discovery transports (`Probe::scan` currently returns an empty sweep).
 - Mock-server tests for the Ezviz driver.
 - The `quirks` remedy map: the data model is pure and returns `None`; a concrete
   vendor supplies its map from data — no vendor appears in the code.
 - Lock down the reverse-engineered Ezviz surface before writing more than passive
   reads into the driver.
-- The application-side rewrite in phase 4 and the integration in phase 6.
+- The application-side rewrite in phase 5 and the integration in phase 7.
 
 ## Acceptance criteria
 

@@ -5,8 +5,9 @@ concern — discovery, stream ingestion (RTSP / MJPEG), PTZ, AI detection, zones
 motion monitoring, snapshots, presets, reconnection, health and fleet-state
 reconciliation — while remaining a **library: no UI, no Tauri, no SQLite.**
 
-The application consumes it through one facade crate. The Ezviz Open Platform
-client is a **driver crate** behind that facade, the same way `tv-rs` keeps each
+The application consumes it through one facade crate. Each protocol is a **driver
+crate** behind that facade — `cctv-ezviz` for the Ezviz Open Platform,
+`cctv-onvif` for ONVIF Device / Media / PTZ — the same way `tv-rs` keeps each
 vendor protocol in its own crate.
 
 The rule inherited from `tv-rs`: *nothing panics in library code, and a capability
@@ -47,21 +48,23 @@ cctv-rs
 ├── cctv-core ───────────── serde, serde_json
 ├── cctv-transport ──────── serde
 ├── cctv-discovery ──────── cctv-core
+├── cctv-onvif ──────────── cctv-core, cctv-transport (http)
 ├── cctv-ezviz ──────────── ezviz-openapi   (published from its own repository)
 └── cctv-agent ──────────── cctv-core
 ```
 
-`cctv-rs` is the facade: it depends on all five and is the only crate the
+`cctv-rs` is the facade: it depends on all six and is the only crate the
 application talks to.
 
 | Crate | Depends on | Role |
 | --- | --- | --- |
 | `cctv-core` | `serde`, `serde_json` | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. |
-| `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN) and the budgeted frame reader. Policy is **data**. |
+| `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader, the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
 | `cctv-discovery` | `cctv-core` | SSDP / multicast / USB camera discovery. Emits `cctv-core` device-model items. |
+| `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, alarms, capture. Translates vendor responses into the device model. |
 | `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation, with an audit trail. |
-| `cctv-rs` | all five | The facade. Discovery orchestration and vendor identification behind one handle. |
+| `cctv-rs` | all six | The facade. Discovery orchestration and vendor identification behind one handle. |
 
 ### Dependency direction
 
@@ -69,15 +72,16 @@ application talks to.
   nothing in the workspace. It must stay embeddable by a consumer that links no
   async runtime, so it never gains tokio — CI fails the build if tokio appears in
   its dependency graph.
-- **Drivers are protocol only.** `cctv-ezviz` wraps the standalone
-  `ezviz-openapi` crate through a git dependency pinned to a rev (published
-  crates resolve the crates.io release instead). It never copies vendor code and
-  never reaches the application directly.
+- **Drivers are protocol only.** `cctv-onvif` speaks ONVIF through
+  `cctv-transport`; `cctv-ezviz` wraps the standalone `ezviz-openapi` crate
+  through a git dependency pinned to a rev (published crates resolve the
+  crates.io release instead). Neither copies vendor code and neither reaches the
+  application directly.
 - **The facade is the only public surface.** Vendor names must not appear in it.
 - **Commands are addressed by `CommandId`** — the *what*. Drivers answer the *how*.
   See [commands.md](commands.md).
 
-None of the six crates pulls in tokio today; the tokio-free guarantee is enforced
+None of the seven crates pulls in tokio today; the tokio-free guarantee is enforced
 for `cctv-core` because it is the one the application embeds.
 
 ---
@@ -89,14 +93,14 @@ for `cctv-core` because it is the one the application embeds.
 | LAN discovery | mDNS / DNS-SD, SSDP (UDP 1900, multicast) | none | `cctv-discovery` |
 | RTSP stream | TCP + buffering, via `cctv-transport` | token / certificate pinning | the driver |
 | MJPEG frames | via `cctv-transport` | none | `cctv-ezviz` |
-| ONVIF PTZ | HTTP + SOAP | user / password | `cctv-ezviz` (optional) |
+| ONVIF (device / media / PTZ) | HTTP + SOAP, via `cctv-transport` | WS-Security `UsernameToken` | `cctv-onvif` |
 | Ezviz cloud API | HTTPS, through `ezviz-openapi` | token | `cctv-ezviz` |
 | USB camera | kernel / hardware | none | the application, not a `cctv-*` crate |
 | Frames → dashboard | Tauri IPC | typed schema | the integration seam |
 | Events | in-process event bus | typed | `cctv-core` publishes, the application consumes |
 
 **Rule:** no vendor SDK ships with `cctv-core`. `cctv-ezviz` is the only driver
-that touches the Ezviz protocol.
+that touches the Ezviz protocol, and `cctv-onvif` the only one that touches ONVIF.
 
 ---
 
@@ -149,7 +153,7 @@ to satisfy.
 - `cargo tree -p cctv-core` shows no tokio in its dependency graph.
 - The conformance suite passes against the mock backend.
 - The application surface carries no vendor name; the `ezviz` vocabulary stops at
-  `cctv-ezviz`.
+  `cctv-ezviz` and the ONVIF vocabulary at `cctv-onvif`.
 - The commands the application depends on — `get_camera_frame`,
   `start_camera_stream`, `ptz_move`, `camera_config_get/set`,
   `camera_get_presets` / save / goto / delete, `camera_get_reconnection_info` —

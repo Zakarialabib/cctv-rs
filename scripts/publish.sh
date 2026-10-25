@@ -35,6 +35,7 @@ set -euo pipefail
 ORDER=(
     cctv-core        # no workspace deps
     cctv-transport   # no workspace deps
+    cctv-onvif       # -> cctv-core, cctv-transport
     cctv-discovery   # -> cctv-core
     cctv-ezviz       # -> ezviz-openapi (not published yet: must land first)
     cctv-agent       # -> cctv-core
