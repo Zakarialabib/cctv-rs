@@ -1,6 +1,6 @@
 [package]
 name = "cctv-discovery"
-description = "Camera discovery for cctv-rs: SSDP / multicast / USB probe."
+description = "Camera discovery for cctv-rs: SSDP M-SEARCH and WS-Discovery sweeps over UDP multicast."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,6 +12,9 @@ categories = ["network-programming", "hardware-support"]
 
 [dependencies]
 cctv-core.workspace = true
+# Only the shared, prefix-agnostic XML scanner (no `http` feature): WS-Discovery
+# replies are read with it, and nothing here opens a TCP connection.
+cctv-transport.workspace = true
 
 [lints]
 workspace = true
