@@ -63,8 +63,8 @@ application talks to.
 | `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
 | `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, presets, alarms, capture. `EzvizCameraBackend` implements `CameraBackend`, so the conformance suite covers it. |
-| `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation, with an audit trail. |
-| `cctv-rs` | all six | The facade. Discovery orchestration and vendor identification behind one handle. |
+| `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation (`Grade` / `Action`), with an append-only audit trail. |
+| `cctv-rs` | all six | The facade: the command surface, the driver registry (`CameraConfig::driver` → a factory), the LAN sweep and fleet reconciliation behind one handle. |
 
 ### Dependency direction
 
@@ -78,6 +78,9 @@ application talks to.
   crates.io release instead). Neither copies vendor code and neither reaches the
   application directly.
 - **The facade is the only public surface.** Vendor names must not appear in it.
+- **The facade resolves drivers through data.** `CameraConfig::driver` is a key
+  the facade's registry maps to a factory, so a vendor crate is reached by value,
+  never by name.
 - **Commands are addressed by `CommandId`** — the *what*. Drivers answer the *how*.
   See [commands.md](commands.md).
 
