@@ -61,7 +61,7 @@ application talks to.
 | `cctv-core` | `serde`, `serde_json` | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. |
 | `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader, the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
 | `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
-| `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth. Protocol only — shared by every ONVIF vendor. |
+| `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth, an `OnvifSession` that drives them over the shared HTTP client, and an `OnvifCameraBackend`. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, presets, alarms, capture. `EzvizCameraBackend` implements `CameraBackend`, so the conformance suite covers it. |
 | `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation (`Grade` / `Action`), with an append-only audit trail. |
 | `cctv-rs` | all six | The facade: the command surface, the driver registry (`CameraConfig::driver` → a factory), the LAN sweep and fleet reconciliation behind one handle. |

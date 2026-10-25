@@ -329,7 +329,10 @@ fn the_driver_registry_builds_a_backend_from_a_record() {
 #[test]
 fn the_builtin_registry_names_the_ezviz_driver() {
     let facade = Facade::new().with_builtin_drivers();
-    assert_eq!(facade.driver_keys(), vec!["ezviz".to_string()]);
+    assert_eq!(
+        facade.driver_keys(),
+        vec!["ezviz".to_string(), "onvif".to_string()]
+    );
 }
 
 #[test]

@@ -1,6 +1,6 @@
 [package]
 name = "cctv-onvif"
-description = "ONVIF (Device / Media / PTZ) driver for cctv-rs: SOAP 1.2 builders, WS-Security UsernameToken auth and prefix-agnostic reply parsers."
+description = "ONVIF (Device / Media / PTZ) driver for cctv-rs: SOAP 1.2 builders, WS-Security UsernameToken auth, a session over the shared HTTP client and a CameraBackend."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,6 +19,12 @@ cctv-transport = { workspace = true, features = ["http"] }
 base64.workspace = true
 sha1.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+# The conformance suite runs against a canned SOAP server instead of a camera,
+# under a real runtime.
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+cctv-transport = { workspace = true, features = ["fixture"] }
 
 [lints]
 workspace = true

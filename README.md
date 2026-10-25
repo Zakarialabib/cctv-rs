@@ -15,7 +15,7 @@ reverse-engineered Ezviz Open Platform client, `ezviz-openapi-rs`) and
 | `cctv-core` | device model: types, state, commands, errors, mock, conformance (`no tokio`) |
 | `cctv-transport` | TLS policy, pinning, budgeted frame reader, shared XML scanner and HTTP client |
 | `cctv-discovery` | SSDP + WS-Discovery camera discovery over UDP multicast |
-| `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders + parsers |
+| `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders, session, `CameraBackend` |
 | `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |
 | `cctv-agent` | fleet reconciler: desired → graded remediation, audit trail |
 | `cctv-rs` | facade: registry, commands, discovery, fleet reconciliation |
