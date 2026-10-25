@@ -16,6 +16,11 @@ All seven crates are versioned and released together.
   been committed without a manifest or a crate root, so the crate did not build
   and nothing referenced it; it is now a workspace member with a `lib.rs`, a
   `README.md`, CI coverage and a slot in the publish order.
+- `cctv-discovery` transports: the SSDP `M-SEARCH` and WS-Discovery `Probe`
+  sweeps. `Probe::scan` performs a real sweep over UDP multicast and
+  `Probe::scan_with` runs the same sweep over an injected `Datagram`, so the
+  message codecs and the merge / dedupe logic are unit-tested without a network.
+  USB enumeration stays the application's concern.
 - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
   the publication path requires.
 - Per-crate `README.md` files and publish metadata (`keywords`, `categories`,
