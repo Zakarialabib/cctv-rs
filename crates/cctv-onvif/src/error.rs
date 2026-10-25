@@ -46,7 +46,10 @@ impl From<HttpError> for OnvifError {
 
 fn is_auth_fault(reason: &str) -> bool {
     let r = reason.to_ascii_lowercase();
-    r.contains("notauthorized") || r.contains("not authorized") || r.contains("unauthorized") || r.contains("authentication")
+    r.contains("notauthorized")
+        || r.contains("not authorized")
+        || r.contains("unauthorized")
+        || r.contains("authentication")
 }
 
 impl From<OnvifError> for CameraError {
@@ -74,10 +77,25 @@ mod tests {
 
     #[test]
     fn errors_map_onto_the_camera_taxonomy() {
-        assert_eq!(CameraError::from(OnvifError::Status(401)), CameraError::AuthFailed);
-        assert_eq!(CameraError::from(OnvifError::Fault("ter:NotAuthorized".into())), CameraError::AuthFailed);
-        assert_eq!(CameraError::from(OnvifError::Http(HttpError::Connect("x".into()))), CameraError::Offline);
-        assert_eq!(CameraError::from(OnvifError::MissingService("PTZ")), CameraError::PtzDisabled);
-        assert_eq!(CameraError::from(OnvifError::NoProfile), CameraError::StreamFailed);
+        assert_eq!(
+            CameraError::from(OnvifError::Status(401)),
+            CameraError::AuthFailed
+        );
+        assert_eq!(
+            CameraError::from(OnvifError::Fault("ter:NotAuthorized".into())),
+            CameraError::AuthFailed
+        );
+        assert_eq!(
+            CameraError::from(OnvifError::Http(HttpError::Connect("x".into()))),
+            CameraError::Offline
+        );
+        assert_eq!(
+            CameraError::from(OnvifError::MissingService("PTZ")),
+            CameraError::PtzDisabled
+        );
+        assert_eq!(
+            CameraError::from(OnvifError::NoProfile),
+            CameraError::StreamFailed
+        );
     }
 }

@@ -4,12 +4,18 @@ All notable changes to the `cctv-rs` workspace are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-All six crates are versioned and released together.
+All seven crates are versioned and released together.
 
 ## [Unreleased]
 
 ### Added
 
+- `cctv-onvif`, the ONVIF driver: SOAP 1.2 request builders and reply parsers for
+  the Device, Media and PTZ services, with WS-Security `UsernameToken`
+  authentication (`Base64(SHA1(nonce ‖ created ‖ password))`). The sources had
+  been committed without a manifest or a crate root, so the crate did not build
+  and nothing referenced it; it is now a workspace member with a `lib.rs`, a
+  `README.md`, CI coverage and a slot in the publish order.
 - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
   the publication path requires.
 - Per-crate `README.md` files and publish metadata (`keywords`, `categories`,

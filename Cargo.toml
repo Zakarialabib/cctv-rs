@@ -6,6 +6,7 @@ resolver = "2"
 members = [
     "crates/cctv-core",
     "crates/cctv-transport",
+    "crates/cctv-onvif",
     "crates/cctv-discovery",
     "crates/cctv-ezviz",
     "crates/cctv-agent",
@@ -23,6 +24,7 @@ repository = "https://github.com/Zakarialabib/cctv-rs"
 # --- workspace crates (path + version: Cargo strips `path` at publish time) ---
 cctv-core = { path = "crates/cctv-core", version = "0.1.0" }
 cctv-transport = { path = "crates/cctv-transport", version = "0.1.0" }
+cctv-onvif = { path = "crates/cctv-onvif", version = "0.1.0" }
 cctv-discovery = { path = "crates/cctv-discovery", version = "0.1.0" }
 cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.1.0" }
 cctv-agent = { path = "crates/cctv-agent", version = "0.1.0" }
@@ -41,6 +43,7 @@ ezviz-openapi = { version = "0.1.0", git = "https://github.com/Zakarialabib/ezvi
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 tokio = { version = "1", default-features = false }
 md-5 = "0.11"
+sha1 = "0.11"
 sha2 = "0.11"
 base64 = "0.23"
 

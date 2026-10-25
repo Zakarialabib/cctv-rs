@@ -1,0 +1,24 @@
+[package]
+name = "cctv-onvif"
+description = "ONVIF (Device / Media / PTZ) driver for cctv-rs: SOAP 1.2 builders, WS-Security UsernameToken auth and prefix-agnostic reply parsers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "onvif", "ptz", "soap", "camera"]
+categories = ["api-bindings", "multimedia::video"]
+
+[dependencies]
+cctv-core.workspace = true
+# `xml` (always on) plus the shared rustls-only HTTP client (`http` feature) the
+# drivers authenticate with: ONVIF adds WS-Security at the message level, on top
+# of the transport's Digest / Basic negotiation.
+cctv-transport = { workspace = true, features = ["http"] }
+base64.workspace = true
+sha1.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
