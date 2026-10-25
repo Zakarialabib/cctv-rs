@@ -30,6 +30,18 @@ All seven crates are versioned and released together.
   against `cctv-transport`'s fixture HTTP server. The three things the platform
   cannot do (return image bytes, list presets, move to an absolute position) are
   typed `NotImplemented`, not silent failures.
+- `cctv-rs` facade: the command surface behind one handle — `get_camera_frame`,
+  `start_camera_stream`, `ptz_move`, `camera_config_get` / `camera_config_set`,
+  `camera_set_enabled`, the preset round trip, the health / stats / reconnection
+  probes, the fleet self-test, and `execute(id, CommandId)` for the
+  parameterless catalogue. A driver registry resolves a connection record's
+  `driver` key to a factory (`with_builtin_drivers` registers `ezviz`), and
+  `discover` / `discover_with` front the LAN sweep.
+- `cctv-agent` reconciler: the desired-versus-observed diff and the graded
+  remediation it implies (`Grade` / `Action` / `Remediation`), graded from the
+  `CameraError` taxonomy — an unreachable camera is retried, an authentication
+  failure is reconfigured, a camera the fleet no longer has is disabled, and an
+  unknown failure is only notified. `Audit` is a real append-only store.
 - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
   the publication path requires.
 - Per-crate `README.md` files and publish metadata (`keywords`, `categories`,

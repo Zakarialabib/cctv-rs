@@ -17,8 +17,8 @@ reverse-engineered Ezviz Open Platform client, `ezviz-openapi-rs`) and
 | `cctv-discovery` | SSDP + WS-Discovery camera discovery over UDP multicast |
 | `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders + parsers |
 | `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |
-| `cctv-agent` | fleet reconciler: offline→armed→streaming, audit trail |
-| `cctv-rs` | facade: discover, frame, ptz, start/stop, stats, config, presets |
+| `cctv-agent` | fleet reconciler: desired → graded remediation, audit trail |
+| `cctv-rs` | facade: registry, commands, discovery, fleet reconciliation |
 
 The seven crates are versioned and published together. `cctv-core` depends on nothing
 in the workspace, the facade depends on everything, and only `cctv-rs` is meant to
