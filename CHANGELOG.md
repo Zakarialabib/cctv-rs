@@ -57,6 +57,11 @@ All seven crates are versioned and released together.
 - The facade crate is published as **`cctv-rs`**, not `cctv`: the name `cctv` is
   already taken on crates.io by an unrelated project. In-tree consumers use
   `cctv_rs` where they used `cctv`.
+- `scripts/publish.sh` handles the crates.io new-crate rate limit (a burst of 5,
+  then 1 every 10 minutes — a first release is eight new crates), refuses to
+  start unless `ezviz-openapi` is already published, and hands the token to cargo
+  through `CARGO_REGISTRY_TOKEN` instead of `--token` so it never appears in the
+  process list.
 
 ### Fixed
 

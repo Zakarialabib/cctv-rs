@@ -104,11 +104,30 @@ partial publish burns the version. Dry-run first:
 
 ```bash
 ./scripts/publish.sh --dry-run
-./scripts/publish.sh --publish
+CRATES_IO_TOKEN=... ./scripts/publish.sh --publish
 ```
 
-`ezviz-openapi` is published from its own repository and must be on crates.io
-before `cctv-ezviz`.
+**Order, and why it matters.** `ezviz-openapi` is published from its own
+repository and must be on crates.io *before* `cctv-ezviz`: `cargo publish` strips
+the `git` key from a `{ git, version }` dependency and resolves the version from
+the registry, so an unpublished `ezviz-openapi` fails the sequence at crate 5.
+The script checks for it and refuses to start otherwise.
+
+```bash
+cd ../ezviz-openapi-rs && CRATES_IO_TOKEN=... cargo publish
+cd ../cctv-rs && CRATES_IO_TOKEN=... ./scripts/publish.sh --publish
+```
+
+**Rate limit.** crates.io allows a burst of **5 new crates** per account, then
+**1 every 10 minutes**. A first release is eight new crates, so the tail of the
+order waits; the script detects the rate-limit response and waits it out rather
+than failing a half-finished release. Budget about half an hour for a first
+release.
+
+**The token.** `CRATES_IO_TOKEN` is read from the environment and handed to cargo
+through `CARGO_REGISTRY_TOKEN`, so it never appears in the process list. Never
+commit it. `cargo login` is the alternative if you would rather have cargo read it
+from `~/.cargo/credentials.toml`.
 
 ## Docs
 
