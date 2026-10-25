@@ -21,6 +21,15 @@ All seven crates are versioned and released together.
   `Probe::scan_with` runs the same sweep over an injected `Datagram`, so the
   message codecs and the merge / dedupe logic are unit-tested without a network.
   USB enumeration stays the application's concern.
+- `cctv-ezviz` driver: `discover` now lists the account's devices and joins
+  their channels instead of returning an empty vector, and the account-level
+  operations (`alarms`, `capture`) are implemented. `EzvizCameraBackend`
+  implements `cctv_core::CameraBackend` for one camera / channel — `probe`,
+  `stream`, `ptz` (through the new pure `ptz` direction / speed mapping) and the
+  preset add / recall / clear round trip — and passes the conformance suite
+  against `cctv-transport`'s fixture HTTP server. The three things the platform
+  cannot do (return image bytes, list presets, move to an absolute position) are
+  typed `NotImplemented`, not silent failures.
 - `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
   the publication path requires.
 - Per-crate `README.md` files and publish metadata (`keywords`, `categories`,
