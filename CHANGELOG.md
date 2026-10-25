@@ -48,6 +48,20 @@ All seven crates are versioned and released together.
   feature, so a build that only needs the device model pays no TOML parser; the
   bundled table ships **empty** because no defect in this workspace has a source
   yet, and an unverified row is worse than no row.
+- `cctv-transport`'s `FrameReader` is implemented — it was a stub that returned
+  `None` regardless of input. It now bounds **staleness** (a frame older than the
+  budget is dropped rather than delivered late, because a live tile would rather
+  show nothing than a stale frame) and the **backlog** (a full queue drops its
+  oldest — latest frame wins), counts `delivered` / `dropped` / `starved`
+  separately so "no stream" is distinguishable from "stream too slow", and
+  **measures** the received rate over a window. It is pure: no I/O, no clock, no
+  runtime — the caller stamps frames and supplies "now", so its tests need no
+  sleeps.
+- `camera_get_stats` reports those measurements instead of hardcoded zeros, and
+  `Facade::frame_reader` hands the application the shared reader to push frames
+  into. `cctv_rs::clock_ms()` is the clock both sides stamp with. The numbers are
+  still zero today because nothing feeds the reader yet — but they are now
+  *measured* zero, not a placeholder.
 - `cctv-rs` facade: the command surface behind one handle — `get_camera_frame`,
   `start_camera_stream`, `ptz_move`, `camera_config_get` / `camera_config_set`,
   `camera_set_enabled`, the preset round trip, the health / stats / reconnection

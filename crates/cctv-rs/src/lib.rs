@@ -19,7 +19,7 @@ pub mod drivers;
 pub mod facade;
 
 pub use drivers::{DriverFactory, EZVIZ, ONVIF};
-pub use facade::Facade;
+pub use facade::{clock_ms, Facade};
 
 pub use cctv_agent::{Action, Audit, AuditEntry, Grade, Reconciler, Remediation};
 pub use cctv_core::{
