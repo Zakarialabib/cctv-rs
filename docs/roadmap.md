@@ -57,8 +57,11 @@ reason.
 
 ## Open items
 
-- Wire `cctv-transport`'s frame reader into the stream path, so
-  `camera_get_stats` reports real `fps` / `bytes_per_sec` instead of zero.
+- **Nothing pushes frames yet.** `FrameReader` is real and `camera_get_stats`
+  measures from it, so the numbers are no longer hardcoded — but no RTSP client
+  feeds the reader, so they read zero until the application's stream consumer
+  takes `Facade::frame_reader(id)` and pushes. That consumer (RTSP
+  DESCRIBE / SETUP / PLAY plus RTP depacketisation) is the remaining piece.
 - The `quirks` table ships **empty**. The loader, the action vocabulary and the
   precedence rules are implemented and tested (`cctv-core`, feature `quirks`), but
   no camera defect in this workspace has a source yet — and a row without one is a

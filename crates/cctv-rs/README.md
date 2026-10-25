@@ -14,6 +14,9 @@ only the `cctv-core` device model — its public API contains no vendor name.
     `camera_get_reconnection_info`, `camera_test_all`, `camera_get_all_stats`,
   - the catalogue entry point `execute(id, CommandId)`,
   - fleet: `reconcile`, and `discover` / `discover_with` for the LAN sweep.
+  - frames: `frame_reader(id)` — the shared `FrameReader` the application pushes
+    frames into; `camera_get_stats` measures from it. `clock_ms()` is the clock
+    both sides stamp with.
 - `DriverFactory` — how a connection record's `driver` key becomes a live
   backend, so no vendor name is part of this API. `Facade::with_builtin_drivers`
   registers the ones the workspace ships (`ezviz`, `onvif`).

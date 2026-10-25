@@ -112,7 +112,16 @@ ensure_token() {
 
 case "$MODE" in
     --dry-run)
-        PUBLISH_ARGS=(--dry-run --allow-dirty)
+        # `--no-verify` is deliberate.  `cargo publish` replaces every `path`
+        # dependency with the registry version, so the verification build resolves
+        # the *published* crates — not the ones in this tree.  After a first
+        # release that makes verification fail for any change that touches two
+        # crates' APIs at once: the local `cctv-rs` calls a method the published
+        # `cctv-transport` does not have yet, and cannot have until it is
+        # published.  Compilation against the real (local) graph is proven by
+        # `cargo check --workspace`; what this dry run adds is packaging —
+        # manifest, metadata, file list — and that still runs.
+        PUBLISH_ARGS=(--dry-run --allow-dirty --no-verify)
         ;;
     --publish)
         # The token is resolved lazily, right before the first crate that actually

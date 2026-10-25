@@ -59,7 +59,7 @@ application talks to.
 | Crate | Depends on | Role |
 | --- | --- | --- |
 | `cctv-core` | `serde`, `serde_json` (+ optional `toml` behind `quirks`) | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. Feature `quirks` adds the model/firmware defect table, as data. |
-| `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader, the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
+| `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader — bounded staleness and backlog, plus the stream measurements `camera_get_stats` reports — the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
 | `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
 | `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth, an `OnvifSession` that drives them over the shared HTTP client, and an `OnvifCameraBackend`. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, presets, alarms, capture. `EzvizCameraBackend` implements `CameraBackend`, so the conformance suite covers it. |
