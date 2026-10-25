@@ -8,6 +8,8 @@ use std::sync::Arc;
 
 use cctv_core::{CameraBackend, CameraConfig, CameraError};
 use cctv_ezviz::{EzvizCameraBackend, EzvizClient};
+use cctv_onvif::{Credentials, OnvifCameraBackend, OnvifSession};
+use cctv_transport::http::HttpConfig;
 
 /// Builds a [`CameraBackend`] for one camera from its connection record.
 ///
@@ -45,6 +47,37 @@ pub fn ezviz(config: &CameraConfig) -> Result<Arc<dyn CameraBackend>, CameraErro
     Ok(Arc::new(EzvizCameraBackend::new(client, serial, channel)))
 }
 
+/// The key the built-in ONVIF factory is registered under.
+pub const ONVIF: &str = "onvif";
+
+/// The factory for [`ONVIF`].
+///
+/// An ONVIF camera is addressed by its **device-service URL**, which the
+/// connection record carries in `service_url` — the `XAddr` discovery reports.
+/// When it is absent, one is built from `host` / `port` / `https`, because every
+/// ONVIF device answers on `/onvif/device_service`.
+///
+/// `username` / `password` become the WS-Security `UsernameToken`, not HTTP
+/// credentials: ONVIF authenticates at the message level.
+pub fn onvif(config: &CameraConfig) -> Result<Arc<dyn CameraBackend>, CameraError> {
+    let device_url = match config.service_url.as_deref() {
+        Some(url) if !url.trim().is_empty() => url.to_string(),
+        _ => format!("{}/onvif/device_service", config.base_url(80)),
+    };
+    let session = OnvifSession::new(
+        device_url,
+        Credentials {
+            username: config.username.clone().unwrap_or_default(),
+            password: config.password.clone().unwrap_or_default(),
+        },
+        HttpConfig {
+            accept_invalid_certs: config.accept_invalid_certs,
+            ..HttpConfig::default()
+        },
+    )?;
+    Ok(Arc::new(OnvifCameraBackend::new(session)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,6 +87,21 @@ mod tests {
         let mut config = CameraConfig::new("front-door", EZVIZ, "CAM-SERIAL-1");
         config.ty = CameraType::Consumer;
         config
+    }
+
+    #[test]
+    fn the_onvif_factory_builds_from_a_device_service_url() {
+        let mut record = CameraConfig::new("lobby", ONVIF, "10.0.0.9");
+        record.service_url = Some("http://10.0.0.9/onvif/device_service".into());
+        record = record.with_credentials("admin", "hunter2");
+        assert_eq!(onvif(&record).expect("a backend").driver(), "onvif");
+    }
+
+    #[test]
+    fn the_onvif_factory_falls_back_to_the_standard_path() {
+        // No `service_url`: every ONVIF device answers on this path.
+        let record = CameraConfig::new("lobby", ONVIF, "10.0.0.9").with_credentials("a", "b");
+        assert_eq!(onvif(&record).expect("a backend").driver(), "onvif");
     }
 
     #[test]
