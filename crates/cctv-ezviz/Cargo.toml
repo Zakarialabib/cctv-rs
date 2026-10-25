@@ -1,6 +1,6 @@
 [package]
 name = "cctv-ezviz"
-description = "Ezviz Open Platform (open.ys7.com) driver for cctv-rs: token, device list, stream, PTZ, alarms, capture."
+description = "Ezviz Open Platform (open.ys7.com) driver for cctv-rs: token, device list, stream, PTZ, presets, alarms, capture."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,11 +10,24 @@ readme = "README.md"
 keywords = ["cctv", "ezviz", "camera", "ptz", "ys7"]
 categories = ["api-bindings", "multimedia::video"]
 
+[features]
+default = []
+# Forward to the vendor client's Windows FFI binding (PCOpenSDK / OpenNetStream).
+pc-sdk = ["ezviz-openapi/pc-sdk"]
+
 [dependencies]
 # The vendor client lives in its own published crate; this driver only translates
 # its responses into the cctv device model.
 ezviz-openapi.workspace = true
+cctv-core.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+# The conformance suite runs against a canned HTTP server instead of a live
+# camera, under a real runtime.
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+cctv-transport = { workspace = true, features = ["fixture"] }
 
 [lints]
 workspace = true

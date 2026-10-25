@@ -9,7 +9,7 @@ What is built, what is next, and what is deliberately deferred.
 | 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green |
 | 2 | `cctv-transport` (TLS policy + budgeted frame reader) and `cctv-discovery` (SSDP + WS-Discovery) | both compile | landed — the SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps run over UDP multicast, with the codecs and the merge / dedupe logic unit-tested behind the `Datagram` seam |
 | 3 | `cctv-onvif`: the ONVIF driver — Device / Media / PTZ SOAP builders and parsers, WS-Security `UsernameToken` | `cargo test -p cctv-onvif` | landed — builders, parsers and the SOAP / WS-Security tests green; the HTTP session that drives them is not wired yet |
-| 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | driver surface landed; mock-server tests pending |
+| 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | landed — the conformance suite and the account-level operations run against `cctv-transport`'s fixture server; the three platform gaps (image bytes, listing presets, absolute PTZ) are typed errors |
 | 5 | `cctv-rs` facade, and rewriting the application's camera surface onto it | `cargo check -p cctv-rs` | facade handle landed (`new`, `list_cameras`); the application-side rewrite is not started |
 | 6 | `cctv-agent`: the reconciler — desired state → graded remediation, audit trail | `cargo test -p cctv-agent` | crate landed; reconciler logic pending |
 | 7 | Integration *with* the application — no vendor vocabulary left in it | the application surface contains no vendor name | not started |
@@ -59,7 +59,6 @@ reason.
 
 - Wire the ONVIF HTTP session: the builders and parsers are done, but nothing yet
   drives `soap::envelope` through `cctv-transport`'s `HttpClient`.
-- Mock-server tests for the Ezviz driver.
 - The `quirks` remedy map: the data model is pure and returns `None`; a concrete
   vendor supplies its map from data — no vendor appears in the code.
 - Lock down the reverse-engineered Ezviz surface before writing more than passive
