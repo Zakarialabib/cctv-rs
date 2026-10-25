@@ -36,7 +36,7 @@ cctv-rs = { path = "crates/cctv-rs", version = "0.1.0" }
 # Published from its own repository (`ezviz-openapi-rs`). Development builds use
 # the git dependency pinned to a reviewed rev; `cargo publish` strips `git` and
 # resolves `version` from crates.io, so published crates depend on the release.
-ezviz-openapi = { version = "0.1.0", git = "https://github.com/Zakarialabib/ezviz-openapi-rs", rev = "5049972fcdc3346ced79ab26873e55d556ee3c28" }
+ezviz-openapi = { version = "0.1.0", git = "https://github.com/Zakarialabib/ezviz-openapi-rs", rev = "1994b4e6a5d02e16bcd66b124a9b1f2267ceb42a" }
 
 # --- network (drivers only; never cctv-core) ---
 # rustls only: native-tls is never linked (CI checks `cargo tree -i native-tls`).
