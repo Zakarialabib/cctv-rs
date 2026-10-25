@@ -135,24 +135,32 @@ if [ ! -f LICENSE ]; then
     exit 1
 fi
 
-# Is a crate already on crates.io? `cargo search` is the only query available
-# without another tool; if it fails (offline, rate-limited) the answer is
-# "unknown", which is treated as "not published" so the publish path still runs.
-crate_published() {
-    cargo search "$1" --limit 20 2>/dev/null | grep -qE "^$1 = "
-}
-
 if [ "$MODE" = "--publish" ]; then
-    if crate_published "$EXTERNAL_DEP"; then
-        echo "==> $EXTERNAL_DEP is on crates.io"
-    else
-        echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-ezviz depends on it." >&2
-        echo "       Publish it from its own repository first:" >&2
-        echo "         cd ../ezviz-openapi-rs && cargo publish --token \"\$CRATES_IO_TOKEN\"" >&2
-        echo "       (a first release of this workspace is 7 new crates; crates.io" >&2
-        echo "        allows a burst of 5, so plan for the rate limit either way)" >&2
-        exit 1
-    fi
+    # Ask the registry API, not `cargo search`: search is a separate index, it is
+    # rate-limited, and on a CI runner it has been observed to return nothing for
+    # a crate that is demonstrably published — which failed a release that was
+    # already complete. Only an explicit 404 blocks the run; an unreachable
+    # registry must not, because the per-crate check and the index-lag retry
+    # below handle the real state anyway.
+    external_code="$(curl -s -o /dev/null -w '%{http_code}' \
+        -H 'User-Agent: cctv-rs-publish' \
+        "https://crates.io/api/v1/crates/$EXTERNAL_DEP" 2>/dev/null || true)"
+    case "$external_code" in
+        404)
+            echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-ezviz depends on it." >&2
+            echo "       Publish it from its own repository first:" >&2
+            echo "         cd ../ezviz-openapi-rs && cargo publish" >&2
+            echo "       (a first release of this workspace is 7 new crates; crates.io" >&2
+            echo "        allows a burst of 5, so plan for the rate limit either way)" >&2
+            exit 1
+            ;;
+        200)
+            echo "==> $EXTERNAL_DEP is on crates.io"
+            ;;
+        *)
+            echo "warning: could not reach crates.io to confirm $EXTERNAL_DEP (code '${external_code:-none}'); continuing" >&2
+            ;;
+    esac
     echo "==> publishing ${#ORDER[@]} crates; crates.io allows a burst of 5 new"
     echo "    crates per account, then 1 every ${RATE_LIMIT_WAIT}s — the tail waits."
 fi
