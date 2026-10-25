@@ -37,6 +37,7 @@ pub mod commands;
 pub mod conformance;
 pub mod error;
 pub mod mock;
+#[cfg(feature = "quirks")]
 pub mod quirks;
 pub mod state;
 pub mod types;

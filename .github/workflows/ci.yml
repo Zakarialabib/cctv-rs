@@ -53,7 +53,10 @@ jobs:
       # The conformance suite runs against the mock backend, so it needs no
       # camera and no network.
       - run: cargo test -p cctv-core
-      - run: cargo clippy -p cctv-core --all-targets
+      # `quirks` is off by default, so the default test run would never compile
+      # it. This is the only job that exercises the table loader.
+      - run: cargo test -p cctv-core --features quirks
+      - run: cargo clippy -p cctv-core --all-targets --features quirks
         env:
           RUSTFLAGS: -D warnings
 

@@ -50,6 +50,9 @@ base64 = "0.23"
 # --- serialization ---
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Only `cctv-core`'s `quirks` feature needs this: the quirks table is TOML so a
+# new workaround is a reviewable data change rather than a code change.
+toml = "0.8"
 
 # --- dev ---
 insta = { version = "1.42", features = ["json"] }
