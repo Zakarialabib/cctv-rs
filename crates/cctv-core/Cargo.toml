@@ -16,6 +16,15 @@ categories = ["api-bindings", "hardware-support"]
 # even a WASM worker, so only the types that cross the seam own serde.
 serde.workspace = true
 serde_json.workspace = true
+# The quirks table is TOML; the parser is only pulled in when the feature is on,
+# so a build that just needs the device model does not pay for it.
+toml = { workspace = true, optional = true }
+
+[features]
+default = []
+# The model- and firmware-specific quirks table (`cctv_core::quirks`). Off by
+# default because it drags in a TOML parser for a table most builds never read.
+quirks = ["dep:toml"]
 
 [dev-dependencies]
 insta.workspace = true
