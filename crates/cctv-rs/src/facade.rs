@@ -20,7 +20,7 @@
 //! rest, which have typed methods instead.
 
 use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use cctv_agent::{Audit, Reconciler, Remediation};
 use cctv_core::{
@@ -29,8 +29,21 @@ use cctv_core::{
     PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
+use cctv_transport::reader::FrameReader;
 
 use crate::drivers::{DriverFactory, EZVIZ, ONVIF};
+
+/// The clock frame statistics are measured on: Unix milliseconds.
+///
+/// [`FrameReader`] is pure — it never reads a clock — so whoever pushes frames
+/// stamps them, and whoever reads the rates supplies "now". Both must use the
+/// same clock, and this is it.
+pub fn clock_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_millis() as u64)
+        .unwrap_or(0)
+}
 
 /// One registered camera: its connection record and the driver that serves it.
 struct Registered {
@@ -47,6 +60,10 @@ struct Registered {
 pub struct Facade {
     cameras: BTreeMap<String, Registered>,
     drivers: BTreeMap<String, DriverFactory>,
+    /// One frame reader per camera, shared with the application's stream
+    /// consumer.  The facade measures from it; it never pushes into it, because
+    /// the bytes belong to whoever owns the wire.
+    readers: BTreeMap<String, Arc<Mutex<FrameReader>>>,
     reconciler: Reconciler,
 }
 
@@ -56,6 +73,7 @@ impl Facade {
         Self {
             cameras: BTreeMap::new(),
             drivers: BTreeMap::new(),
+            readers: BTreeMap::new(),
             reconciler: Reconciler::new(Audit::new()),
         }
     }
@@ -110,11 +128,30 @@ impl Facade {
         let id = config.id.clone();
         self.cameras
             .insert(id.clone(), Registered { config, backend });
+        // A re-registration keeps the existing reader: the stream may still be
+        // open, and throwing the measurement away would report a false zero.
+        self.readers
+            .entry(id.clone())
+            .or_insert_with(|| Arc::new(Mutex::new(FrameReader::new())));
         CameraHandle::new(id)
+    }
+
+    /// The frame reader for a camera, shared with the stream consumer.
+    ///
+    /// The application pushes frames into it as they come off the wire and pulls
+    /// the newest usable one on its own tick; the facade reads the measurements
+    /// out for [`Facade::camera_get_stats`].  `None` when the camera is not
+    /// registered.
+    ///
+    /// The clock is the application's: stamp frames with [`clock_ms`] so the
+    /// windowed rates mean what they say.
+    pub fn frame_reader(&self, id: &str) -> Option<Arc<Mutex<FrameReader>>> {
+        self.readers.get(id).cloned()
     }
 
     /// Remove a camera from the fleet, returning its connection record.
     pub fn unregister(&mut self, id: &str) -> Option<CameraConfig> {
+        self.readers.remove(id);
         self.cameras.remove(id).map(|registered| registered.config)
     }
 
@@ -340,12 +377,25 @@ impl Facade {
     pub async fn camera_get_stats(&self, id: &str) -> Result<CommandResult, CameraError> {
         let registered = self.backend(id)?;
         let online = registered.probe().await.is_ok();
+
+        // Measured, not assumed: the numbers come from the frames the stream
+        // consumer actually handed the reader. Zero means nothing is flowing —
+        // which is the truth until something pushes into the reader.
+        let now = clock_ms();
+        let (fps, bytes_per_sec) = match self.readers.get(id) {
+            Some(reader) => match reader.lock() {
+                Ok(reader) => (reader.fps(now), reader.bytes_per_sec(now)),
+                Err(_) => (0.0, 0),
+            },
+            None => (0.0, 0),
+        };
+
         Ok(CommandResult::for_camera(
             CommandId::CameraGetStats,
             id.to_string(),
             CommandResultPayload::Stats {
-                fps: 0.0,
-                bytes_per_sec: 0,
+                fps,
+                bytes_per_sec,
                 online,
             },
         ))
