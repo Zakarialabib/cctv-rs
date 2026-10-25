@@ -44,7 +44,12 @@ impl Credentials {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        security_header(&self.username, &self.password, &fresh_nonce(), &iso8601_utc(secs))
+        security_header(
+            &self.username,
+            &self.password,
+            &fresh_nonce(),
+            &iso8601_utc(secs),
+        )
     }
 }
 
@@ -138,7 +143,10 @@ mod tests {
         let d = password_digest(b"abc", "2026-01-01T00:00:00Z", "pw");
         let mut h = Sha1::new();
         h.update(b"abc2026-01-01T00:00:00Zpw");
-        assert_eq!(d, base64::engine::general_purpose::STANDARD.encode(h.finalize()));
+        assert_eq!(
+            d,
+            base64::engine::general_purpose::STANDARD.encode(h.finalize())
+        );
         assert_eq!(d.len(), 28, "base64 of a 20-byte digest");
     }
 

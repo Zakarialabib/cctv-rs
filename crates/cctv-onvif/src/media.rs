@@ -120,7 +120,11 @@ pub fn parse_profiles(body: &str) -> Vec<MediaProfile> {
         let tag = &body[start..open_end];
         let token = xml::attribute(tag, "token").unwrap_or_default();
         let end = spans.get(i + 1).map(|s| s.0).unwrap_or(body.len());
-        let scope = if self_closing { "" } else { &body[open_end..end] };
+        let scope = if self_closing {
+            ""
+        } else {
+            &body[open_end..end]
+        };
         let res = xml::element_body(scope, "Resolution").unwrap_or("");
         let profile = MediaProfile {
             token,
@@ -151,7 +155,9 @@ fn parse_fps(raw: &str) -> Option<u32> {
 pub fn encoder_config_token(body: &str, profile_token: &str) -> Option<String> {
     let spans = profile_spans(body);
     for (i, &(start, open_end, self_closing)) in spans.iter().enumerate() {
-        if self_closing || xml::attribute(&body[start..open_end], "token").as_deref() != Some(profile_token) {
+        if self_closing
+            || xml::attribute(&body[start..open_end], "token").as_deref() != Some(profile_token)
+        {
             continue;
         }
         let end = spans.get(i + 1).map(|s| s.0).unwrap_or(body.len());
@@ -222,7 +228,10 @@ mod tests {
         assert_eq!(p[0].token, "profile_1");
         assert_eq!(p[0].name, "MainStream");
         assert_eq!(p[0].encoding.as_deref(), Some("H264"));
-        assert_eq!((p[0].width, p[0].height, p[0].fps), (Some(1920), Some(1080), Some(30)));
+        assert_eq!(
+            (p[0].width, p[0].height, p[0].fps),
+            (Some(1920), Some(1080), Some(30))
+        );
         assert!(p[0].ptz_capable);
         assert_eq!((p[1].width, p[1].height), (Some(640), Some(360)));
         assert!(!p[1].ptz_capable, "must not inherit the main profile's PTZ");
@@ -270,10 +279,18 @@ mod tests {
     #[test]
     fn stream_and_snapshot_uris_parse_from_media_uri() {
         let xml = r#"<trt:GetStreamUriResponse><trt:MediaUri><tt:Uri>rtsp://192.168.1.64:554/Streaming/Channels/101</tt:Uri><tt:Timeout>PT60S</tt:Timeout></trt:MediaUri></trt:GetStreamUriResponse>"#;
-        assert_eq!(parse_media_uri(xml).unwrap(), "rtsp://192.168.1.64:554/Streaming/Channels/101");
-        let dahua = "<MediaUri><Uri>rtsp://h/cam/realmonitor?channel=1&amp;subtype=0</Uri></MediaUri>";
-        assert_eq!(parse_media_uri(dahua).unwrap(), "rtsp://h/cam/realmonitor?channel=1&subtype=0");
-        let decoy = "<E><X><Uri>http://decoy</Uri></X><MediaUri><Uri>rtsp://real/s</Uri></MediaUri></E>";
+        assert_eq!(
+            parse_media_uri(xml).unwrap(),
+            "rtsp://192.168.1.64:554/Streaming/Channels/101"
+        );
+        let dahua =
+            "<MediaUri><Uri>rtsp://h/cam/realmonitor?channel=1&amp;subtype=0</Uri></MediaUri>";
+        assert_eq!(
+            parse_media_uri(dahua).unwrap(),
+            "rtsp://h/cam/realmonitor?channel=1&subtype=0"
+        );
+        let decoy =
+            "<E><X><Uri>http://decoy</Uri></X><MediaUri><Uri>rtsp://real/s</Uri></MediaUri></E>";
         assert_eq!(parse_media_uri(decoy).unwrap(), "rtsp://real/s");
         assert!(parse_media_uri("<GetStreamUriResponse/>").is_err());
         assert!(parse_media_uri("<MediaUri><Uri>   </Uri></MediaUri>").is_err());
@@ -284,7 +301,9 @@ mod tests {
         let p = parse_profiles(AXIS_PROFILES);
         assert_eq!(pick_main_profile(&p).unwrap().token, "profile_1");
         assert_eq!(pick_substream_profile(&p).unwrap().token, "profile_2");
-        let named = parse_profiles(r#"<R><Profiles token="a"><Name>MainStream</Name></Profiles><Profiles token="b"><Name>SubStream</Name></Profiles></R>"#);
+        let named = parse_profiles(
+            r#"<R><Profiles token="a"><Name>MainStream</Name></Profiles><Profiles token="b"><Name>SubStream</Name></Profiles></R>"#,
+        );
         assert_eq!(pick_main_profile(&named).unwrap().token, "a");
         assert_eq!(pick_substream_profile(&named).unwrap().token, "b");
         assert!(pick_main_profile(&[]).is_none());
@@ -293,7 +312,11 @@ mod tests {
     #[test]
     fn request_builders_escape_tokens_and_never_persist() {
         let s = build_get_stream_uri("a&b<c>");
-        assert!(s.contains("a&amp;b&lt;c&gt;") && s.contains("RTP-Unicast") && s.contains("<tt:Protocol>UDP</tt:Protocol>"));
+        assert!(
+            s.contains("a&amp;b&lt;c&gt;")
+                && s.contains("RTP-Unicast")
+                && s.contains("<tt:Protocol>UDP</tt:Protocol>")
+        );
         assert!(build_get_snapshot_uri("t").contains("<trt:ProfileToken>t</trt:ProfileToken>"));
         let set = build_set_video_encoder_config("a&b", "H265", 3840, 2160, 30);
         assert!(set.contains("token=\"a&amp;b\"") && set.contains("<tt:Width>3840</tt:Width>"));
@@ -302,8 +325,14 @@ mod tests {
 
     #[test]
     fn the_encoder_token_is_scoped_to_the_requested_profile() {
-        assert_eq!(encoder_config_token(AXIS_PROFILES, "profile_2").as_deref(), Some("venc_2"));
-        assert_eq!(encoder_config_token(AXIS_PROFILES, "profile_1").as_deref(), Some("venc_1"));
+        assert_eq!(
+            encoder_config_token(AXIS_PROFILES, "profile_2").as_deref(),
+            Some("venc_2")
+        );
+        assert_eq!(
+            encoder_config_token(AXIS_PROFILES, "profile_1").as_deref(),
+            Some("venc_1")
+        );
         assert!(encoder_config_token(AXIS_PROFILES, "nope").is_none());
     }
 }

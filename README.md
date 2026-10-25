@@ -4,21 +4,23 @@ A pure-Rust CCTV backend for SignageMaster: discover, stream, control (PTZ), ana
 (zones / motion / AI) and reconcile camera fleets — no Tauri, no UI, no SQLite.
 
 It is the camera half of the architecture refactor: `src-tauri` hands the app its
-typed facade, and the driver for every camera lives in `cctv-ezviz` (the reverse-
-engineered Ezviz Open Platform client, `ezviz-openapi-rs`).
+typed facade, and each protocol lives in its own driver crate — `cctv-ezviz` (the
+reverse-engineered Ezviz Open Platform client, `ezviz-openapi-rs`) and
+`cctv-onvif` (ONVIF Device / Media / PTZ).
 
 ## Workspace
 
 | Crate | Role |
 |---|---|
 | `cctv-core` | device model: types, state, commands, errors, mock, conformance (`no tokio`) |
-| `cctv-transport` | TLS policy, pinning, budgeted frame reader |
+| `cctv-transport` | TLS policy, pinning, budgeted frame reader, shared XML scanner and HTTP client |
 | `cctv-discovery` | SSDP / multicast / USB camera discovery |
+| `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders + parsers |
 | `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |
 | `cctv-agent` | fleet reconciler: offline→armed→streaming, audit trail |
 | `cctv-rs` | facade: discover, frame, ptz, start/stop, stats, config, presets |
 
-The six crates are versioned and published together. `cctv-core` depends on nothing
+The seven crates are versioned and published together. `cctv-core` depends on nothing
 in the workspace, the facade depends on everything, and only `cctv-rs` is meant to
 be consumed by the application.
 
@@ -54,7 +56,7 @@ policy are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Releasing
 
-The six crates publish in dependency order via
+The seven crates publish in dependency order via
 [`scripts/publish.sh`](scripts/publish.sh) — crates.io yanks rather than deletes,
 so the order and the dry run matter. The order itself lives in that script.
 
