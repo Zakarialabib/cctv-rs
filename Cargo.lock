@@ -104,8 +104,12 @@ dependencies = [
 name = "cctv-ezviz"
 version = "0.1.0"
 dependencies = [
+ "cctv-core",
+ "cctv-transport",
  "ezviz-openapi",
  "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -284,6 +288,7 @@ name = "ezviz-openapi"
 version = "0.1.0"
 source = "git+https://github.com/Zakarialabib/ezviz-openapi-rs?rev=5049972fcdc3346ced79ab26873e55d556ee3c28#5049972fcdc3346ced79ab26873e55d556ee3c28"
 dependencies = [
+ "libloading",
  "reqwest",
  "serde",
  "serde_json",
@@ -687,6 +692,16 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
+
+[[package]]
+name = "libloading"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
+dependencies = [
+ "cfg-if",
+ "windows-link",
+]
 
 [[package]]
 name = "linux-raw-sys"
