@@ -336,6 +336,75 @@ fn the_builtin_registry_names_the_ezviz_driver() {
 }
 
 #[test]
+fn stats_are_measured_from_the_frames_the_stream_consumer_pushed() {
+    let facade = facade_with("cam");
+    let reader = facade.frame_reader("cam").expect("a reader");
+
+    // One second of 30 fps, stamped on the facade's own clock.
+    let now = cctv_rs::clock_ms();
+    {
+        let mut reader = reader.lock().expect("lock");
+        reader.set_window(1_000);
+        for i in 0..30u64 {
+            reader.push(
+                1920,
+                1080,
+                vec![0u8; 100],
+                now.saturating_sub(1_000) + i * 33,
+            );
+        }
+    }
+
+    let stats = block_on(facade.camera_get_stats("cam")).expect("a result");
+    match stats.result {
+        CommandResultPayload::Stats {
+            fps,
+            bytes_per_sec,
+            online,
+        } => {
+            assert!(online);
+            assert!(fps > 20.0, "expected ~30 fps, got {fps}");
+            assert!(
+                bytes_per_sec > 2_000,
+                "expected ~3000 B/s, got {bytes_per_sec}"
+            );
+        }
+        other => panic!("unexpected payload: {other:?}"),
+    }
+}
+
+#[test]
+fn a_camera_with_no_stream_reports_zero_rather_than_a_guess() {
+    let facade = facade_with("cam");
+    let stats = block_on(facade.camera_get_stats("cam")).expect("a result");
+    match stats.result {
+        CommandResultPayload::Stats {
+            fps, bytes_per_sec, ..
+        } => {
+            assert_eq!(fps, 0.0, "nothing is flowing, so the rate is zero");
+            assert_eq!(bytes_per_sec, 0);
+        }
+        other => panic!("unexpected payload: {other:?}"),
+    }
+}
+
+#[test]
+fn the_frame_reader_is_shared_and_survives_re_registration() {
+    let mut facade = facade_with("cam");
+    let before = facade.frame_reader("cam").expect("a reader");
+
+    // Re-registering must not throw the measurement away: the stream may still
+    // be open, and a reset would report a false zero.
+    facade.register(config("cam"), Arc::new(MockCamera::new()));
+    let after = facade.frame_reader("cam").expect("a reader");
+    assert!(Arc::ptr_eq(&before, &after));
+
+    assert!(facade.unregister("cam").is_some());
+    assert!(facade.frame_reader("cam").is_none());
+    assert!(facade.frame_reader("nope").is_none());
+}
+
+#[test]
 fn discovery_reports_cameras_without_registering_them() {
     let facade = Facade::new();
     assert!(facade.discover_with(&Silent).is_empty());
