@@ -1,0 +1,37 @@
+# Quirks table
+#
+# Model- and firmware-specific camera defects with their documented handling.
+#
+# Two rules, both load-bearing:
+#
+#   1. **Order is precedence.** The first matching row wins, so specific rows
+#      must appear above general ones. A general row placed first silently
+#      disables every workaround below it.
+#   2. **A row is a claim.** `note` says why it is here; anything without a
+#      source (vendor documentation, a firmware release note, or a reproduced
+#      behaviour) does not belong in this file. An unverified row is worse than
+#      no row: it fires on devices that never had the defect and hides the one
+#      that did.
+#
+# Matching is by prefix: `model_prefix = "C6"` covers C6N/C6CN/C6W, and
+# `firmware_prefix = "V5.3"` covers every V5.3.x build. Omit either to match
+# every model or every version.
+#
+# Format of one row:
+#
+#   [[quirk]]
+#   vendor = "acme"                    # required, lowercase
+#   model_prefix = "PTZ-9"             # optional
+#   firmware_prefix = "V5.3"           # optional
+#   issue = "rtsp_tcp_refused"         # required, a stable identifier
+#   action = "rtsp_udp_only"           # required, from the fixed vocabulary:
+#                                      #   start_at_<port> | rtsp_udp_only |
+#                                      #   auth_not_permitted | read_probe_flags |
+#                                      #   retry_substream | point_user_at_settings
+#   note = "…"                         # the source for the claim
+#
+# The table is empty on purpose. No camera defect in this workspace has a source
+# yet: every row would be a guess, and rule 2 says a guess does not ship. The
+# loader, the vocabulary and the precedence rules are implemented and tested in
+# `crates/cctv-core/src/quirks.rs`; rows land here as they are confirmed against
+# a real device.

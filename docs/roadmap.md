@@ -6,7 +6,7 @@ What is built, what is next, and what is deliberately deferred.
 
 | # | Deliverable | Gate | Status |
 | --- | --- | --- | --- |
-| 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green |
+| 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green; the `quirks` table loader is behind the `quirks` feature and ships with no rows (see open items) |
 | 2 | `cctv-transport` (TLS policy + budgeted frame reader) and `cctv-discovery` (SSDP + WS-Discovery) | both compile | landed — the SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps run over UDP multicast, with the codecs and the merge / dedupe logic unit-tested behind the `Datagram` seam |
 | 3 | `cctv-onvif`: the ONVIF driver — Device / Media / PTZ SOAP builders and parsers, WS-Security `UsernameToken` | `cargo test -p cctv-onvif` | landed — `OnvifSession` drives the builders over `cctv-transport`'s HTTP client (following the `XAddr`s `GetCapabilities` returns, cached), and `OnvifCameraBackend` passes the conformance suite 7/7 against a canned SOAP server |
 | 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | landed — the conformance suite and the account-level operations run against `cctv-transport`'s fixture server; the three platform gaps (image bytes, listing presets, absolute PTZ) are typed errors |
@@ -59,8 +59,11 @@ reason.
 
 - Wire `cctv-transport`'s frame reader into the stream path, so
   `camera_get_stats` reports real `fps` / `bytes_per_sec` instead of zero.
-- The `quirks` remedy map: the data model is pure and returns `None`; a concrete
-  vendor supplies its map from data — no vendor appears in the code.
+- The `quirks` table ships **empty**. The loader, the action vocabulary and the
+  precedence rules are implemented and tested (`cctv-core`, feature `quirks`), but
+  no camera defect in this workspace has a source yet — and a row without one is a
+  guess that fires on devices that never had the defect. Rows land in
+  `crates/cctv-core/quirks/default.toml` as they are confirmed against hardware.
 - Lock down the reverse-engineered Ezviz surface before writing more than passive
   reads into the driver.
 - The application-side rewrite in phase 5 and the integration in phase 7.
