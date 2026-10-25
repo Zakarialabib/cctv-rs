@@ -30,6 +30,15 @@ All seven crates are versioned and released together.
   against `cctv-transport`'s fixture HTTP server. The three things the platform
   cannot do (return image bytes, list presets, move to an absolute position) are
   typed `NotImplemented`, not silent failures.
+- `cctv-onvif` is now a working driver, not just builders: `OnvifSession` drives
+  the SOAP calls over `cctv-transport`'s HTTP client — following (and caching) the
+  `XAddr`s `GetCapabilities` returns — and `OnvifCameraBackend` implements
+  `CameraBackend` for `probe`, `stream`, `snapshot`, `ptz` and the preset round
+  trip. It passes the conformance suite 7/7 with `Expectations::FULL` against a
+  canned SOAP server. `stop` names the profile that started moving, because ONVIF
+  requires one and `PtzCommand::Stop` does not carry it.
+- The facade's registry ships an `onvif` factory beside `ezviz`, so
+  `Facade::with_builtin_drivers().attach(config)` can build either.
 - `cctv-rs` facade: the command surface behind one handle — `get_camera_frame`,
   `start_camera_stream`, `ptz_move`, `camera_config_get` / `camera_config_set`,
   `camera_set_enabled`, the preset round trip, the health / stats / reconnection

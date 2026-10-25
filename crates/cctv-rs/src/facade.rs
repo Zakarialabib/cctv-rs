@@ -30,7 +30,7 @@ use cctv_core::{
 };
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
 
-use crate::drivers::{DriverFactory, EZVIZ};
+use crate::drivers::{DriverFactory, EZVIZ, ONVIF};
 
 /// One registered camera: its connection record and the driver that serves it.
 struct Registered {
@@ -66,6 +66,7 @@ impl Facade {
     /// [`crate::drivers::ezviz`] for the field mapping).
     pub fn with_builtin_drivers(mut self) -> Self {
         self.register_driver(EZVIZ, Arc::new(crate::drivers::ezviz));
+        self.register_driver(ONVIF, Arc::new(crate::drivers::onvif));
         self
     }
 

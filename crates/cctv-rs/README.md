@@ -16,7 +16,7 @@ only the `cctv-core` device model — its public API contains no vendor name.
   - fleet: `reconcile`, and `discover` / `discover_with` for the LAN sweep.
 - `DriverFactory` — how a connection record's `driver` key becomes a live
   backend, so no vendor name is part of this API. `Facade::with_builtin_drivers`
-  registers the ones the workspace ships (today: `ezviz`).
+  registers the ones the workspace ships (`ezviz`, `onvif`).
 - `Remediation` / `Grade` / `Action` / `Audit` — re-exported from `cctv-agent`:
   what the reconciler decided, and why.
 
