@@ -47,7 +47,7 @@ boundary in `cctv-core`.
 cctv-rs
 ├── cctv-core ───────────── serde, serde_json
 ├── cctv-transport ──────── serde
-├── cctv-discovery ──────── cctv-core
+├── cctv-discovery ──────── cctv-core, cctv-transport
 ├── cctv-onvif ──────────── cctv-core, cctv-transport (http)
 ├── cctv-ezviz ──────────── ezviz-openapi   (published from its own repository)
 └── cctv-agent ──────────── cctv-core
@@ -60,7 +60,7 @@ application talks to.
 | --- | --- | --- |
 | `cctv-core` | `serde`, `serde_json` | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. |
 | `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader, the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
-| `cctv-discovery` | `cctv-core` | SSDP / multicast / USB camera discovery. Emits `cctv-core` device-model items. |
+| `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
 | `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, alarms, capture. Translates vendor responses into the device model. |
 | `cctv-agent` | `cctv-core` | The fleet reconciler: desired state → graded remediation, with an audit trail. |
@@ -90,7 +90,7 @@ for `cctv-core` because it is the one the application embeds.
 
 | Capability | Transport | Auth | Who speaks it |
 | --- | --- | --- | --- |
-| LAN discovery | mDNS / DNS-SD, SSDP (UDP 1900, multicast) | none | `cctv-discovery` |
+| LAN discovery | SSDP `M-SEARCH` (UDP 1900) + WS-Discovery `Probe` (UDP 3702), multicast | none | `cctv-discovery` |
 | RTSP stream | TCP + buffering, via `cctv-transport` | token / certificate pinning | the driver |
 | MJPEG frames | via `cctv-transport` | none | `cctv-ezviz` |
 | ONVIF (device / media / PTZ) | HTTP + SOAP, via `cctv-transport` | WS-Security `UsernameToken` | `cctv-onvif` |
