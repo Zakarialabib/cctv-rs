@@ -11,6 +11,7 @@ Every document in `docs/`, and what it is for. Start here.
 | understand `CameraType` and how capabilities are modelled              | [camera-types.md](camera-types.md)          |
 | know what is built, what is next, and what is deliberately deferred    | [roadmap.md](roadmap.md)                    |
 | know where the workspace is headed, and the delta from today           | [target-architecture.md](target-architecture.md) |
+| know what gets built in what order, and what proves each step          | [plan-v0.2.md](plan-v0.2.md)                |
 | follow the house conventions — layout, error contract, CI gates        | [04-rust-package-standard.md](04-rust-package-standard.md) |
 
 ## Contents
@@ -22,6 +23,7 @@ Every document in `docs/`, and what it is for. Start here.
 | [camera-types.md](camera-types.md)                             | The `CameraType` taxonomy, its stable order, and the rule that capabilities are not types.                                                                     |
 | [roadmap.md](roadmap.md)                                       | Implementation phases with their gates, the locked design decisions, the open items and the acceptance criteria.                                                |
 | [target-architecture.md](target-architecture.md)               | The v0.2+ crate map, the measured delta from what is built, the decisions it raises, and the Simple-Signage integration seam. **Aspirational** — `architecture.md` is the truth. |
+| [plan-v0.2.md](plan-v0.2.md)                                   | The execution plan: six resolved decisions, nine work packages each with a **gate**, the dependency graph, the Simple-Signage swap in five phases, and the risk register. |
 | [04-rust-package-standard.md](04-rust-package-standard.md)     | The house engineering standard. **Authority** for repository shape, the error contract, the CI gates and the release path.                                      |
 | [README.md](README.md)                                         | This file.                                                                                                                                                    |
 

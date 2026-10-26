@@ -57,10 +57,12 @@ reason.
 
 ## Open items
 
-The v0.2+ crate map, the measured delta from today, and the four decisions it
-raises (does `cctv-discovery` survive, where `cctv-ezviz` sits, how far `no_std`
-goes, `Box` or `Arc`) are in [target-architecture.md](target-architecture.md).
-Settle those before starting the work, not during it.
+The v0.2+ crate map, the measured delta from today, and the decisions it
+raises are in [target-architecture.md](target-architecture.md); the **execution
+plan** — decisions D1–D6 resolved, nine work packages with their gates, the
+Simple-Signage swap in five phases, and the risk register — is
+[plan-v0.2.md](plan-v0.2.md). Settle those before starting the work, not during
+it.
 
 - **Nothing pushes frames yet.** `FrameReader` is real and `camera_get_stats`
   measures from it, so the numbers are no longer hardcoded — but no RTSP client
