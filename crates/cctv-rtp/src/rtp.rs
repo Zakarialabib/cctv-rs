@@ -5,7 +5,7 @@
 //! header extension) are skipped rather than exposed, because nothing downstream
 //! uses them and a packet that carries them must still parse.
 
-use crate::error::RtspError;
+use crate::error::RtpError;
 
 /// One RTP packet, borrowing its payload from the buffer it was parsed out of.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,17 +31,17 @@ const HEADER_LEN: usize = 12;
 ///
 /// # Errors
 ///
-/// [`RtspError::Incomplete`] when the buffer is shorter than the header,
-/// [`RtspError::Malformed`] when the version is not 2 or a declared CSRC list,
+/// [`RtpError::Incomplete`] when the buffer is shorter than the header,
+/// [`RtpError::Malformed`] when the version is not 2 or a declared CSRC list,
 /// extension or padding runs past the end of the buffer.
-pub fn parse_rtp(buf: &[u8]) -> Result<RtpPacket<'_>, RtspError> {
+pub fn parse_rtp(buf: &[u8]) -> Result<RtpPacket<'_>, RtpError> {
     if buf.len() < HEADER_LEN {
-        return Err(RtspError::Incomplete);
+        return Err(RtpError::Incomplete);
     }
 
     let version = buf[0] >> 6;
     if version != 2 {
-        return Err(RtspError::Malformed(format!(
+        return Err(RtpError::Malformed(format!(
             "RTP version {version}, expected 2"
         )));
     }
@@ -57,24 +57,22 @@ pub fn parse_rtp(buf: &[u8]) -> Result<RtpPacket<'_>, RtspError> {
 
     let mut offset = HEADER_LEN
         .checked_add(csrc_count * 4)
-        .ok_or_else(|| RtspError::Malformed("CSRC count overflows".into()))?;
+        .ok_or_else(|| RtpError::Malformed("CSRC count overflows".into()))?;
     if buf.len() < offset {
-        return Err(RtspError::Malformed(
-            "CSRC list runs past the packet".into(),
-        ));
+        return Err(RtpError::Malformed("CSRC list runs past the packet".into()));
     }
 
     if extension {
         // 2 bytes profile + 2 bytes length in 32-bit words.
         let header = buf
             .get(offset..offset + 4)
-            .ok_or_else(|| RtspError::Malformed("extension header is truncated".into()))?;
+            .ok_or_else(|| RtpError::Malformed("extension header is truncated".into()))?;
         let words = usize::from(u16::from_be_bytes([header[2], header[3]]));
         offset = offset
             .checked_add(4 + words * 4)
-            .ok_or_else(|| RtspError::Malformed("extension length overflows".into()))?;
+            .ok_or_else(|| RtpError::Malformed("extension length overflows".into()))?;
         if buf.len() < offset {
-            return Err(RtspError::Malformed(
+            return Err(RtpError::Malformed(
                 "extension data runs past the packet".into(),
             ));
         }
@@ -85,10 +83,10 @@ pub fn parse_rtp(buf: &[u8]) -> Result<RtpPacket<'_>, RtspError> {
         // The last byte is the padding length, itself included.
         let last = *buf
             .last()
-            .ok_or_else(|| RtspError::Malformed("padded packet is empty".into()))?;
+            .ok_or_else(|| RtpError::Malformed("padded packet is empty".into()))?;
         let strip = usize::from(last);
         if strip == 0 || strip > end - offset {
-            return Err(RtspError::Malformed(format!(
+            return Err(RtpError::Malformed(format!(
                 "padding length {strip} is out of range"
             )));
         }
@@ -133,8 +131,8 @@ mod tests {
 
     #[test]
     fn a_short_buffer_is_incomplete() {
-        assert_eq!(parse_rtp(&[]), Err(RtspError::Incomplete));
-        assert_eq!(parse_rtp(&[0x80; 11]), Err(RtspError::Incomplete));
+        assert_eq!(parse_rtp(&[]), Err(RtpError::Incomplete));
+        assert_eq!(parse_rtp(&[0x80; 11]), Err(RtpError::Incomplete));
     }
 
     #[test]
@@ -148,7 +146,7 @@ mod tests {
     fn a_wrong_version_is_refused() {
         let mut buf = packet();
         buf[0] = 0x40; // version 1
-        assert!(matches!(parse_rtp(&buf), Err(RtspError::Malformed(_))));
+        assert!(matches!(parse_rtp(&buf), Err(RtpError::Malformed(_))));
     }
 
     #[test]
@@ -165,12 +163,12 @@ mod tests {
         let mut buf = packet();
         buf[0] |= 0x20;
         buf.push(200); // claims 200 bytes of padding on a 16-byte packet
-        assert!(matches!(parse_rtp(&buf), Err(RtspError::Malformed(_))));
+        assert!(matches!(parse_rtp(&buf), Err(RtpError::Malformed(_))));
 
         let mut zero = packet();
         zero[0] |= 0x20;
         zero.push(0); // padding length 0 is invalid
-        assert!(matches!(parse_rtp(&zero), Err(RtspError::Malformed(_))));
+        assert!(matches!(parse_rtp(&zero), Err(RtpError::Malformed(_))));
     }
 
     #[test]
@@ -193,13 +191,13 @@ mod tests {
         let mut buf = vec![0x80 | 0x10, 96];
         buf.extend_from_slice(&[0; 10]);
         buf.extend_from_slice(&[0xBE, 0xDE, 0x00, 0x02]); // claims 2 words, none present
-        assert!(matches!(parse_rtp(&buf), Err(RtspError::Malformed(_))));
+        assert!(matches!(parse_rtp(&buf), Err(RtpError::Malformed(_))));
     }
 
     #[test]
     fn a_truncated_csrc_list_is_malformed() {
         let mut buf = vec![0x80 | 0x04, 96]; // CC=4 needs 16 bytes of CSRC
         buf.extend_from_slice(&[0; 10]);
-        assert!(matches!(parse_rtp(&buf), Err(RtspError::Malformed(_))));
+        assert!(matches!(parse_rtp(&buf), Err(RtpError::Malformed(_))));
     }
 }

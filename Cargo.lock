@@ -139,6 +139,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-rtp"
+version = "0.1.0"
+
+[[package]]
 name = "cctv-rtsp"
 version = "0.1.0"
 dependencies = [
