@@ -2,7 +2,7 @@
 //!
 //! The session half of the stream path: how a camera is *asked* for a stream,
 //! and what it answers with.  The payload half — RTP headers and H.264 / H.265
-//! reassembly — is [`cctv_rtp`], a separate crate, because a payload parser has
+//! reassembly — is `cctv-rtp`, a separate crate, because a payload parser has
 //! nothing to do with a session and deserves to be testable on its own.
 //!
 //! This crate is **pure**: it works on byte slices and never opens a socket, so
