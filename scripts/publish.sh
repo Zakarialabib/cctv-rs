@@ -40,7 +40,8 @@ set -euo pipefail
 ORDER=(
     cctv-core        # no workspace deps
     cctv-transport   # no workspace deps
-    cctv-rtsp        # -> base64 only: pure codecs, no workspace deps
+    cctv-rtp         # zero dependencies: pure payload parsers
+    cctv-rtsp        # -> base64 only: session codecs
     cctv-onvif       # -> cctv-core, cctv-transport
     cctv-discovery   # -> cctv-core
     cctv-ezviz       # -> ezviz-openapi (published separately: must land first)

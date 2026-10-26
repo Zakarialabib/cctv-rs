@@ -14,7 +14,8 @@ reverse-engineered Ezviz Open Platform client, `ezviz-openapi-rs`) and
 |---|---|
 | `cctv-core` | device model: types, state, commands, errors, mock, conformance (`no tokio`) |
 | `cctv-transport` | TLS policy, pinning, budgeted frame reader, shared XML scanner and HTTP client |
-| `cctv-rtsp` | RTSP / RTP / H.264 codecs: message framing, SDP, RTP headers, access-unit reassembly |
+| `cctv-rtp` | RTP headers, H.264 / H.265 depacketisation into NAL units (**zero dependencies**) |
+| `cctv-rtsp` | RTSP session codecs: message framing and SDP |
 | `cctv-discovery` | SSDP + WS-Discovery camera discovery over UDP multicast |
 | `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders, session, `CameraBackend` |
 | `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |

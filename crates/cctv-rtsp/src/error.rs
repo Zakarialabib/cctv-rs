@@ -1,4 +1,4 @@
-//! The RTSP codec's error type.
+//! The RTSP session codec's error type.
 
 use std::fmt;
 
@@ -10,8 +10,6 @@ pub enum RtspError {
     Incomplete,
     /// The bytes are there but they are not a valid message.
     Malformed(String),
-    /// A header the codec needs is absent or unusable.
-    MissingHeader(&'static str),
 }
 
 impl fmt::Display for RtspError {
@@ -19,7 +17,6 @@ impl fmt::Display for RtspError {
         match self {
             Self::Incomplete => f.write_str("incomplete message: read more bytes"),
             Self::Malformed(detail) => write!(f, "malformed message: {detail}"),
-            Self::MissingHeader(name) => write!(f, "missing or unusable `{name}` header"),
         }
     }
 }
@@ -36,8 +33,5 @@ mod tests {
         assert!(RtspError::Malformed("no CSeq".into())
             .to_string()
             .contains("no CSeq"));
-        assert!(RtspError::MissingHeader("CSeq")
-            .to_string()
-            .contains("CSeq"));
     }
 }
