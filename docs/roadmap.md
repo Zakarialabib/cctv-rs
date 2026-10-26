@@ -57,6 +57,11 @@ reason.
 
 ## Open items
 
+The v0.2+ crate map, the measured delta from today, and the four decisions it
+raises (does `cctv-discovery` survive, where `cctv-ezviz` sits, how far `no_std`
+goes, `Box` or `Arc`) are in [target-architecture.md](target-architecture.md).
+Settle those before starting the work, not during it.
+
 - **Nothing pushes frames yet.** `FrameReader` is real and `camera_get_stats`
   measures from it, so the numbers are no longer hardcoded — but no RTSP client
   feeds the reader, so they read zero until the application's stream consumer
