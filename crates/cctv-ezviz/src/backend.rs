@@ -3,11 +3,11 @@
 //! This is the per-camera half of the driver — the account-level half is
 //! [`crate::Driver`] — and the subject of the conformance suite.
 
+use async_trait::async_trait;
 use std::sync::Mutex;
 
 use cctv_core::{
-    BoxFuture, CameraBackend, CameraError, Preset, ProbeResult, PtzCommand, StreamInfo,
-    StreamQuality,
+    CameraBackend, CameraError, Preset, ProbeResult, PtzCommand, StreamInfo, StreamQuality,
 };
 use ezviz_openapi::live::VideoQuality;
 use ezviz_openapi::ptz::PtzDirection;
@@ -76,13 +76,14 @@ fn preset_index(id: &str) -> Result<i32, CameraError> {
     })
 }
 
+#[async_trait]
 impl CameraBackend for EzvizCameraBackend {
     fn driver(&self) -> &'static str {
         "ezviz"
     }
 
-    fn probe(&self) -> BoxFuture<'_, Result<ProbeResult, CameraError>> {
-        Box::pin(async move {
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        {
             let detail = self
                 .client
                 .device_info(&self.serial)
@@ -113,11 +114,11 @@ impl CameraBackend for EzvizCameraBackend {
                     .unwrap_or(false),
                 ai_supported: false,
             })
-        })
+        }
     }
 
-    fn stream(&self, quality: StreamQuality) -> BoxFuture<'_, Result<StreamInfo, CameraError>> {
-        Box::pin(async move {
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        {
             let platform = match quality {
                 StreamQuality::Main => VideoQuality::Hd,
                 StreamQuality::Sub => VideoQuality::Fluent,
@@ -135,11 +136,11 @@ impl CameraBackend for EzvizCameraBackend {
                 height: None,
                 codec: None,
             })
-        })
+        }
     }
 
-    fn ptz(&self, command: PtzCommand) -> BoxFuture<'_, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        {
             match command {
                 PtzCommand::Stop => {
                     let started = self.started.lock().map_err(|_| poisoned())?.take();
@@ -170,20 +171,18 @@ impl CameraBackend for EzvizCameraBackend {
                     }
                 }
             }
-        })
+        }
     }
 
-    fn presets(&self) -> BoxFuture<'_, Result<Vec<Preset>, CameraError>> {
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
         // The platform can add, recall and clear a preset but cannot list them.
-        Box::pin(async { Err(unsupported("list the device's presets")) })
+        {
+            Err(unsupported("list the device's presets"))
+        }
     }
 
-    fn save_preset<'a>(
-        &'a self,
-        name: &'a str,
-        id: Option<&'a str>,
-    ) -> BoxFuture<'a, Result<Preset, CameraError>> {
-        Box::pin(async move {
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        {
             if id.is_some() {
                 // The platform assigns the preset index itself, so a
                 // caller-chosen id is refused rather than silently ignored.
@@ -202,26 +201,26 @@ impl CameraBackend for EzvizCameraBackend {
                 tilt: 0.0,
                 zoom: 0.0,
             })
-        })
+        }
     }
 
-    fn goto_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        {
             let index = preset_index(id)?;
             self.client
                 .preset_move(&self.serial, self.channel, index)
                 .await
                 .map_err(camera_error)
-        })
+        }
     }
 
-    fn delete_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        {
             let index = preset_index(id)?;
             self.client
                 .preset_clear(&self.serial, self.channel, index)
                 .await
                 .map_err(camera_error)
-        })
+        }
     }
 }

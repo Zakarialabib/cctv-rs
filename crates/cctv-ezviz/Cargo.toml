@@ -16,6 +16,8 @@ default = []
 pc-sdk = ["ezviz-openapi/pc-sdk"]
 
 [dependencies]
+# `CameraBackend` is an `async-trait` trait; the impl must be annotated too.
+async-trait.workspace = true
 # The vendor client lives in its own published crate; this driver only translates
 # its responses into the cctv device model.
 ezviz-openapi.workspace = true

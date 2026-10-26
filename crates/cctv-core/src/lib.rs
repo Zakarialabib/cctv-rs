@@ -90,8 +90,8 @@ pub mod types;
 // ---------------------------------------------------------------------------
 
 pub use backend::{
-    jpeg_dimensions, redact_uri, with_credentials, BoxFuture, CameraBackend, CameraConfig,
-    PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    jpeg_dimensions, redact_uri, with_credentials, CameraBackend, CameraConfig, PtzCommand,
+    Snapshot, StreamInfo, StreamQuality,
 };
 pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
