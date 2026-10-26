@@ -12,16 +12,7 @@
 //! - a **timestamp change** mid-unit means the same thing, and is how the loss is
 //!   usually noticed before the marker ever arrives.
 
-/// One decodable access unit: the NAL units belonging to a single frame.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AccessUnit {
-    /// The RTP timestamp every packet of this unit shared.
-    pub timestamp: u32,
-    /// The NAL units, in wire order, with their headers intact.
-    pub nal_units: Vec<Vec<u8>>,
-    /// Total bytes of NAL data.
-    pub bytes: usize,
-}
+use crate::types::AccessUnit;
 
 /// Reassembles H.264 access units from RTP payloads.
 ///
