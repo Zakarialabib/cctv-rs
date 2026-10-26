@@ -48,6 +48,16 @@ All seven crates are versioned and released together.
   feature, so a build that only needs the device model pays no TOML parser; the
   bundled table ships **empty** because no defect in this workspace has a source
   yet, and an unverified row is worse than no row.
+- `cctv-rtsp` — a new crate, and the protocol half of the stream path: RTSP
+  request/response framing (including the `$`-prefixed interleaved media a TCP
+  transport multiplexes onto the same connection), SDP (tracks, payload types,
+  `a=control`, out-of-band SPS/PPS), the RTP header with CSRC / extension /
+  padding handling, and H.264 access-unit reassembly across single NALs, STAP-A
+  and FU-A. It is **pure** — byte slices in, no socket, no runtime — because that
+  is where the bugs are, and 40 tests pin them: a truncated buffer is `Incomplete`
+  rather than `Malformed`, absurd padding is rejected rather than slicing out of
+  range, and a lost fragment or a mid-unit timestamp change drops the whole access
+  unit instead of handing a decoder half a frame.
 - `cctv-transport`'s `FrameReader` is implemented — it was a stub that returned
   `None` regardless of input. It now bounds **staleness** (a frame older than the
   budget is dropped rather than delivered late, because a live tile would rather
