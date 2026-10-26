@@ -53,6 +53,11 @@ jobs:
       # The conformance suite runs against the mock backend, so it needs no
       # camera and no network.
       - run: cargo test -p cctv-core
+      # The contract must compile without `std`.  `--no-default-features` turns
+      # off the mock backend (it needs `Mutex`) and the quirks table (`toml` is
+      # std-only), leaving only the alloc-only device model.
+      - name: Contract is alloc-only
+        run: cargo check -p cctv-core --no-default-features
       # `quirks` is off by default, so the default test run would never compile
       # it. This is the only job that exercises the table loader.
       - run: cargo test -p cctv-core --features quirks

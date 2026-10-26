@@ -498,10 +498,7 @@ impl Facade {
                 Ok(CommandResult::for_camera(
                     command,
                     id.to_string(),
-                    CommandResultPayload::Config {
-                        config: serde_json::to_value(config)
-                            .map_err(|error| CameraError::Other(error.to_string()))?,
-                    },
+                    CommandResultPayload::Config { config },
                 ))
             }
             CommandId::CameraGetPresets => {

@@ -14,6 +14,8 @@
 //! Stepping backwards cools confidence; stepping forwards warms it.  A
 //! `probe` always refreshes the anchor before a transition.
 
+use crate::prelude::*;
+
 use crate::types::CameraType;
 use serde::{Deserialize, Serialize};
 
@@ -202,12 +204,24 @@ impl CameraState {
         self.desired = CameraDesired::Disabled;
     }
 
+    /// Seconds since the Unix epoch.
+    ///
+    /// The contract has no clock — `core` has no `SystemTime` — so this reads one
+    /// only when `std` is linked (the `testing` and `quirks` builds).  An
+    /// `alloc`-only build stamps transitions with `0`: the state machine behaves
+    /// identically, but a caller that needs real timestamps records them itself,
+    /// which is exactly what `cctv-agent`'s audit trail does.
+    #[cfg(any(feature = "testing", feature = "quirks"))]
     fn now() -> u64 {
-        // std-only epoch stand-in (zero-dep).  Replace with an injected clock if
-        // you ever need test determinism.
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0)
+    }
+
+    /// An `alloc`-only build has no clock; see the `std` variant above.
+    #[cfg(not(any(feature = "testing", feature = "quirks")))]
+    fn now() -> u64 {
+        0
     }
 }

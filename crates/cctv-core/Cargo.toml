@@ -15,18 +15,25 @@ categories = ["api-bindings", "hardware-support"]
 # no protocol, no async. This crate is embeddable in a Tauri app, a CLI, or
 # even a WASM worker, so only the types that cross the seam own serde.
 serde.workspace = true
-serde_json.workspace = true
 # The quirks table is TOML; the parser is only pulled in when the feature is on,
 # so a build that just needs the device model does not pay for it.
 toml = { workspace = true, optional = true }
 
 [features]
-default = []
+# The mock backend and the conformance suite need `Mutex` (a `CameraBackend`
+# must be `Sync`, and `alloc` has no mutex), so they are `std`.  On by default
+# so `cargo test` works out of the box; `--no-default-features` is the
+# alloc-only contract build.
+default = ["testing"]
+testing = []
 # The model- and firmware-specific quirks table (`cctv_core::quirks`). Off by
 # default because it drags in a TOML parser for a table most builds never read.
 quirks = ["dep:toml"]
 
 [dev-dependencies]
+# Tests are `std` by definition, so the JSON used to exercise the wire format
+# lives here — the contract itself carries no JSON DOM.
+serde_json.workspace = true
 insta.workspace = true
 
 [lints]
