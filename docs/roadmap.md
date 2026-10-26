@@ -7,7 +7,7 @@ What is built, what is next, and what is deliberately deferred.
 | # | Deliverable | Gate | Status |
 | --- | --- | --- | --- |
 | 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green; the `quirks` table loader is behind the `quirks` feature and ships with no rows (see open items) |
-| 2 | `cctv-transport` (TLS policy + budgeted frame reader) and `cctv-discovery` (SSDP + WS-Discovery) | both compile | landed — the SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps run over UDP multicast, with the codecs and the merge / dedupe logic unit-tested behind the `Datagram` seam |
+| 2 | `cctv-transport` (TLS policy + budgeted frame reader), `cctv-discovery` (SSDP + WS-Discovery) and `cctv-rtsp` (the RTSP / RTP / H.264 codecs) | both compile | landed — the SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps run over UDP multicast with the codecs and merge / dedupe logic unit-tested behind the `Datagram` seam; `cctv-rtsp` frames RTSP messages, parses SDP and RTP, and reassembles H.264 access units from single NALs, STAP-A and FU-A, all pure and unit-tested |
 | 3 | `cctv-onvif`: the ONVIF driver — Device / Media / PTZ SOAP builders and parsers, WS-Security `UsernameToken` | `cargo test -p cctv-onvif` | landed — `OnvifSession` drives the builders over `cctv-transport`'s HTTP client (following the `XAddr`s `GetCapabilities` returns, cached), and `OnvifCameraBackend` passes the conformance suite 7/7 against a canned SOAP server |
 | 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | landed — the conformance suite and the account-level operations run against `cctv-transport`'s fixture server; the three platform gaps (image bytes, listing presets, absolute PTZ) are typed errors |
 | 5 | `cctv-rs` facade, and rewriting the application's camera surface onto it | `cargo check -p cctv-rs` | facade landed — the command surface, the driver registry, the LAN sweep and the fleet reconciliation are implemented and tested; the application-side rewrite is not started |
@@ -60,8 +60,10 @@ reason.
 - **Nothing pushes frames yet.** `FrameReader` is real and `camera_get_stats`
   measures from it, so the numbers are no longer hardcoded — but no RTSP client
   feeds the reader, so they read zero until the application's stream consumer
-  takes `Facade::frame_reader(id)` and pushes. That consumer (RTSP
-  DESCRIBE / SETUP / PLAY plus RTP depacketisation) is the remaining piece.
+  takes `Facade::frame_reader(id)` and pushes. `cctv-rtsp` supplies the protocol
+  half (framing, SDP, RTP, H.264 reassembly); what remains is the **socket loop**
+  — DESCRIBE → SETUP (interleaved) → PLAY over TCP, RTSP Digest auth, and the
+  keepalive — which belongs in a driver, not in the codec crate.
 - The `quirks` table ships **empty**. The loader, the action vocabulary and the
   precedence rules are implemented and tested (`cctv-core`, feature `quirks`), but
   no camera defect in this workspace has a source yet — and a row without one is a
