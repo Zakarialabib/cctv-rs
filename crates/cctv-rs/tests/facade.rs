@@ -12,8 +12,8 @@ use std::time::Duration;
 use cctv_agent::Grade;
 use cctv_core::mock::MockCamera;
 use cctv_core::{
-    BoxFuture, CameraBackend, CameraConfig, CameraDesired, CameraError, CameraStateCurrent,
-    CommandId, CommandResultPayload, ProbeResult, PtzCommand, StreamInfo, StreamQuality,
+    CameraBackend, CameraConfig, CameraDesired, CameraError, CameraStateCurrent, CommandId,
+    CommandResultPayload, ProbeResult, PtzCommand, StreamInfo, StreamQuality,
 };
 use cctv_discovery::Datagram;
 use cctv_rs::{Action, DriverFactory, Facade};
@@ -44,17 +44,22 @@ fn facade_with(id: &str) -> Facade {
 /// A camera whose every call fails, for the graded-remediation path.
 struct DeadCamera;
 
+#[async_trait::async_trait]
 impl CameraBackend for DeadCamera {
     fn driver(&self) -> &'static str {
         "dead"
     }
 
-    fn probe(&self) -> BoxFuture<'_, Result<ProbeResult, CameraError>> {
-        Box::pin(async { Err(CameraError::Offline) })
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        {
+            Err(CameraError::Offline)
+        }
     }
 
-    fn stream(&self, _quality: StreamQuality) -> BoxFuture<'_, Result<StreamInfo, CameraError>> {
-        Box::pin(async { Err(CameraError::Offline) })
+    async fn stream(&self, _quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        {
+            Err(CameraError::Offline)
+        }
     }
 }
 
