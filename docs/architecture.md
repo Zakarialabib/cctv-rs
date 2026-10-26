@@ -60,7 +60,7 @@ application talks to.
 
 | Crate | Depends on | Role |
 | --- | --- | --- |
-| `cctv-core` | `serde`, `serde_json` (+ optional `toml` behind `quirks`) | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. Feature `quirks` adds the model/firmware defect table, as data. |
+| `cctv-core` | `serde` (+ optional `toml` behind `quirks`) | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. **`alloc`-only**: no `std`, no runtime, no protocol, no JSON DOM. Feature `testing` (default) adds the mock — it needs `Mutex`, which `alloc` does not have; feature `quirks` adds the model/firmware defect table, as data, because `toml` is std-only. |
 | `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader — bounded staleness and backlog, plus the stream measurements `camera_get_stats` reports — the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
 | `cctv-rtp` | *(none)* | The payload half of the stream path: the RTP header, and H.264 / H.265 access-unit reassembly across single NALs, STAP-A / AP and FU-A / FU. **Pure and dependency-free** — it knows nothing about RTSP or SDP, which is why it is tested exhaustively and reusable by any transport. |
 | `cctv-rtsp` | `base64` | The session half: RTSP request/response framing (and `$` interleaved media on the same TCP connection) and SDP. **Pure** — byte slices in, no socket, no runtime. The `CameraBackend` driver belongs here once `cctv-transport` grows a socket layer. |

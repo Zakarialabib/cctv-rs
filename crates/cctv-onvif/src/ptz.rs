@@ -121,7 +121,6 @@ pub fn parse_presets(body: &str) -> Vec<Preset> {
                 pan: attr_f32(position, "PanTilt", "x").unwrap_or(0.0),
                 tilt: attr_f32(position, "PanTilt", "y").unwrap_or(0.0),
                 zoom: attr_f32(position, "Zoom", "x").unwrap_or(0.0),
-                config: serde_json::Value::Null,
                 id,
             })
         })

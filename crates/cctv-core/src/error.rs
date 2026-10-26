@@ -6,6 +6,8 @@
 //! Errors are intended to flow across a `Result<T, CameraError>` seam.  The
 //! reconciler maps them to graded remediation.
 
+use crate::prelude::*;
+
 use core::fmt;
 
 /// The typed failure taxonomy every camera driver returns.
@@ -54,7 +56,7 @@ impl fmt::Display for CameraError {
     }
 }
 
-impl std::error::Error for CameraError {}
+impl core::error::Error for CameraError {}
 
 impl From<CameraError> for String {
     fn from(e: CameraError) -> Self {
