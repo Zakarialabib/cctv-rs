@@ -8,6 +8,9 @@
 //! - [`xml`] — a total, namespace-prefix-agnostic XML scanner (always on).
 //! - `http` (feature `http`) — the async HTTP client, `reqwest` + **rustls
 //!   only**, with HTTP Digest / Basic negotiation.
+//! - `net` (feature `net`) — the raw socket layer this crate is for: TCP, UDP
+//!   and TLS with [`policy`] applied, plus the byte reader that feeds
+//!   [`reader`].  No `reqwest`; it is what eventually replaces `http`.
 //! - `fixture` (feature `fixture`) — a canned-response HTTP server the
 //!   drivers' conformance tests run against.
 //!
@@ -20,6 +23,8 @@
 pub mod fixture;
 #[cfg(feature = "http")]
 pub mod http;
+#[cfg(feature = "net")]
+pub mod net;
 pub mod policy;
 pub mod reader;
 pub mod xml;
