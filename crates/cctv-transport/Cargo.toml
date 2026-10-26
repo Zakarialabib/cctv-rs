@@ -12,8 +12,9 @@ categories = ["multimedia::video", "network-programming"]
 
 [features]
 default = []
-# The async HTTP client (reqwest + rustls, Digest / Basic auth) the drivers share.
-http = ["dep:reqwest", "dep:md-5", "dep:sha2", "dep:base64"]
+# The async HTTP client (reqwest + rustls) the drivers share. Digest / Basic are
+# computed in `digest`, which is always compiled, so `http` is the client only.
+http = ["dep:reqwest"]
 # A canned-response HTTP server for driver tests. Pulls tokio's network stack.
 fixture = ["dep:tokio"]
 # The raw socket layer: TCP, UDP and rustls TLS with the crate's policy applied.
@@ -25,9 +26,11 @@ net = ["dep:tokio", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pki-types"]
 # Policy is data: pinned certs, minimum TLS version, ALPN preference.
 serde.workspace = true
 reqwest = { workspace = true, optional = true }
-md-5 = { workspace = true, optional = true }
-sha2 = { workspace = true, optional = true }
-base64 = { workspace = true, optional = true }
+# Digest is always compiled (see `digest`): a pure header computation that an
+# RTSP client needs and must not have to link `reqwest` for.
+md-5.workspace = true
+sha2.workspace = true
+base64.workspace = true
 tokio = { workspace = true, optional = true, features = ["net", "io-util", "rt", "time"] }
 # rustls only: native-tls is never linked (CI checks `cargo tree -i native-tls`).
 # Both are pinned to the majors `reqwest` already resolves, so the `http` and

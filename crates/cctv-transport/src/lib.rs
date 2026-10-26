@@ -6,8 +6,12 @@
 //! The driver crates also share two wire-level helpers from here:
 //!
 //! - [`xml`] — a total, namespace-prefix-agnostic XML scanner (always on).
+//! - [`digest`] — HTTP Digest challenge parsing and the `Authorization` header
+//!   (always on): pure hashing that both the HTTP client and the RTSP session
+//!   answer a `401` with, so it must not be gated behind a client it does not
+//!   need.
 //! - `http` (feature `http`) — the async HTTP client, `reqwest` + **rustls
-//!   only**, with HTTP Digest / Basic negotiation.
+//!   only**, which imports [`digest`] rather than owning the algorithm.
 //! - `net` (feature `net`) — the raw socket layer this crate is for: TCP, UDP
 //!   and TLS with [`policy`] applied, plus the byte reader that feeds
 //!   [`reader`].  No `reqwest`; it is what eventually replaces `http`.
@@ -19,6 +23,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod digest;
 #[cfg(feature = "fixture")]
 pub mod fixture;
 #[cfg(feature = "http")]

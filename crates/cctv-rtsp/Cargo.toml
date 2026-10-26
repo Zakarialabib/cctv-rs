@@ -1,6 +1,6 @@
 [package]
 name = "cctv-rtsp"
-description = "RTSP / RTP / H.264 codecs for cctv-rs: message framing, SDP, RTP headers and access-unit depacketisation."
+description = "RTSP / RTP / H.264 codecs for cctv-rs: message framing, SDP, RTP headers, access-unit depacketisation and a CameraBackend over interleaved TCP."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,10 +10,41 @@ readme = "README.md"
 keywords = ["rtsp", "rtp", "h264", "cctv", "camera"]
 categories = ["multimedia::video", "network-programming"]
 
+[features]
+default = []
+# The live session: DESCRIBE → SETUP → PLAY over cctv-transport's socket layer,
+# Digest auth, interleaved demux, keepalive and reconnect.  Off by default so a
+# caller that only wants the pure parsers (message, sdp) does not link tokio or
+# rustls.  Deliberately free of `http`: the Digest computation is pure and lives
+# in cctv-transport::digest, which is always compiled.
+net = [
+    "dep:async-trait",
+    "dep:cctv-core",
+    "dep:cctv-rtp",
+    "dep:cctv-transport",
+    "dep:tokio",
+    "dep:tokio-rustls",
+]
+
 [dependencies]
-# `sprop-parameter-sets` in SDP is base64; nothing else is needed, because this
-# crate is pure codec — no sockets, no runtime, no TLS.
+# `sprop-parameter-sets` in SDP is base64; nothing else is needed for the pure
+# half of this crate, because it parses bytes and opens no socket.
 base64.workspace = true
+# The live half (`net`): the device model, the payload depacketisers and the
+# socket layer.  All optional, because they are what the feature turns on.
+async-trait = { workspace = true, optional = true }
+cctv-core = { workspace = true, optional = true }
+cctv-rtp = { workspace = true, optional = true }
+cctv-transport = { workspace = true, optional = true, features = ["net"] }
+tokio = { workspace = true, optional = true, features = ["net", "io-util", "rt", "time", "sync"] }
+# rustls only, and only for the `rtsps://` scheme: native-tls is never linked
+# (CI checks `cargo tree -i native-tls`).
+tokio-rustls = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The conformance suite runs against a canned RTSP server on a real runtime.
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+cctv-transport = { workspace = true, features = ["net", "fixture"] }
 
 [lints]
 workspace = true
