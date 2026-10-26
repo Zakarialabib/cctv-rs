@@ -6,6 +6,7 @@ resolver = "2"
 members = [
     "crates/cctv-core",
     "crates/cctv-transport",
+    "crates/cctv-rtp",
     "crates/cctv-rtsp",
     "crates/cctv-onvif",
     "crates/cctv-discovery",
@@ -25,6 +26,7 @@ repository = "https://github.com/Zakarialabib/cctv-rs"
 # --- workspace crates (path + version: Cargo strips `path` at publish time) ---
 cctv-core = { path = "crates/cctv-core", version = "0.1.0" }
 cctv-transport = { path = "crates/cctv-transport", version = "0.1.0" }
+cctv-rtp = { path = "crates/cctv-rtp", version = "0.1.0" }
 cctv-rtsp = { path = "crates/cctv-rtsp", version = "0.1.0" }
 cctv-onvif = { path = "crates/cctv-onvif", version = "0.1.0" }
 cctv-discovery = { path = "crates/cctv-discovery", version = "0.1.0" }

@@ -87,6 +87,7 @@ jobs:
       # because a sibling is in the build. Each published crate is built alone.
       - run: cargo check -p cctv-core
       - run: cargo check -p cctv-transport
+      - run: cargo check -p cctv-rtp
       - run: cargo check -p cctv-rtsp
       - run: cargo check -p cctv-onvif
       - run: cargo check -p cctv-discovery

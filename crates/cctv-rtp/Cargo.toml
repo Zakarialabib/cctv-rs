@@ -1,0 +1,18 @@
+[package]
+name = "cctv-rtp"
+description = "Standalone RTP header parsing and H.264 / H.265 depacketisation into contiguous NAL units, for cctv-rs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["rtp", "h264", "h265", "hevc", "cctv"]
+categories = ["multimedia::video", "network-programming"]
+
+# No dependencies at all. This crate parses bytes; the SDP attribute that needs
+# base64 decoding (`sprop-parameter-sets`) belongs to `cctv-rtsp`, which is where
+# a session is described.
+
+[lints]
+workspace = true
