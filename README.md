@@ -1,72 +1,65 @@
 # cctv-rs
 
-A pure-Rust CCTV backend for SignageMaster: discover, stream, control (PTZ), analyse
-(zones / motion / AI) and reconcile camera fleets — no Tauri, no UI, no SQLite.
+Your camera fleet over one handle: discover, stream, control and reconcile the
+cameras that feed SignageMaster — pure Rust, no Tauri, no SQLite, no vendor code
+shipped in the tree.
 
-It is the camera half of the architecture refactor: `src-tauri` hands the app its
-typed facade, and each protocol lives in its own driver crate — `cctv-ezviz` (the
-reverse-engineered Ezviz Open Platform client, `ezviz-openapi-rs`) and
-`cctv-onvif` (ONVIF Device / Media / PTZ).
+This is the camera half of SignageMaster. The app (`src/core/cctv.ts`) talks to
+us through a single typed facade and the `cctv-core` device model, and every
+protocol lives in its own driver crate, so a new camera only adds one crate.
 
-## Workspace
+## What you get
 
-| Crate | Role |
-|---|---|
-| `cctv-core` | device model: types, state, commands, errors, mock, conformance (`no tokio`) |
-| `cctv-transport` | TLS policy, pinning, budgeted frame reader, shared XML scanner and HTTP client |
-| `cctv-rtp` | RTP headers, H.264 / H.265 depacketisation into NAL units (**zero dependencies**) |
-| `cctv-rtsp` | RTSP session codecs: message framing and SDP |
-| `cctv-discovery` | SSDP + WS-Discovery camera discovery over UDP multicast |
-| `cctv-onvif` | ONVIF (Device / Media / PTZ) driver: SOAP builders, session, `CameraBackend` |
-| `cctv-ezviz` | Ezviz Open-Platform driver (from `ezviz-openapi-rs`) |
-| `cctv-agent` | fleet reconciler: desired → graded remediation, audit trail |
-| `cctv-rs` | facade: registry, commands, discovery, fleet reconciliation |
+| Crate | For |
+| --- | --- |
+| `cctv-core` | The device model: types, commands, state machine, error taxonomy. The only thing the app codes against. |
+| `cctv-discovery` | SSDP + WS-Discovery sweeps behind one read-only surface. Empty on a dead network — never a fabricated device. |
+| `cctv-transport` | TLS policy, the budgeted `FrameReader`, and — behind the `net` feature — a `reqwest`-free TCP/UDP socket layer. |
+| `cctv-rtp` | RTP header parse and H.264/H.265 depacketisation into contiguous NAL units. Zero dependencies. |
+| `cctv-rtsp` | Pure session codecs: RTSP framing, SDP, the `$`-prefixed RTP demux. |
+| `cctv-onvif` | ONVIF Device/Media/PTZ over SOAP 1.2 with WS-Security, as a `CameraBackend`. |
+| `cctv-ezviz` | The Ezviz Open Platform, wrapped from `ezviz-openapi-rs`. |
+| `cctv-agent` | Fleet reconciler: desired vs observed, graded remediation, audit trail. |
+| `cctv-rs` | The facade: registry, commands, discovery, stats, fleet reconciliation. |
 
-The seven crates are versioned and published together. `cctv-core` depends on nothing
-in the workspace, the facade depends on everything, and only `cctv-rs` is meant to
-be consumed by the application.
+Only `cctv-rs` is meant to be consumed; everything else is a driver.
 
 ## Quick start
 
 ```bash
 git clone https://github.com/Zakarialabib/cctv-rs
 cd cctv-rs
-cargo check --workspace
-cargo test --workspace
+cargo check --workspace && cargo test --workspace
 ```
 
-## What it is NOT
+## What it is not
 
-- Not a Tauri plugin. Nothing here owns a window or a SQLite DB.
-- No vendor shipped inside the workspace: `ezviz-openapi-rs` is consumed as a
-  dependency. PTZ protocols (ONVIF/RTSP) reach the app through the driver crates.
-- Not a media server: `cctv-transport` only reads and buffers frames.
+- Not a Tauri plugin — nothing owns a window or a SQLite DB.
+- Not a media server — `cctv-transport` only reads and buffers frames.
+- Not a vendor surface — no Ezviz or ONVIF name reaches the public facade.
 
-## Documentation
+## Docs
 
-Start at [`docs/README.md`](docs/README.md). The architecture — use surface, crate
-map, protocol matrix, event taxonomy and the integration seam — is
-[`docs/architecture.md`](docs/architecture.md); the command inventory is
-[`docs/commands.md`](docs/commands.md) and the plan is
-[`docs/roadmap.md`](docs/roadmap.md). The house engineering standard is
-[`docs/04-rust-package-standard.md`](docs/04-rust-package-standard.md).
+Start at `docs/README.md` — the architecture, the command inventory and the plan
+are in `docs/architecture.md`, `docs/commands.md`, `docs/roadmap.md` and the house
+standard `docs/04-rust-package-standard.md`.
 
 ## Contributing
 
 Prerequisites, the local gates CI enforces, commit conventions and the versioning
-policy are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+policy are in `CONTRIBUTING.md`.
 
 ## Releasing
 
-The seven crates publish in dependency order via
-[`scripts/publish.sh`](scripts/publish.sh) — crates.io yanks rather than deletes,
-so the order and the dry run matter. The order itself lives in that script.
+The nine crates publish in dependency order via `scripts/publish.sh` — the ten you
+touch, and `cargo publish` yanks rather than deletes, so an idempotent dry run
+before you push matters. The order lives in that script.
 
 ## Security
 
-Report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md). There is no
-`unsafe` in this workspace; every crate root forbids it.
+Report vulnerabilities privately — see `SECURITY.md`. There is no `unsafe` in this
+workspace; every crate root forbids it.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE). Changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
+MIT — see `LICENSE`. Changes are recorded in `CHANGELOG.md`.

@@ -390,6 +390,29 @@ impl RtspSession {
         uri: &str,
         transport: Option<&str>,
     ) -> Result<Response, CameraError> {
+        let mut stream = net::connect_tcp(&self.url.authority, &self.options)
+            .await
+            .map_err(map_net_error)?;
+        self.request_over(&mut stream, method, uri, transport).await
+    }
+
+    /// Send one request on an already-open stream and read one response,
+    /// retrying once on a Digest `401`.
+    ///
+    /// **Why this exists alongside [`RtspSession::request`].** A streaming
+    /// session owns *one* connection for its whole life — the media arrives on
+    /// the socket the handshake was performed on, and a handshake on a different
+    /// socket would start a stream nobody reads.  [`RtspSession::request`] opens
+    /// a fresh connection per call, which is right for a one-shot `DESCRIBE` and
+    /// wrong for the loop; this is the same protocol over a socket the caller
+    /// owns.
+    pub async fn request_over(
+        &mut self,
+        stream: &mut Stream,
+        method: Method,
+        uri: &str,
+        transport: Option<&str>,
+    ) -> Result<Response, CameraError> {
         let mut request = Request::new(method, uri, self.next_cseq());
         if let Some(transport) = transport {
             request.headers.insert("Transport", transport);
@@ -397,7 +420,7 @@ impl RtspSession {
         if let Some(id) = &self.session_id {
             request.headers.insert("Session", id.clone());
         }
-        let first = self.exchange(&request).await?;
+        let first = self.send(stream, &request).await?;
         if first.status != 401 {
             return Ok(first);
         }
@@ -434,7 +457,7 @@ impl RtspSession {
             digest::Challenge::Basic => None,
         };
         request.headers.insert("Authorization", answer);
-        self.exchange(&request).await
+        self.send(stream, &request).await
     }
 
     /// Connect, send one request, read one response.
@@ -442,8 +465,36 @@ impl RtspSession {
         let mut stream = net::connect_tcp(&self.url.authority, &self.options)
             .await
             .map_err(map_net_error)?;
-        write_request(&mut stream, request).await?;
-        read_response(&mut stream).await
+        self.send(&mut stream, request).await
+    }
+
+    /// Write one request on `stream` and read one response off it.
+    async fn send(&mut self, stream: &mut Stream, request: &Request) -> Result<Response, CameraError> {
+        write_request(stream, request).await?;
+        read_response(stream).await
+    }
+
+    /// Send a request with a body on an already-open stream.
+    ///
+    /// `GET_PARAMETER` is how the fixture's media token is delivered: the
+    /// streaming loop owns one connection, and the request that starts its media
+    /// has to travel on it.  The body is the token; `Content-Length` is added by
+    /// [`Request::to_bytes`].
+    pub async fn request_with_body(
+        &mut self,
+        method: Method,
+        uri: &str,
+        body: &str,
+    ) -> Result<Response, CameraError> {
+        let mut stream = net::connect_tcp(&self.url.authority, &self.options)
+            .await
+            .map_err(map_net_error)?;
+        let mut request = Request::new(method, uri, self.next_cseq());
+        request.body = body.as_bytes().to_vec();
+        if let Some(id) = &self.session_id {
+            request.headers.insert("Session", id.clone());
+        }
+        self.send(&mut stream, &request).await
     }
 
     /// Send a keepalive (`OPTIONS`) and read the reply, ignoring a failure.
@@ -474,8 +525,25 @@ impl RtspSession {
     /// carry it.  `interleaved=0-1` is the only transport offered: media on
     /// channel 0, RTCP on channel 1.
     pub async fn setup_and_play(&mut self, control_url: &str) -> Result<String, CameraError> {
+        let mut stream = net::connect_tcp(&self.url.authority, &self.options)
+            .await
+            .map_err(map_net_error)?;
+        self.setup_and_play_over(&mut stream, control_url).await
+    }
+
+    /// The same `SETUP`/`PLAY` on a connection the caller owns.
+    ///
+    /// See [`RtspSession::request_over`] for why the streaming loop needs this:
+    /// the session id and the interleaved channels belong to the connection, so
+    /// a handshake done anywhere else starts a stream the loop is not reading.
+    pub async fn setup_and_play_over(
+        &mut self,
+        stream: &mut Stream,
+        control_url: &str,
+    ) -> Result<String, CameraError> {
         let setup = self
-            .request(
+            .request_over(
+                stream,
                 Method::Setup,
                 control_url,
                 Some("RTP/AVP/TCP;unicast;interleaved=0-1"),
@@ -490,7 +558,7 @@ impl RtspSession {
             value.split(';').next().unwrap_or("").trim().to_string()
         });
         let play = self
-            .request(Method::Play, &self.url.uri.clone(), None)
+            .request_over(stream, Method::Play, &self.url.uri.clone(), None)
             .await?;
         if !play.is_success() {
             return Err(map_status(play.status));

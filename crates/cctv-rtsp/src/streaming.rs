@@ -456,7 +456,21 @@ pub async fn run(
 
 /// One demux pass: connect, `DESCRIBE`/`SETUP`/`PLAY`, then read until the
 /// connection ends or the caller stops.
-async fn run_once(
+///
+/// **The handshake travels on the connection the loop reads.** This is the one
+/// place the session's per-call connection reuse matters: media is interleaved
+/// onto the socket `PLAY` was answered on, so a handshake performed on a
+/// different socket would start a stream the loop never sees — a read that
+/// stalls until the read deadline and reports a dead camera that is in fact
+/// delivering perfectly well.  Hence [`RtspSession::request_over`] and
+/// [`RtspSession::setup_and_play_over`] rather than the connecting forms.
+///
+/// **Why this is public.** It is the seam the fixture tests drive: a canned RTSP
+/// server answers the handshake and then the media, and the test needs to start
+/// the read loop on the offer the handshake produced rather than have
+/// [`run`](self::run) perform a second handshake that would make the fixture send
+/// two streams.  `run` itself remains the caller-facing entry point.
+pub async fn run_once(
     session: &mut RtspSession,
     offer: &SessionOffer,
     reader: &mut FrameReader,
@@ -472,7 +486,9 @@ async fn run_once(
 
     let described = {
         let uri = session.url().uri.clone();
-        let response = session.request(Method::Describe, &uri, None).await?;
+        let response = session
+            .request_over(&mut stream, Method::Describe, &uri, None)
+            .await?;
         if !response.is_success() {
             return Err(map_status(response.status));
         }
@@ -480,7 +496,9 @@ async fn run_once(
     };
     let refreshed = SessionOffer::pick(described, session.url(), offer.quality())
         .ok_or_else(|| CameraError::Other("the camera offered no video track".into()))?;
-    session.setup_and_play(&refreshed.control_url).await?;
+    session
+        .setup_and_play_over(&mut stream, &refreshed.control_url)
+        .await?;
 
     let mut depacketizer = Depacketizer::for_encoding(refreshed.codec.as_deref().unwrap_or(""));
     let parameters_sets = refreshed

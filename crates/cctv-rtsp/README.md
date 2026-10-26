@@ -3,26 +3,26 @@
 The **session** half of the `cctv-rs` stream path: how a camera is asked for a
 stream, and what it answers with.
 
-It is **pure** — byte slices in, no socket, no runtime, no TLS — so every rule is
-unit-tested without a camera, a server or a runtime. The payload half (RTP
-headers, H.264 / H.265 reassembly) is [`cctv-rtp`](../cctv-rtp), a separate crate,
-because a payload parser has nothing to do with a session and deserves to be
-testable on its own.
+It is **pure** — byte slices in, no socket, no runtime, no TLS — so every rule
+is unit-tested without a camera, a server or a runtime. The payload half (RTP
+headers, H.264 / H.265 reassembly) is [`cctv-rtp`](../cctv-rtp), a separate
+crate, because a payload parser has nothing to do with a session and deserves
+to be testable on its own.
 
 ## Layout
 
 | Module | What it holds |
 | --- | --- |
-| `message` | RTSP request / response framing, and the `$`-prefixed interleaved media frames a TCP transport multiplexes onto the same connection |
-| `sdp` | The `DESCRIBE` reply: tracks, payload type, codec, `a=control`, and the out-of-band SPS/PPS |
-| `error` | `RtspError`, including `Incomplete` |
+| `message` | RTSP request / response framing, and the `$`-prefixed interleaved media frames a TCP transport multiplexes onto the same connection. |
+| `sdp` | The `DESCRIBE` reply: tracks, payload type, codec, `a=control`, and the out-of-band SPS/PPS. |
+| `error` | `RtspError`, including `Incomplete`. |
 
 ## Parsing is incremental
 
 `Message::parse` returns the message **and how many bytes it consumed**, so a
 caller keeps the remainder for the next read. `RtspError::Incomplete` is not a
-failure — it means "read more and try again", which is what makes the parser safe
-on a socket where a TCP read lands mid-header:
+failure — it means "read more and try again", which is what makes the parser
+safe on a socket where a TCP read lands mid-header:
 
 ```rust,no_run
 use cctv_rtsp::{Message, RtspError};

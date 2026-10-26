@@ -10,13 +10,13 @@ type.
 
 | Module | What it holds |
 | --- | --- |
-| `soap` | Envelopes, the `#PasswordDigest` header, ISO 8601 timestamps |
-| `device` | `GetDeviceInformation`, `GetCapabilities` |
-| `media` | Profiles, stream / snapshot URIs, the encoder write path |
-| `ptz` | Continuous / absolute moves, stop, presets |
-| `session` | `OnvifSession` — one device on the wire |
-| `backend` | `OnvifCameraBackend` — one camera as a `CameraBackend` |
-| `error` | `OnvifError` and its mapping onto `CameraError` |
+| `soap` | Envelopes, the `#PasswordDigest` header, ISO 8601 timestamps. |
+| `device` | `GetDeviceInformation`, `GetCapabilities`. |
+| `media` | Profiles, stream / snapshot URIs, the encoder write path. |
+| `ptz` | Continuous / absolute moves, stop, presets. |
+| `session` | `OnvifSession` — one device on the wire. |
+| `backend` | `OnvifCameraBackend` — one camera as a `CameraBackend`. |
+| `error` | `OnvifError` and its mapping onto `CameraError`. |
 
 Builders return SOAP **body** fragments; `soap::envelope` wraps them. Parsers are
 namespace-prefix-agnostic, so `tds:`, `SOAP-ENV:` and unprefixed replies are read
@@ -46,28 +46,30 @@ let profiles = session.profiles().await?;
 ```
 
 Service endpoints come from `GetCapabilities` and are **cached**: a device
-answers `XAddr`s that differ from its device-service URL, so every later call has
-to address the right one — but only the first has to ask.
+answers `XAddr`s that differ from its device-service URL, so every later call
+has to address the right one — but only the first has to ask.
 
 ## Two behaviours worth knowing
 
-- **`Stop` names a profile.** ONVIF's `Stop` takes a profile token; a device-model
-  `PtzCommand::Stop` does not. `OnvifCameraBackend` remembers the profile that
-  started moving, and a stop with nothing moving is a no-op rather than an error.
-- **A snapshot is two requests.** `GetSnapshotUri` returns a *URL*; the bytes come
-  from a plain `GET` against the device's own HTTP server. `snapshot()` does both.
+- **`Stop` names a profile.** ONVIF's `Stop` takes a profile token; a
+  device-model `PtzCommand::Stop` does not. `OnvifCameraBackend` remembers the
+  profile that started moving, and a stop with nothing moving is a no-op rather
+  than an error.
+- **A snapshot is two requests.** `GetSnapshotUri` returns a *URL*; the bytes
+  come from a plain `GET` against the device's own HTTP server. `snapshot()`
+  does both.
 
 ## Testing
 
-`cargo test -p cctv-onvif` runs the builders / parsers, the WS-Security digest and
-the conformance suite against a canned SOAP server
-(`cctv-transport`'s fixture) — no camera, no credentials, no network. The
-conformance run is **7/7** with `Expectations::FULL`: identity, both streams, a
-snapshot, a move + stop, and the preset round trip.
+`cargo test -p cctv-onvif` runs the builders / parsers, the WS-Security digest
+and the conformance suite against a canned SOAP server (`cctv-transport`'s
+fixture) — no camera, no credentials, no network. The conformance run is
+**7/7** with `Expectations::FULL`: identity, both streams, a snapshot, a move +
+stop, and the preset round trip.
 
 ## What this crate does not do
 
 No ONVIF event subscription (`PullPoint` / `BasicNotificationInterface`), no
-imaging / analytics services, and no device-time (`GetSystemDateAndTime`) — a
+imaging / analytics services, and no device time (`GetSystemDateAndTime`) — a
 reply's timestamps are not used for anything yet. Those are unimplemented, not
 faked.

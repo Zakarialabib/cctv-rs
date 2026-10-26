@@ -11,6 +11,8 @@ and one the fleet no longer has earns a *disable*. An error the reconciler does
 not recognise is *notify* — never *disable*, because an unknown failure is not
 evidence that the camera is gone.
 
+## You get
+
 - `Reconciler` — `new`, `set_desired`, `record_error`, `clear_error`,
   `reconcile`, `reconcile_all`.
 - `Remediation` — one graded decision: the camera, the `Action`, the `Grade`, and
@@ -24,7 +26,7 @@ evidence that the camera is gone.
 ## Grading
 
 | Observed | Grade | Action |
-|---|---|---|
+| --- | --- | --- |
 | matches its desired state | `None` | `Hold` |
 | capability not present (`PtzDisabled`, `NotImplemented`) | `Observe` | `Hold` |
 | confidence below the floor | `Observe` | `Hold` |
@@ -37,5 +39,4 @@ evidence that the camera is gone.
 The audit store is in memory here; the application persists it, because the
 workspace owns no database.
 
-See [`docs/architecture.md`](../../docs/architecture.md) for the full
-architecture.
+See `docs/architecture.md` for the full design.
