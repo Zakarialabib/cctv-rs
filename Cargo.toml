@@ -50,6 +50,11 @@ md-5 = "0.11"
 sha1 = "0.11"
 sha2 = "0.11"
 base64 = "0.23"
+# The socket layer's TLS stack. `reqwest` above already resolves these majors,
+# so enabling both `http` and `net` links one rustls, not two.
+tokio-rustls = "0.26"
+rustls = "0.23"
+rustls-pki-types = "1"
 
 # --- error + async traits ---
 # `thiserror` for the error taxonomy (no_std via `default-features = false`) and
@@ -66,6 +71,10 @@ toml = "0.8"
 
 # --- dev ---
 insta = { version = "1.42", features = ["json"] }
+# Generates the self-signed certificate the `net` feature's TLS test serves, at
+# test time: no checked-in key material, and the test proves the certificate is
+# genuinely unverifiable rather than trusting a canned one.
+rcgen = "0.13"
 
 [workspace.lints.rust]
 # A missing doc comment is a build failure, so the public device model cannot rot
