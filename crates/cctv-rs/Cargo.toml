@@ -20,5 +20,10 @@ cctv-onvif.workspace = true
 cctv-transport = { workspace = true, features = ["http"] }
 serde_json.workspace = true
 
+[dev-dependencies]
+# The facade's tests define a failing `CameraBackend`, which is an `async-trait`
+# trait and needs the attribute macro.
+async-trait.workspace = true
+
 [lints]
 workspace = true
