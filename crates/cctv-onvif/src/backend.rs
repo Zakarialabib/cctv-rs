@@ -5,10 +5,11 @@
 //! address (ONVIF's media profile token, not the camera), so the rest of the
 //! workspace never sees one.
 
+use async_trait::async_trait;
 use std::sync::Mutex;
 
 use cctv_core::{
-    BoxFuture, CameraBackend, CameraError, Preset, ProbeResult, PtzCommand, Snapshot, StreamInfo,
+    CameraBackend, CameraError, Preset, ProbeResult, PtzCommand, Snapshot, StreamInfo,
     StreamQuality,
 };
 
@@ -76,13 +77,14 @@ fn poisoned() -> CameraError {
     CameraError::Other("onvif ptz state lock poisoned".into())
 }
 
+#[async_trait]
 impl CameraBackend for OnvifCameraBackend {
     fn driver(&self) -> &'static str {
         "onvif"
     }
 
-    fn probe(&self) -> BoxFuture<'_, Result<ProbeResult, CameraError>> {
-        Box::pin(async move {
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        {
             let info = self
                 .session
                 .device_information()
@@ -101,11 +103,11 @@ impl CameraBackend for OnvifCameraBackend {
                 ptz_supported: services.ptz.is_some(),
                 ai_supported: false,
             })
-        })
+        }
     }
 
-    fn stream(&self, quality: StreamQuality) -> BoxFuture<'_, Result<StreamInfo, CameraError>> {
-        Box::pin(async move {
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        {
             let profiles = self.session.profiles().await.map_err(camera_error)?;
             let chosen = match quality {
                 StreamQuality::Main => pick_main_profile(&profiles),
@@ -126,11 +128,11 @@ impl CameraBackend for OnvifCameraBackend {
                 height: chosen.height,
                 codec: chosen.encoding.clone(),
             })
-        })
+        }
     }
 
-    fn snapshot(&self) -> BoxFuture<'_, Result<Snapshot, CameraError>> {
-        Box::pin(async move {
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        {
             let token = self.profile_token().await?;
             let uri = self
                 .session
@@ -143,11 +145,11 @@ impl CameraBackend for OnvifCameraBackend {
                 .await
                 .map_err(camera_error)?;
             Ok(Snapshot::from_bytes(bytes, content_type))
-        })
+        }
     }
 
-    fn ptz(&self, command: PtzCommand) -> BoxFuture<'_, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        {
             match command {
                 PtzCommand::Stop => {
                     let started = self.started.lock().map_err(|_| poisoned())?.take();
@@ -179,22 +181,18 @@ impl CameraBackend for OnvifCameraBackend {
                     self.remember_started(&token)
                 }
             }
-        })
+        }
     }
 
-    fn presets(&self) -> BoxFuture<'_, Result<Vec<Preset>, CameraError>> {
-        Box::pin(async move {
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        {
             let token = self.profile_token().await?;
             self.session.presets(&token).await.map_err(camera_error)
-        })
+        }
     }
 
-    fn save_preset<'a>(
-        &'a self,
-        name: &'a str,
-        id: Option<&'a str>,
-    ) -> BoxFuture<'a, Result<Preset, CameraError>> {
-        Box::pin(async move {
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        {
             let token = self.profile_token().await?;
             let assigned = self
                 .session
@@ -210,26 +208,26 @@ impl CameraBackend for OnvifCameraBackend {
                 tilt: 0.0,
                 zoom: 0.0,
             })
-        })
+        }
     }
 
-    fn goto_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        {
             let token = self.profile_token().await?;
             self.session
                 .goto_preset(&token, id)
                 .await
                 .map_err(camera_error)
-        })
+        }
     }
 
-    fn delete_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
-        Box::pin(async move {
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        {
             let token = self.profile_token().await?;
             self.session
                 .remove_preset(&token, id)
                 .await
                 .map_err(camera_error)
-        })
+        }
     }
 }

@@ -11,6 +11,8 @@ keywords = ["cctv", "onvif", "ptz", "soap", "camera"]
 categories = ["api-bindings", "multimedia::video"]
 
 [dependencies]
+# `CameraBackend` is an `async-trait` trait; the impl must be annotated too.
+async-trait.workspace = true
 cctv-core.workspace = true
 # `xml` (always on) plus the shared rustls-only HTTP client (`http` feature) the
 # drivers authenticate with: ONVIF adds WS-Security at the message level, on top

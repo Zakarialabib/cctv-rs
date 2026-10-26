@@ -1,10 +1,10 @@
 //! The driver contract: what a connected camera can be asked to do.
 //!
 //! [`CameraBackend`] is the trait every driver crate implements for one
-//! connected camera.  It is object safe and runtime agnostic: each method
-//! returns a [`BoxFuture`] built from `std` only, so this crate still links no
-//! async runtime.  The driver brings its own I/O; the caller brings the
-//! executor.
+//! connected camera.  It is object safe and runtime agnostic: each method is an
+//! `async fn` (boxed by `async-trait` into an `alloc`-only future), so this crate
+//! still links no async runtime.  The driver brings its own I/O; the caller
+//! brings the executor.
 //!
 //! A capability a camera does not have is a typed error
 //! ([`CameraError::NotImplemented`] or [`CameraError::PtzDisabled`]) — the
@@ -17,21 +17,13 @@
 
 use crate::prelude::*;
 
-use core::future::Future;
-use core::pin::Pin;
-
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::commands::Preset;
 use crate::error::CameraError;
 use crate::state::ProbeResult;
 use crate::types::CameraType;
-
-/// A boxed, `Send` future — the return type of every [`CameraBackend`] method.
-///
-/// Defined here (rather than taken from `futures`) so the contract carries no
-/// dependency beyond `std`.
-pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 /// Which of a camera's encoded streams to address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -280,53 +272,50 @@ impl CameraConfig {
 /// Every method has a default that returns the typed "not supported" error,
 /// so a driver implements only what its protocol speaks.  Implementations
 /// must never panic.
+#[async_trait]
 pub trait CameraBackend: Send + Sync {
     /// Registry key of the driver serving this camera (for diagnostics only).
     fn driver(&self) -> &'static str;
 
     /// Read the device identity: vendor, model, firmware, MAC, PTZ support.
-    fn probe(&self) -> BoxFuture<'_, Result<ProbeResult, CameraError>>;
+    async fn probe(&self) -> Result<ProbeResult, CameraError>;
 
     /// Resolve the playable URI of a stream.
-    fn stream(&self, quality: StreamQuality) -> BoxFuture<'_, Result<StreamInfo, CameraError>>;
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError>;
 
     /// Capture one still image.
-    fn snapshot(&self) -> BoxFuture<'_, Result<Snapshot, CameraError>> {
-        Box::pin(async { Err(CameraError::NotImplemented) })
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        Err(CameraError::NotImplemented)
     }
 
     /// Execute a PTZ command.
-    fn ptz(&self, command: PtzCommand) -> BoxFuture<'_, Result<(), CameraError>> {
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
         let _ = command;
-        Box::pin(async { Err(CameraError::PtzDisabled) })
+        Err(CameraError::PtzDisabled)
     }
 
     /// List the presets stored on the device.
-    fn presets(&self) -> BoxFuture<'_, Result<Vec<Preset>, CameraError>> {
-        Box::pin(async { Err(CameraError::PtzDisabled) })
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        Err(CameraError::PtzDisabled)
     }
 
     /// Store the current position as a preset.  `id` overwrites that preset;
     /// `None` lets the driver choose a free slot.  Returns the stored preset.
-    fn save_preset<'a>(
-        &'a self,
-        name: &'a str,
-        id: Option<&'a str>,
-    ) -> BoxFuture<'a, Result<Preset, CameraError>> {
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
         let _ = (name, id);
-        Box::pin(async { Err(CameraError::PtzDisabled) })
+        Err(CameraError::PtzDisabled)
     }
 
     /// Move to a stored preset.
-    fn goto_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
         let _ = id;
-        Box::pin(async { Err(CameraError::PtzDisabled) })
+        Err(CameraError::PtzDisabled)
     }
 
     /// Delete a stored preset.
-    fn delete_preset<'a>(&'a self, id: &'a str) -> BoxFuture<'a, Result<(), CameraError>> {
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
         let _ = id;
-        Box::pin(async { Err(CameraError::PtzDisabled) })
+        Err(CameraError::PtzDisabled)
     }
 }
 

@@ -7,6 +7,7 @@
 //! way as a `Refused` emitted by the mock.
 
 use crate::state::{CameraState, CameraStateCurrent, ProbeResult};
+use async_trait::async_trait;
 
 /// In-memory backend for the device model.  Single producer, single consumer.
 #[derive(Default)]
@@ -168,13 +169,14 @@ fn poisoned() -> crate::CameraError {
     crate::CameraError::Other("mock state lock poisoned".into())
 }
 
+#[async_trait]
 impl crate::backend::CameraBackend for MockCamera {
     fn driver(&self) -> &'static str {
         "mock"
     }
 
-    fn probe(&self) -> crate::backend::BoxFuture<'_, Result<ProbeResult, crate::CameraError>> {
-        Box::pin(async {
+    async fn probe(&self) -> Result<ProbeResult, crate::CameraError> {
+        {
             Ok(ProbeResult {
                 vendor: "Mock".into(),
                 model: "MockCam".into(),
@@ -185,14 +187,14 @@ impl crate::backend::CameraBackend for MockCamera {
                 ptz_supported: true,
                 ai_supported: false,
             })
-        })
+        }
     }
 
-    fn stream(
+    async fn stream(
         &self,
         quality: crate::backend::StreamQuality,
-    ) -> crate::backend::BoxFuture<'_, Result<crate::backend::StreamInfo, crate::CameraError>> {
-        Box::pin(async move {
+    ) -> Result<crate::backend::StreamInfo, crate::CameraError> {
+        {
             let path = match quality {
                 crate::backend::StreamQuality::Main => "main",
                 crate::backend::StreamQuality::Sub => "sub",
@@ -205,42 +207,37 @@ impl crate::backend::CameraBackend for MockCamera {
                 height: None,
                 codec: Some("H264".into()),
             })
-        })
+        }
     }
 
-    fn snapshot(
-        &self,
-    ) -> crate::backend::BoxFuture<'_, Result<crate::backend::Snapshot, crate::CameraError>> {
-        Box::pin(async {
+    async fn snapshot(&self) -> Result<crate::backend::Snapshot, crate::CameraError> {
+        {
             Ok(crate::backend::Snapshot::from_bytes(
                 vec![0xFF, 0xD8, 0xFF, 0xD9],
                 "image/jpeg",
             ))
-        })
+        }
     }
 
-    fn ptz(
-        &self,
-        command: crate::backend::PtzCommand,
-    ) -> crate::backend::BoxFuture<'_, Result<(), crate::CameraError>> {
-        Box::pin(async move {
+    async fn ptz(&self, command: crate::backend::PtzCommand) -> Result<(), crate::CameraError> {
+        {
             self.ptz_log.lock().map_err(|_| poisoned())?.push(command);
             Ok(())
-        })
+        }
     }
 
-    fn presets(
+    async fn presets(&self) -> Result<Vec<crate::Preset>, crate::CameraError> {
+        {
+            Ok(self.presets.lock().map_err(|_| poisoned())?.clone())
+        }
+    }
+
+    async fn save_preset(
         &self,
-    ) -> crate::backend::BoxFuture<'_, Result<Vec<crate::Preset>, crate::CameraError>> {
-        Box::pin(async { Ok(self.presets.lock().map_err(|_| poisoned())?.clone()) })
-    }
-
-    fn save_preset<'a>(
-        &'a self,
-        name: &'a str,
-        id: Option<&'a str>,
-    ) -> crate::backend::BoxFuture<'a, Result<crate::Preset, crate::CameraError>> {
-        Box::pin(async move {
+        name: &str,
+        id: Option<&str>,
+    ) -> Result<crate::Preset, crate::CameraError> {
+        {
             let id = match id {
                 Some(id) => id.to_string(),
                 None => self
@@ -259,34 +256,28 @@ impl crate::backend::CameraBackend for MockCamera {
             all.retain(|p| p.id != id);
             all.push(preset.clone());
             Ok(preset)
-        })
+        }
     }
 
-    fn goto_preset<'a>(
-        &'a self,
-        id: &'a str,
-    ) -> crate::backend::BoxFuture<'a, Result<(), crate::CameraError>> {
-        Box::pin(async move {
+    async fn goto_preset(&self, id: &str) -> Result<(), crate::CameraError> {
+        {
             let all = self.presets.lock().map_err(|_| poisoned())?;
             if all.iter().any(|p| p.id == id) {
                 Ok(())
             } else {
                 Err(crate::CameraError::Other(format!("no preset {id}")))
             }
-        })
+        }
     }
 
-    fn delete_preset<'a>(
-        &'a self,
-        id: &'a str,
-    ) -> crate::backend::BoxFuture<'a, Result<(), crate::CameraError>> {
-        Box::pin(async move {
+    async fn delete_preset(&self, id: &str) -> Result<(), crate::CameraError> {
+        {
             self.presets
                 .lock()
                 .map_err(|_| poisoned())?
                 .retain(|p| p.id != id);
             Ok(())
-        })
+        }
     }
 }
 
@@ -347,21 +338,23 @@ mod tests {
 
     struct Bare;
 
+    #[async_trait::async_trait]
     impl crate::backend::CameraBackend for Bare {
         fn driver(&self) -> &'static str {
             "bare"
         }
-        fn probe(
-            &self,
-        ) -> crate::backend::BoxFuture<'_, Result<crate::ProbeResult, crate::CameraError>> {
-            Box::pin(async { super::MockCamera::new().probe().await })
+        async fn probe(&self) -> Result<crate::ProbeResult, crate::CameraError> {
+            {
+                super::MockCamera::new().probe().await
+            }
         }
-        fn stream(
+        async fn stream(
             &self,
             q: crate::backend::StreamQuality,
-        ) -> crate::backend::BoxFuture<'_, Result<crate::backend::StreamInfo, crate::CameraError>>
-        {
-            Box::pin(async move { super::MockCamera::new().stream(q).await })
+        ) -> Result<crate::backend::StreamInfo, crate::CameraError> {
+            {
+                super::MockCamera::new().stream(q).await
+            }
         }
     }
 
