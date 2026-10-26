@@ -37,24 +37,19 @@ Measured against `main` at `a4121b5` (v0.1.0 plus the frame reader and
 | `cctv-agent`: `Vec<CameraConfig>` → discover → compare → **issue `ControlCommand`s** | Holds desired/observed `CameraState`, grades a remediation (`Grade`/`Action`), records it in an audit trail. **It grades; it does not act.** | Two gaps: it never runs a discovery pass, and it never issues a command. Today `Facade::reconcile` probes and grades — the acting is the caller's job. The target wants the agent to drive remediation itself. |
 | `cctv-rs`: `Registry` of `Box<dyn CameraBackend>` | `Registry`-shaped map of `Arc<dyn CameraBackend>` | `Box` cannot be shared. The facade, the reconciler and the application's stream consumer all need the same backend concurrently, and `Facade::frame_reader` hands out an `Arc`. Either keep `Arc`, or the registry owns the boxes and lends `&dyn` under a lock — which serialises every command. **Recommend keeping `Arc`.** |
 
-## Decisions this raises
+## Decisions — resolved
 
-1. **Does `cctv-discovery` survive?** The target map has WS-Discovery inside
-   `cctv-onvif`. Folding it in is defensible (the protocol *is* ONVIF), but SSDP
-   `M-SEARCH` also finds non-ONVIF cameras, so a shared crate has a reason to
-   exist. Folding is a breaking move for anything importing
-   `cctv_discovery::DiscoveredCamera`.
-2. **Where does `cctv-ezviz` sit?** The target map does not list it. It is
-   published, passes the conformance suite, and is a cloud vendor API — so it
-   belongs with the proprietary crates. Confirm it stays a first-class crate
-   rather than being folded into a "vendors" bucket.
-3. **How far does `no_std` go?** `alloc`-only is achievable for the contract, but
-   `serde_json::Value` has to leave it first — the options are `Option<Box<str>>`,
-   a feature-gated escape hatch, or dropping the `extra` bags from the contract
-   entirely. This one shapes the public API of every crate, so it should be
-   settled before v0.2.0 rather than after.
-4. **`Box` or `Arc` in the registry?** Recommended: `Arc`. `Box` is a paper
-   promise that breaks the first time two consumers need one camera.
+The questions this map raises are settled in [plan-v0.2.md](plan-v0.2.md), with
+the reasoning, so the work does not relitigate them:
+
+| # | Question | Answer |
+| --- | --- | --- |
+| D1 | How far does `no_std` go? | `alloc`-only — and the **JSON DOM leaves the contract**, which is what actually blocks it |
+| D2 | Adopt `thiserror` / `async-trait`? | Yes, and **before** the drivers are written, not after |
+| D3 | Does `cctv-discovery` survive? | Yes; `cctv-onvif` implements `Discoverable` over it — SSDP finds non-ONVIF cameras |
+| D4 | `Box` or `Arc` in the registry? | `Arc` — three consumers need one camera at once |
+| D5 | Where does `cctv-ezviz` sit? | Proprietary, first-class, not folded into a bucket |
+| D6 | Where does the socket layer live? | `cctv-transport`, behind a `net` feature |
 
 ## The integration seam: Simple-Signage
 
