@@ -6,6 +6,8 @@
 //! runtime against a fixture HTTP server.  It never panics — every failed
 //! expectation is collected into the [`ConformanceReport`].
 
+use crate::prelude::*;
+
 use crate::backend::{CameraBackend, PtzCommand, StreamQuality};
 use crate::error::CameraError;
 

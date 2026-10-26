@@ -14,6 +14,8 @@
 //! capability gate — a command a camera cannot perform is a typed error, never
 //! `unimplemented!()`.
 
+use crate::prelude::*;
+
 /// A command the device understands.
 ///
 /// Declaration order matches [`CommandId::order`] so the reconciler's sweep is
@@ -362,15 +364,10 @@ pub enum CommandResultPayload {
         /// The presets the command returned.
         presets: Vec<Preset>,
     },
-    /// Camera settings as JSON.
-    Settings {
-        /// Raw settings document reported by the device.
-        settings: serde_json::Value,
-    },
-    /// Camera config as JSON.
+    /// The camera's connection record.
     Config {
-        /// Raw config document reported by the device.
-        config: serde_json::Value,
+        /// The record, as stored.
+        config: crate::CameraConfig,
     },
     /// A snapshot reference + dimensions.
     Snapshot {
@@ -466,7 +463,7 @@ impl CommandResultPayload {
             | crate::CommandId::CameraResetSettings
             | crate::CommandId::CameraConfigGet
             | crate::CommandId::CameraConfigSet => CommandResultPayload::Config {
-                config: serde_json::Value::default(),
+                config: crate::CameraConfig::new(String::new(), String::new(), String::new()),
             },
             crate::CommandId::CameraScreenshot | crate::CommandId::CameraSaveSnapshot => {
                 CommandResultPayload::Snapshot {
@@ -576,8 +573,6 @@ pub struct Preset {
     pub tilt: f32,
     /// Zoom factor.
     pub zoom: f32,
-    /// Preset-specific config as JSON.
-    pub config: serde_json::Value,
 }
 
 /// A saved snapshot reference.

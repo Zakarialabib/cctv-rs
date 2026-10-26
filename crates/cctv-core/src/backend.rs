@@ -15,8 +15,10 @@
 //! from.  The `driver` field is a *key* (data), not a type: the facade's
 //! registry maps it to a driver crate, so no vendor name is part of this API.
 
-use std::future::Future;
-use std::pin::Pin;
+use crate::prelude::*;
+
+use core::future::Future;
+use core::pin::Pin;
 
 use serde::{Deserialize, Serialize};
 
@@ -196,9 +198,6 @@ pub struct CameraConfig {
     /// Request timeout in milliseconds; the driver's default when absent.
     #[serde(default)]
     pub timeout_ms: Option<u64>,
-    /// Application-owned settings, carried verbatim.
-    #[serde(default)]
-    pub extra: serde_json::Value,
 }
 
 fn default_camera_type() -> CameraType {
@@ -223,7 +222,6 @@ impl CameraConfig {
             accept_invalid_certs: false,
             ty: default_camera_type(),
             timeout_ms: None,
-            extra: serde_json::Value::Null,
         }
     }
 

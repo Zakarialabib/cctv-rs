@@ -209,7 +209,6 @@ impl CameraBackend for OnvifCameraBackend {
                 pan: 0.0,
                 tilt: 0.0,
                 zoom: 0.0,
-                config: serde_json::Value::Null,
             })
         })
     }

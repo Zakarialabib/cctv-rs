@@ -48,6 +48,24 @@ All seven crates are versioned and released together.
   feature, so a build that only needs the device model pays no TOML parser; the
   bundled table ships **empty** because no defect in this workspace has a source
   yet, and an unverified row is worse than no row.
+- `cctv-core` is **`alloc`-only**, and the JSON DOM has left the contract. What
+  blocked `no_std` was not `std` — it was `serde_json::Value` sitting inside the
+  public API: `Preset::config`, `CameraConfig::extra`, and a
+  `CommandResultPayload::Config { config: Value }` that serialised a typed struct
+  to a DOM and handed the DOM over. Nothing read any of them, so they are deleted
+  rather than feature-gated, and the `Config` payload now carries the
+  `CameraConfig` itself. `serde_json` moves to dev-dependencies, where the tests
+  that exercise the wire format still use it.
+- Two things stayed `std` and became features instead of pretending otherwise:
+  `testing` (default) is the mock backend, which needs `Mutex` for interior
+  mutability because a `CameraBackend` must be `Sync`, and `alloc` has no mutex;
+  `quirks` is the TOML table, because `toml` is std-only. So
+  `cargo check -p cctv-core --no-default-features` is the alloc-only build, and
+  CI now runs it — the dependency graph there is `serde` and nothing else.
+- `CameraState`'s clock is `std`-gated for the same reason: `core` has no
+  `SystemTime`, so an alloc-only build stamps transitions with `0` and a caller
+  that needs real timestamps records them itself — which `cctv-agent`'s audit
+  trail already does.
 - `cctv-rtp` — a new crate, and the payload half of the stream path: the RTP
   header (CSRC lists, extensions, padding) and H.264 / H.265 access-unit
   reassembly across single NALs, STAP-A / AP and FU-A / FU. **Dependency-free**,

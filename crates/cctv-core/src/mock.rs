@@ -254,7 +254,6 @@ impl crate::backend::CameraBackend for MockCamera {
                 pan: 0.0,
                 tilt: 0.0,
                 zoom: 0.0,
-                config: serde_json::Value::Null,
             };
             let mut all = self.presets.lock().map_err(|_| poisoned())?;
             all.retain(|p| p.id != id);
