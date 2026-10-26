@@ -22,6 +22,19 @@ and frame reads are time-budgeted so one slow camera can never stall the others.
   - `HttpClient::request`, `HttpConfig`, `HttpResponse`, `HttpError`.
   - `digest_authorization`, `parse_challenge`, `basic_authorization` — pure,
     tested against the RFC 2617 worked example.
+- `net` (feature `net`) — the raw socket layer, and the reason `http` can
+  eventually go: TCP, UDP and TLS without `reqwest`. Applies `policy` rather
+  than hardcoding trust.
+  - `connect_tcp`, `connect_tls`, `bind_udp` — a `Stream` that is either plain
+    TCP or a `rustls` session, so one driver reads both the same way.
+  - `TcpOptions` — `timeout`, `tls` (`TlsMode::Default` / `AcceptAny`),
+    `policy`, `accept_invalid_certs`. Cameras ship self-signed certificates, so
+    accepting one is an explicit opt-in, off by default.
+  - `read_chunks` / `feed_chunks` — the byte reader that pushes chunk sizes into
+    `FrameReader`, which stays pure and takes `now_ms` from the caller.
+  - `NetError` / `ErrorKind` — one error type for transport and policy, so a
+    reconnect loop decides *retry or give up* without knowing which library
+    failed.
 - `fixture` (feature `fixture`) — `FixtureServer` / `Route`: a canned-response
   HTTP server (optionally demanding Digest auth) that the driver conformance
   tests run against instead of a live camera.

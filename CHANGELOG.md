@@ -10,6 +10,17 @@ All seven crates are versioned and released together.
 
 ### Added
 
+- `cctv-transport`'s `net` feature: the raw socket layer (plan v0.2 W2). TCP,
+  UDP and TLS over `tokio` + `rustls`, with the crate's existing `Policy`
+  applied as data — minimum version, pinned certificates, ALPN — rather than a
+  second, parallel policy type. `Stream` is an enum (plain TCP or a `rustls`
+  session) so a driver reads both the same way, and `read_chunks` /
+  `feed_chunks` push byte counts into the pure `FrameReader`, whose signature is
+  unchanged. The feature is off by default, pulls no `reqwest`, and no
+  `native-tls` is linked anywhere in the workspace. `accept_invalid_certs` is a
+  real opt-in: the integration test starts a TLS server with a self-signed
+  certificate generated at test time by `rcgen` and asserts the handshake
+  succeeds with the flag and fails without it.
 - `cctv-onvif`, the ONVIF driver: SOAP 1.2 request builders and reply parsers for
   the Device, Media and PTZ services, with WS-Security `UsernameToken`
   authentication (`Base64(SHA1(nonce ‖ created ‖ password))`). The sources had
