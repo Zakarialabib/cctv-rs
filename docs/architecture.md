@@ -47,6 +47,7 @@ boundary in `cctv-core`.
 cctv-rs
 ├── cctv-core ───────────── serde, serde_json
 ├── cctv-transport ──────── serde
+├── cctv-rtsp ───────────── base64
 ├── cctv-discovery ──────── cctv-core, cctv-transport
 ├── cctv-onvif ──────────── cctv-core, cctv-transport (http)
 ├── cctv-ezviz ──────────── cctv-core, ezviz-openapi   (published from its own repository)
@@ -60,6 +61,7 @@ application talks to.
 | --- | --- | --- |
 | `cctv-core` | `serde`, `serde_json` (+ optional `toml` behind `quirks`) | The device model: `CameraHandle`, `CommandId`, `CameraState`, the `CameraError` taxonomy, the mock backend and the conformance suite. No runtime, no protocol. Feature `quirks` adds the model/firmware defect table, as data. |
 | `cctv-transport` | `serde` | TLS policy (pinning, minimum version, ALPN), the budgeted frame reader — bounded staleness and backlog, plus the stream measurements `camera_get_stats` reports — the shared XML scanner and (feature `http`) the rustls-only HTTP client. Policy is **data**. |
+| `cctv-rtsp` | `base64` | The stream path's protocol half: RTSP request/response framing (and `$` interleaved media on the same TCP connection), SDP, the RTP header, and H.264 access-unit reassembly across single NALs, STAP-A and FU-A. **Pure** — byte slices in, no socket, no runtime. |
 | `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. Emits `cctv-core` device-model items; USB enumeration is the application's. |
 | `cctv-onvif` | `cctv-core`, `cctv-transport` | The ONVIF driver: Device / Media / PTZ SOAP builders and parsers with WS-Security auth, an `OnvifSession` that drives them over the shared HTTP client, and an `OnvifCameraBackend`. Protocol only — shared by every ONVIF vendor. |
 | `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | The Ezviz Open Platform driver: token, device list, stream, PTZ, presets, alarms, capture. `EzvizCameraBackend` implements `CameraBackend`, so the conformance suite covers it. |
@@ -94,7 +96,7 @@ for `cctv-core` because it is the one the application embeds.
 | Capability | Transport | Auth | Who speaks it |
 | --- | --- | --- | --- |
 | LAN discovery | SSDP `M-SEARCH` (UDP 1900) + WS-Discovery `Probe` (UDP 3702), multicast | none | `cctv-discovery` |
-| RTSP stream | TCP + buffering, via `cctv-transport` | token / certificate pinning | the driver |
+| RTSP stream | TCP + buffering, via `cctv-transport`; codecs in `cctv-rtsp` | token / certificate pinning | the driver |
 | MJPEG frames | via `cctv-transport` | none | `cctv-ezviz` |
 | ONVIF (device / media / PTZ) | HTTP + SOAP, via `cctv-transport` | WS-Security `UsernameToken` | `cctv-onvif` |
 | Ezviz cloud API | HTTPS, through `ezviz-openapi` | token | `cctv-ezviz` |

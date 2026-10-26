@@ -1,0 +1,19 @@
+[package]
+name = "cctv-rtsp"
+description = "RTSP / RTP / H.264 codecs for cctv-rs: message framing, SDP, RTP headers and access-unit depacketisation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["rtsp", "rtp", "h264", "cctv", "camera"]
+categories = ["multimedia::video", "network-programming"]
+
+[dependencies]
+# `sprop-parameter-sets` in SDP is base64; nothing else is needed, because this
+# crate is pure codec — no sockets, no runtime, no TLS.
+base64.workspace = true
+
+[lints]
+workspace = true
