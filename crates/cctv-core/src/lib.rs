@@ -12,8 +12,21 @@
 //! translate hardware into this aggregate and nothing else.
 //!
 //! Drivers implement [`CameraBackend`] for one connected camera and prove it
-//! with the [`conformance`] suite.  The trait is object safe and returns
-//! `std`-only boxed futures, so the contract still links no async runtime.
+//! with the [`conformance`] suite.  The trait is object safe and returns boxed
+//! futures, so the contract links no async runtime.
+//!
+//! # `no_std`
+//!
+//! The contract is **`alloc`-only**: no `std`, no runtime, no protocol, and no
+//! JSON DOM.  Two things need `std` and are therefore features rather than part
+//! of the contract:
+//!
+//! - `testing` — the mock backend.  It needs `Mutex` for interior mutability,
+//!   because a [`CameraBackend`] must be `Sync`, and `alloc` has no mutex.
+//! - `quirks` — the model/firmware table, because `toml` is `std`-only.
+//!
+//! `default = ["testing"]`, so `cargo check -p cctv-core --no-default-features`
+//! is the alloc-only build and that is the gate that keeps it honest.
 //!
 //! # Example
 //!
@@ -26,16 +39,40 @@
 //! assert_eq!(redact_uri("rtsp://admin:pw@cam/s"), "rtsp://***:***@cam/s");
 //! ```
 //!
-//! The crate carries no runtime and no network — `serde` / `serde_json` are only
-//! used for the command-result value types.  That makes the aggregate embeddable
-//! in a Tauri app, a terminal CLI, or even a WASM worker.
+//! The crate carries no runtime and no network — `serde` is only used for the
+//! command-result value types.  That makes the aggregate embeddable in a Tauri
+//! app, a terminal CLI, or even a WASM worker.
 
+#![cfg_attr(not(any(feature = "testing", feature = "quirks")), no_std)]
 #![forbid(unsafe_code)]
+
+extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
+
+/// The `alloc` items the crate's modules use, in one glob import.
+///
+/// Glob imports never warn when unused, so every module can take this
+/// unconditionally — which is cheaper than tracking which module needs `vec!`.
+///
+/// The re-exports themselves are only *needed* in the alloc-only build: with
+/// `std` linked the std prelude supplies the same names, so they read as unused.
+#[allow(unused_imports)]
+pub(crate) mod prelude {
+    pub use alloc::borrow::ToOwned;
+    pub use alloc::boxed::Box;
+    pub use alloc::format;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec;
+    pub use alloc::vec::Vec;
+}
 
 pub mod backend;
 pub mod commands;
 pub mod conformance;
 pub mod error;
+#[cfg(feature = "testing")]
 pub mod mock;
 #[cfg(feature = "quirks")]
 pub mod quirks;
