@@ -58,6 +58,17 @@ jobs:
       # std-only), leaving only the alloc-only device model.
       - name: Contract is alloc-only
         run: cargo check -p cctv-core --no-default-features
+
+      # The `net` feature is the replacement for `reqwest`, so it must stay free
+      # of it — otherwise the socket layer drags in the HTTP stack it exists to
+      # remove. The grep is the assertion, not a comment.
+      - name: The socket layer is reqwest-free
+        run: |
+          cargo check -p cctv-transport --features net
+          if cargo tree -p cctv-transport --features net -e normal | grep -qi reqwest; then
+            echo "the 'net' feature must not pull in 'reqwest' — it exists to replace it"
+            exit 1
+          fi
       # `quirks` is off by default, so the default test run would never compile
       # it. This is the only job that exercises the table loader.
       - run: cargo test -p cctv-core --features quirks
@@ -79,6 +90,9 @@ jobs:
       # Nothing here talks to a live camera: the driver tests use a local mock
       # server and the rest is pure logic.
       - run: cargo test --workspace
+      # The `net` feature is off by default, so the default run above reports
+      # zero socket tests. This is the only job that opens a socket.
+      - run: cargo test -p cctv-transport --features net
       - run: cargo check --workspace --all-targets
 
   crates:
@@ -92,6 +106,7 @@ jobs:
       # because a sibling is in the build. Each published crate is built alone.
       - run: cargo check -p cctv-core
       - run: cargo check -p cctv-transport
+      - run: cargo check -p cctv-transport --features net
       - run: cargo check -p cctv-rtp
       - run: cargo check -p cctv-rtsp
       - run: cargo check -p cctv-onvif
