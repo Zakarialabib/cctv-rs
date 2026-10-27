@@ -262,7 +262,10 @@ impl Facade {
     }
 
     /// `device_trigger_capture`: trigger a hardware capture returning a [`cctv_core::MediaFile`].
-    pub async fn device_trigger_capture(&self, id: &str) -> Result<cctv_core::MediaFile, CameraError> {
+    pub async fn device_trigger_capture(
+        &self,
+        id: &str,
+    ) -> Result<cctv_core::MediaFile, CameraError> {
         self.backend(id)?.trigger_capture().await
     }
 

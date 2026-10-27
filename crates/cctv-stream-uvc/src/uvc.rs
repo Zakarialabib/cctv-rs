@@ -55,7 +55,11 @@ pub struct UvcAdapter {
 
 impl UvcAdapter {
     /// Create a new UVC adapter for a device node on the given OS platform.
-    pub fn new(id: impl Into<String>, device_path: impl Into<String>, platform: OsPlatform) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        device_path: impl Into<String>,
+        platform: OsPlatform,
+    ) -> Self {
         Self {
             id: id.into(),
             device_path: device_path.into(),
@@ -165,7 +169,10 @@ mod tests {
 
     #[test]
     fn os_errors_map_correctly() {
-        assert_eq!(OsError::V4l2EBusy.into_camera_error(), CameraError::DeviceBusy);
+        assert_eq!(
+            OsError::V4l2EBusy.into_camera_error(),
+            CameraError::DeviceBusy
+        );
         assert_eq!(
             OsError::MediaFoundationAlreadyInitialized.into_camera_error(),
             CameraError::DeviceBusy

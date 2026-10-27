@@ -94,17 +94,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cctv-adapter-actioncam"
-version = "0.1.0"
-dependencies = [
- "reqwest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "cctv-agent"
 version = "0.1.0"
 dependencies = [
@@ -158,27 +147,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "cctv-protocol-ptp"
-version = "0.1.0"
-dependencies = [
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "cctv-rs"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "cctv-adapter-actioncam",
  "cctv-agent",
  "cctv-core",
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-onvif",
  "cctv-stream-uvc",
- "cctv-protocol-ptp",
- "cctv-storage-msc",
  "cctv-transport",
  "serde_json",
 ]
@@ -209,13 +187,6 @@ dependencies = [
  "serde",
  "thiserror",
  "tokio",
- ]
- 
-[[package]]
-name = "cctv-storage-msc"
-version = "0.1.0"
-dependencies = [
- "thiserror",
 ]
 
 [[package]]

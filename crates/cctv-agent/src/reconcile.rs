@@ -210,11 +210,15 @@ impl Reconciler {
                     camera_id: camera_id.clone(),
                     grade: Grade::Disable,
                     action: Action::MarkOffline,
-                    reason: "CameraDropped: device hot-unplugged (ghost device preserved)".to_string(),
+                    reason: "CameraDropped: device hot-unplugged (ghost device preserved)"
+                        .to_string(),
                 };
                 self.audit.log(
                     camera_id.clone(),
-                    &format!("CameraDropped: {}: {}", remediation.grade, remediation.reason),
+                    &format!(
+                        "CameraDropped: {}: {}",
+                        remediation.grade, remediation.reason
+                    ),
                     remediation.grade.as_u8(),
                 );
                 remediation

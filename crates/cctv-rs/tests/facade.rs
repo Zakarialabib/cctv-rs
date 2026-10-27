@@ -375,7 +375,9 @@ fn event_driven_hot_plug_reconciliation_tracks_ghost_device_audit() {
     let drop_event = cctv_rs::DomainEvent::DeviceDropped {
         camera_id: "usb_cam".into(),
     };
-    let remediation = facade.reconciler_mut().handle_event(&drop_event, &mut camera);
+    let remediation = facade
+        .reconciler_mut()
+        .handle_event(&drop_event, &mut camera);
 
     assert_eq!(camera.state, CameraStateCurrent::Disconnected);
     assert!(!camera.online);

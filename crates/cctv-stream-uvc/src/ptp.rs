@@ -6,9 +6,7 @@
 //! Maps PTP `StoreNotReady` status to [`CameraError::MediaUnavailable`].
 
 use async_trait::async_trait;
-use cctv_core::{
-    CameraBackend, CameraError, MediaFile, ProbeResult, StreamInfo, StreamQuality,
-};
+use cctv_core::{CameraBackend, CameraError, MediaFile, ProbeResult, StreamInfo, StreamQuality};
 
 /// PTP device operational status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use cctv_core::{CameraBackend, CameraConfig, CameraError};
 use cctv_ezviz::{EzvizCameraBackend, EzvizClient};
-use cctv_stream_uvc::{OsPlatform, PtpAdapter, UvcAdapter};
 use cctv_onvif::{Credentials, OnvifCameraBackend, OnvifSession};
+use cctv_stream_uvc::{OsPlatform, PtpAdapter, UvcAdapter};
 use cctv_transport::http::HttpConfig;
 
 /// Builds a [`CameraBackend`] for one camera from its connection record.

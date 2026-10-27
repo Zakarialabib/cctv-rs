@@ -58,7 +58,10 @@ impl<S: FrameSource> BudgetedFrameReader<S> {
             self.buffer.pop_front();
             self.dropped_frames += 1;
         }
-        self.buffer.push_back(FrameItem { bytes, timestamp_ms });
+        self.buffer.push_back(FrameItem {
+            bytes,
+            timestamp_ms,
+        });
         Ok(())
     }
 

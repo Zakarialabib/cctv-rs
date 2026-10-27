@@ -13,9 +13,6 @@ members = [
     "crates/cctv-ezviz",
     "crates/cctv-stream-uvc",
     "crates/cctv-agent",
-    "crates/cctv-protocol-ptp",
-    "crates/cctv-storage-msc",
-    "crates/cctv-adapter-actioncam",
     "crates/cctv-rs",
 ]
 
@@ -37,9 +34,6 @@ cctv-discovery = { path = "crates/cctv-discovery", version = "0.1.0" }
 cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.1.0" }
 cctv-stream-uvc = { path = "crates/cctv-stream-uvc", version = "0.1.0" }
 cctv-agent = { path = "crates/cctv-agent", version = "0.1.0" }
-cctv-protocol-ptp = { path = "crates/cctv-protocol-ptp", version = "0.1.0" }
-cctv-storage-msc = { path = "crates/cctv-storage-msc", version = "0.1.0" }
-cctv-adapter-actioncam = { path = "crates/cctv-adapter-actioncam", version = "0.1.0" }
 # The facade is published last: it re-exports every crate above.  It cannot be
 # called `cctv` — that name is taken on crates.io by an unrelated project.
 cctv-rs = { path = "crates/cctv-rs", version = "0.1.0" }
