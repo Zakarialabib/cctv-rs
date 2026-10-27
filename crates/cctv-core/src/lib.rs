@@ -99,4 +99,4 @@ pub use commands::{
 };
 pub use error::CameraError;
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
-pub use types::{CameraType, DeviceClass, LinkKind};
+pub use types::CameraType;

@@ -113,8 +113,6 @@ impl CameraBackend for EzvizCameraBackend {
                     .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false),
                 ai_supported: false,
-                link_kind: cctv_core::LinkKind::Cloud,
-                device_class: Some(cctv_core::DeviceClass::Video),
             })
         }
     }

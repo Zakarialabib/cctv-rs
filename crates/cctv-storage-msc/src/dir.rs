@@ -109,7 +109,10 @@ pub fn parse_directory(data: &[u8]) -> Result<Vec<DirEntry>, MscError> {
 }
 
 fn append_utf16_pair(out: &mut Vec<u16>, slice: &[u8]) {
-    for chunk in slice.chunks_exact(2) {
+    for chunk in slice.chunks(2) {
+        if chunk.len() < 2 {
+            break;
+        }
         let code = u16::from_le_bytes(chunk.try_into().unwrap());
         if code == 0x0000 || code == 0xFFFF {
             break;

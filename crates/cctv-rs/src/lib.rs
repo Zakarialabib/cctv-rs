@@ -1,7 +1,6 @@
 //! `cctv-rs` — the facade crate.
 //!
-//! The primary facade crate the host application talks to.
-//! The aggregate facade for host applications and edge clients.  Nothing in here is
+//! The primary facade crate the host application talks to. Nothing in here is
 //! vendor-specific: the application sees only the `cctv-core` device model, the
 //! reconciler's graded remediations, and the discovery sweep.
 //!
@@ -26,10 +25,9 @@ pub use cctv_adapter_actioncam as actioncam;
 pub use cctv_agent::{Action, Audit, AuditEntry, Grade, Reconciler, Remediation};
 pub use cctv_core::{
     CameraConfig, CameraError, CameraHandle, CameraState, CameraStateCurrent, CameraType,
-    CommandId, CommandResult, CommandResultPayload, DeviceClass, LinkKind, Preset, PtzCommand,
-    Snapshot, StreamInfo, StreamQuality,
+    CommandId, CommandResult, CommandResultPayload, Preset, PtzCommand, Snapshot, StreamInfo,
+    StreamQuality,
 };
 pub use cctv_discovery::DiscoveredCamera;
 pub use cctv_protocol_ptp as ptp;
 pub use cctv_storage_msc as msc;
-pub use cctv_hal_usb::{UsbEnumerator, UsbSweepResult};

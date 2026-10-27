@@ -264,8 +264,8 @@ impl Pdu {
         }
 
         let raw_type = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
-        let packet_type = PacketType::from_u32(raw_type)
-            .ok_or(PtpError::UnexpectedPacketType(raw_type))?;
+        let packet_type =
+            PacketType::from_u32(raw_type).ok_or(PtpError::UnexpectedPacketType(raw_type))?;
 
         let body = &bytes[8..length];
         let mut cursor = 0;

@@ -240,8 +240,6 @@ fn camera_from_ssdp(reply: &ssdp::SsdpReply) -> Option<DiscoveredCamera> {
             stream_url: None,
             ptz_supported: false,
             ai_supported: false,
-            link_kind: cctv_core::LinkKind::Network,
-            device_class: Some(cctv_core::DeviceClass::Video),
         },
         service_url: None,
     })
@@ -277,8 +275,6 @@ fn camera_from_probe_match(matched: &wsd::ProbeMatch) -> Option<DiscoveredCamera
             stream_url: None,
             ptz_supported: false,
             ai_supported: false,
-            link_kind: cctv_core::LinkKind::Network,
-            device_class: Some(cctv_core::DeviceClass::Video),
         },
         service_url,
     })
