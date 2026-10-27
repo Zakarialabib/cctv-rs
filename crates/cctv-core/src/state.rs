@@ -51,9 +51,13 @@ pub struct CameraState {
     pub armed_at: Option<u64>,
     /// Time the camera last started recording (seconds since epoch).
     pub recording_at: Option<u64>,
+    /// How many consecutive retries this camera has gone through.
+    pub retry_count: u32,
+    /// When the next retry should be attempted (seconds since epoch), if any.
+    pub retry_after: Option<u64>,
 }
 
-/// The desired state, set by the operator or a dashboard rule.
+/// The camera's desired state, set by the operator or a dashboard rule.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum CameraDesired {
     /// Idle: stream on, but nothing scripted.
@@ -64,6 +68,8 @@ pub enum CameraDesired {
     Recording,
     /// Disabled / deleted from the fleet.
     Disabled,
+    /// Recovering: a retry the camera is expected to pass.
+    Retrying,
 }
 
 /// What the camera is believed to be doing right now.
@@ -85,6 +91,8 @@ pub enum CameraStateCurrent {
     Away,
     /// Disconnected / hot-unplugged (Ghost Device audit state).
     Disconnected,
+    /// Retrying a probe or stream after being offline.
+    Retrying,
 }
 
 /// Raw trust anchor from a probe.  Used to update confidence.
@@ -126,6 +134,8 @@ impl CameraState {
             offline_at: None,
             armed_at: None,
             recording_at: None,
+            retry_count: 0,
+            retry_after: None,
         }
     }
 
@@ -156,6 +166,9 @@ impl CameraState {
         self.confidence = confidence.clamp(0.0, 1.0);
         if online {
             self.online_at = Some(Self::now());
+            // A camera that comes back online resets its retry counters.
+            self.retry_count = 0;
+            self.retry_after = None;
         } else {
             self.offline_at = Some(Self::now());
         }
@@ -207,6 +220,33 @@ impl CameraState {
         self.desired = CameraDesired::Disabled;
     }
 
+    /// Move the camera into the retrying (recovery) desired state.
+    ///
+    /// The reconciler grades an offline camera as `Retry`, and this tells the
+    /// camera to keep trying — the wall always looks alive.  `retry_after` is
+    /// set so the probe loop knows when to try again.
+    pub fn retry(&mut self, retry_after: u64) {
+        self.desired = CameraDesired::Retrying;
+        self.state = CameraStateCurrent::Retrying;
+        self.retry_count += 1;
+        self.retry_after = Some(retry_after.max(Self::now()));
+    }
+
+    /// Has the camera been retried?
+    pub fn is_retrying(&self) -> bool {
+        self.desired == CameraDesired::Retrying || self.state == CameraStateCurrent::Retrying
+    }
+
+    /// The number of consecutive retries the camera has gone through.
+    pub fn retry_count(&self) -> u32 {
+        self.retry_count
+    }
+
+    /// When the next retry should be attempted, if any.
+    pub fn retry_after(&self) -> Option<u64> {
+        self.retry_after
+    }
+
     /// Seconds since the Unix epoch.
     ///
     /// The contract has no clock — `core` has no `SystemTime` — so this reads one
@@ -227,4 +267,35 @@ impl CameraState {
     fn now() -> u64 {
         0
     }
+
+    #[test]
+    fn a_camera_state_new_initialises_retry_counters_to_zero() {
+        let state = CameraState::new("cam".into(), "ACME".into(), CameraType::Consumer);
+        assert_eq!(state.retry_count, 0);
+        assert_eq!(state.retry_after, None);
+        assert!(!state.is_retrying());
+    }
+
+    #[test]
+    fn retry_stage_moves_the_state_and_increments_the_count() {
+        let mut state = CameraState::new("cam".into(), "ACME".into(), CameraType::Consumer);
+        state.retry(1_700_000_000);
+        assert_eq!(state.desired, CameraDesired::Retrying);
+        assert_eq!(state.state, CameraStateCurrent::Retrying);
+        assert_eq!(state.retry_count, 1);
+        assert_eq!(state.retry_after, Some(1_700_000_000));
+    }
+
+    #[test]
+    fn an_online_probe_resets_retry_counters() {
+        let mut state = CameraState::new("cam".into(), "ACME".into(), CameraType::Consumer);
+        state.retry(1_700_000_000);
+        assert!(state.is_retrying());
+        state.update_confirmation(true, CameraStateCurrent::On, 1.0);
+        assert!(!state.is_retrying());
+        assert_eq!(state.retry_count, 0);
+        assert_eq!(state.retry_after, None);
+    }
+}
+
 }

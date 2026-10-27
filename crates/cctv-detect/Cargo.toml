@@ -1,0 +1,17 @@
+[package]
+name = "cctv-detect"
+description = "Detection — the device model for motion / AI object detection zones and events."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "detection", "motion", "ai", "zones"]
+categories = ["multimedia::video", "os"]
+
+[dependencies]
+cctv-core.workspace = true
+
+[lints]
+workspace = true

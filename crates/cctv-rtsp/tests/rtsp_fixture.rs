@@ -461,41 +461,86 @@ async fn serve(stream: TcpStream, shared: &Shared, digest: bool) -> std::io::Res
         }
     }
 
-    // The reader is done, so the writer must not keep the connection open.
-    playing.store(false, Ordering::Relaxed);
-    writer.abort();
-    let _ = writer.await;
-    result
-}
+    // Read RTSP requests. The media frames are interleaved on this same
+    // connection and are consumed by the driver's read loop; once PLAY has been
+    // answered the frame stream is not our business here, so we deliberately
+    // stop draining this socket (which would eat the frames) and we keep the
+    // writer alive: it is still streaming into the wire and the driver needs
+    // the frames intact.
+    let mut buf: Vec<u8> = Vec::with_capacity(4096);
+    let mut chunk = [0u8; 4096];
+    let mut handled_play = false;
+    loop {
+        let n = match read_half.read(&mut chunk).await {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(error) => {
+                return Err(error);
+            }
+        };
+        buf.extend_from_slice(&chunk[..n]);
 
-/// Build the reply to one request.
-///
-/// **Why `PLAY` starts the media.** Interleaved RTP is multiplexed onto the very
-/// connection `PLAY` was answered on, so the media flag and its budget belong to
-/// the connection rather than to the fixture: a fixture that started media on
-/// `SETUP` would send frames to a socket the driver had already closed, and one
-/// that waited for a separate token would never be asked for it by a client that
-/// does not know the token exists.  The budget is therefore per connection — the
-/// handshake connections send nothing, and the media connection sends exactly
-/// [`ACCESS_UNITS`] frames.
-fn respond(request: &Recorded, cseq: u32, playing: &AtomicBool, budget: &AtomicU32) -> Vec<u8> {
-    match request.method.as_str() {
-        "OPTIONS" => response(
-            200,
-            "OK",
-            cseq,
-            "Public: DESCRIBE, SETUP, PLAY, TEARDOWN, GET_PARAMETER\r\n",
-            &[],
-        ),
-        "DESCRIBE" => {
-            let body = sdp_body();
-            response(
-                200,
-                "OK",
-                cseq,
-                "Content-Type: application/sdp\r\n",
-                body.as_bytes(),
-            )
+        // Drain complete RTSP messages only; interleaved media frames are
+        // `$`-prefixed and are never valid methods, so feeding them to the
+        // codec here would swallow the frames.  They travel straight to the
+        // driver's read loop.
+        let mut i = 0;
+        while i < buf.len() {
+            match cctv_rtsp::message::Message::parse(&buf[i..]) {
+                Ok((message, used)) => {
+                    i += used;
+                    if let cctv_rtsp::message::Message::Request(request) = message {
+                        let recorded = Recorded {
+                            method: request.method.as_str().to_string(),
+                            uri: request.uri.clone(),
+                            body: request.body.clone(),
+                            headers: request
+                                .headers
+                                .iter()
+                                .map(|(key, value)| (key.to_string(), value.to_string()))
+                                .collect(),
+                        };
+                        if let Ok(mut log) = shared.requests.lock() {
+                            log.push(recorded.clone());
+                        }
+                        let cseq = request.headers.cseq().unwrap_or(0);
+                        // The Digest gate applies to every method, as a real
+                        // camera's does: the first request of the session goes
+                        // out unauthenticated and is challenged, and the retried
+                        // one carries the answer.
+                        let response = if !digest || authorized(&recorded, &recorded.method) {
+                            respond(&recorded, cseq, &playing, &budget)
+                        } else {
+                            response(
+                                401,
+                                "Unauthorized",
+                                cseq,
+                                &format!("WWW-Authenticate: {}
+\n", challenge_header()),
+                                &[],
+                            )
+                        };
+                        let mut sink = sink.lock().await;
+                        if sink.write_all(&response).await.is_err() {
+                            return Err(std::io::Error::other("server write failed"));
+                        }
+                        let _ = sink.flush().await;
+
+                        // PLAY starts the media; the driver (run_once) now owns
+                        // the socket's read side and will read the frames.
+                        // Stop reading requests and keep the writer alive.
+                        if request.method == cctv_rtsp::message::Method::Play {
+                            playing.store(true, Ordering::Relaxed);
+                            handled_play = true;
+                            break;
+                        }
+                    }
+                }
+                Err(cctv_rtsp::message::MessageParseError::Incomplete) => break,
+                Err(cctv_rtsp::message::MessageParseError::Malformed(_)) => {
+                    i += 1;
+                }
+            }
         }
         "SETUP" => {
             let transport = request
@@ -817,4 +862,5 @@ async fn the_media_budget_is_finite_and_the_reader_counts_every_unit() {
         outcome.frames
     );
     assert_eq!(outcome.frames, reader.received());
+
 }
