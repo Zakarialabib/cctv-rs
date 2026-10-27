@@ -469,7 +469,11 @@ impl RtspSession {
     }
 
     /// Write one request on `stream` and read one response off it.
-    async fn send(&mut self, stream: &mut Stream, request: &Request) -> Result<Response, CameraError> {
+    async fn send(
+        &mut self,
+        stream: &mut Stream,
+        request: &Request,
+    ) -> Result<Response, CameraError> {
         write_request(stream, request).await?;
         read_response(stream).await
     }

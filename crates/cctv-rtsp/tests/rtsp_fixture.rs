@@ -297,7 +297,10 @@ pub fn authorized(request: &Recorded, method: &str) -> bool {
         let Some((key, value)) = pair.split_once('=') else {
             continue;
         };
-        fields.insert(key.trim().to_string(), value.trim().trim_matches('"').to_string());
+        fields.insert(
+            key.trim().to_string(),
+            value.trim().trim_matches('"').to_string(),
+        );
     }
     if fields.get("username").map(String::as_str) != Some(USERNAME) {
         return false;
@@ -311,7 +314,12 @@ pub fn authorized(request: &Recorded, method: &str) -> bool {
     let Some(uri) = fields.get("uri") else {
         return false;
     };
-    let expected = expected_response(method, uri, 1, fields.get("cnonce").map_or("", String::as_str));
+    let expected = expected_response(
+        method,
+        uri,
+        1,
+        fields.get("cnonce").map_or("", String::as_str),
+    );
     fields.get("response").map(String::as_str) == Some(expected.as_str())
 }
 
@@ -509,9 +517,7 @@ fn respond(request: &Recorded, cseq: u32, playing: &AtomicBool, budget: &AtomicU
                 200,
                 "OK",
                 cseq,
-                &format!(
-                    "Session: {SESSION_ID}\r\nRTP-Info: url=trackID=1;seq=0;rtptime=0\r\n"
-                ),
+                &format!("Session: {SESSION_ID}\r\nRTP-Info: url=trackID=1;seq=0;rtptime=0\r\n"),
                 &[],
             )
         }
@@ -573,7 +579,15 @@ pub async fn run_session(
 
     let mut frames = 0u64;
     let stop = stop_channel();
-    let reason = match streaming::run_once(&mut session, &offer, reader, &stop, &now_ms, &mut frames).await
+    let reason = match streaming::run_once(
+        &mut session,
+        &offer,
+        reader,
+        &stop,
+        &now_ms,
+        &mut frames,
+    )
+    .await
     {
         Ok(()) => StreamEnd::Closed,
         // An ordinary end of stream is what the fixture produces: the camera
@@ -600,7 +614,9 @@ fn stop_channel() -> streaming::Stop {
 
 #[tokio::test]
 async fn the_fixture_answers_the_handshake_and_streams_a_measurable_number_of_frames() {
-    let server = FixtureServer::start(false).await.expect("the fixture binds");
+    let server = FixtureServer::start(false)
+        .await
+        .expect("the fixture binds");
     let mut reader = FrameReader::new();
     let outcome = run_session(server.url(), &mut reader, clock_ms).await;
 
@@ -639,7 +655,10 @@ async fn a_digest_challenge_is_answered_and_the_stream_is_served() {
 
     let url = server.url_with_credentials();
     let mut session = RtspSession::new(url);
-    let described = session.describe().await.expect("DESCRIBE succeeds after a retry");
+    let described = session
+        .describe()
+        .await
+        .expect("DESCRIBE succeeds after a retry");
 
     // The retry is the proof: the first DESCRIBE was challenged, the second
     // carried the answer, and the description came back.
@@ -711,7 +730,10 @@ fn a_wrong_digest_answer_is_not_accepted() {
         )],
         ..wrong.clone()
     };
-    assert!(authorized(&right, "DESCRIBE"), "the correct answer is accepted");
+    assert!(
+        authorized(&right, "DESCRIBE"),
+        "the correct answer is accepted"
+    );
 }
 
 #[test]
@@ -745,7 +767,9 @@ fn a_built_rtp_packet_parses_back_into_the_access_unit_it_carries() {
         .push(parsed.payload, parsed.marker, parsed.timestamp)
         .expect("the marker ends the access unit");
     assert!(
-        unit.nal_units.iter().any(|nal| nal.first() == Some(&NAL_HEADER)),
+        unit.nal_units
+            .iter()
+            .any(|nal| nal.first() == Some(&NAL_HEADER)),
         "the IDR slice is in the emitted unit"
     );
 }
@@ -773,13 +797,18 @@ async fn a_refused_connection_is_an_offline_error() {
     drop(listener);
     let url = RtspUrl::parse(&format!("rtsp://{addr}/stream")).expect("a url");
     let mut session = RtspSession::new(url);
-    assert!(matches!(session.describe().await, Err(CameraError::Offline)));
+    assert!(matches!(
+        session.describe().await,
+        Err(CameraError::Offline)
+    ));
 }
 
 /// The fixture's media is bounded, so a session cannot run forever.
 #[tokio::test]
 async fn the_media_budget_is_finite_and_the_reader_counts_every_unit() {
-    let server = FixtureServer::start(false).await.expect("the fixture binds");
+    let server = FixtureServer::start(false)
+        .await
+        .expect("the fixture binds");
     let mut reader = FrameReader::new();
     let outcome = run_session(server.url(), &mut reader, clock_ms).await;
     assert!(

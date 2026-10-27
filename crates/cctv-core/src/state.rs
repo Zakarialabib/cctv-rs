@@ -255,7 +255,8 @@ mod tests {
             "ai_supported": true
         }"#;
 
-        let probe: ProbeResult = serde_json::from_str(json_v04).expect("v0.4 probe result deserializes");
+        let probe: ProbeResult =
+            serde_json::from_str(json_v04).expect("v0.4 probe result deserializes");
         assert_eq!(probe.vendor, "Hikvision");
         assert_eq!(probe.model, "DS-2CD2143G0-I");
         assert_eq!(probe.link_kind, LinkKind::Network);

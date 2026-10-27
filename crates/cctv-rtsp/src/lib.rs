@@ -40,4 +40,6 @@ pub use backend::{
     DEFAULT_RETRIES, DRIVER_KEY, GENERIC_MODEL, GENERIC_VENDOR,
 };
 #[cfg(feature = "net")]
-pub use streaming::{demux, run_once, Depacketizer, Frame, StreamHandle, StreamOutcome, READ_CHUNK};
+pub use streaming::{
+    demux, run_once, Depacketizer, Frame, StreamHandle, StreamOutcome, READ_CHUNK,
+};

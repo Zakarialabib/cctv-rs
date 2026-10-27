@@ -58,7 +58,9 @@ impl CameraType {
 }
 
 /// The physical or protocol link layer for reaching a camera device.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default,
+)]
 pub enum LinkKind {
     /// IP network connection (ONVIF, RTSP, HTTP/TCP/UDP).
     #[default]
@@ -84,7 +86,9 @@ impl LinkKind {
 }
 
 /// Hardware classification for attached or discovered devices.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default,
+)]
 pub enum DeviceClass {
     /// Video capture / camera device (e.g. UVC).
     Video,
