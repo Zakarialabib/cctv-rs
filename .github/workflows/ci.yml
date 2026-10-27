@@ -113,6 +113,9 @@ jobs:
       - run: cargo check -p cctv-discovery
       - run: cargo check -p cctv-ezviz
       - run: cargo check -p cctv-agent
+      - run: cargo check -p cctv-protocol-ptp
+      - run: cargo check -p cctv-storage-msc
+      - run: cargo check -p cctv-adapter-actioncam
       - run: cargo check -p cctv-rs
       # `cargo publish --dry-run` is what actually reaches crates.io: it verifies
       # the manifest Cargo would upload — a bad `readme` path, a path dependency
