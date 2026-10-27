@@ -1,0 +1,27 @@
+{
+  "idVendor": 4268,
+  "idProduct": 33,
+  "bDeviceClass": 0,
+  "bDeviceSubClass": 0,
+  "bDeviceProtocol": 0,
+  "vendorName": "Shure",
+  "productName": "MV7 Podcast Microphone",
+  "serialNumber": "SHURE-MV7-001",
+  "busAddress": "bus-1-port-3",
+  "interfaces": [
+    {
+      "bInterfaceNumber": 0,
+      "bInterfaceClass": 1,
+      "bInterfaceSubClass": 1,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "Audio Control"
+    },
+    {
+      "bInterfaceNumber": 1,
+      "bInterfaceClass": 1,
+      "bInterfaceSubClass": 2,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "Audio Streaming"
+    }
+  ]
+}

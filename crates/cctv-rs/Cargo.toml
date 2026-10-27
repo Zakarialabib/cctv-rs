@@ -15,6 +15,7 @@ cctv-core.workspace = true
 cctv-agent.workspace = true
 cctv-discovery.workspace = true
 cctv-ezviz.workspace = true
+cctv-hal-usb.workspace = true
 cctv-onvif.workspace = true
 # `http` carries the shared rustls client the ONVIF factory hands to its session.
 cctv-transport = { workspace = true, features = ["http"] }

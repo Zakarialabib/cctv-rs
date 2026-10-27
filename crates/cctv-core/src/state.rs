@@ -16,7 +16,7 @@
 
 use crate::prelude::*;
 
-use crate::types::CameraType;
+use crate::types::{CameraType, DeviceClass, LinkKind};
 use serde::{Deserialize, Serialize};
 
 /// One camera, as the fleet believes it to be right now.
@@ -93,17 +93,29 @@ pub struct ProbeResult {
     /// Model name reported by the device.
     pub model: String,
     /// Firmware version, if reported.
+    #[serde(default)]
     pub firmware: Option<String>,
     /// Device IP address, if known.
+    #[serde(default)]
     pub ip: Option<String>,
     /// Device MAC address, if known.
+    #[serde(default)]
     pub mac: Option<String>,
     /// Primary stream URL, if advertised.
+    #[serde(default)]
     pub stream_url: Option<String>,
     /// Whether the device reports PTZ support.
+    #[serde(default)]
     pub ptz_supported: bool,
     /// Whether the device reports AI detection support.
+    #[serde(default)]
     pub ai_supported: bool,
+    /// Physical or protocol link layer.
+    #[serde(default)]
+    pub link_kind: LinkKind,
+    /// Hardware classification, if known.
+    #[serde(default)]
+    pub device_class: Option<DeviceClass>,
 }
 
 impl CameraState {
@@ -223,5 +235,31 @@ impl CameraState {
     #[cfg(not(any(feature = "testing", feature = "quirks")))]
     fn now() -> u64 {
         0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn v0_4_serde_configs_deserialize_via_default() {
+        let json_v04 = r#"{
+            "vendor": "Hikvision",
+            "model": "DS-2CD2143G0-I",
+            "firmware": "V5.5.82",
+            "ip": "192.168.1.100",
+            "mac": "00:11:22:33:44:55",
+            "stream_url": "rtsp://192.168.1.100/live",
+            "ptz_supported": false,
+            "ai_supported": true
+        }"#;
+
+        let probe: ProbeResult =
+            serde_json::from_str(json_v04).expect("v0.4 probe result deserializes");
+        assert_eq!(probe.vendor, "Hikvision");
+        assert_eq!(probe.model, "DS-2CD2143G0-I");
+        assert_eq!(probe.link_kind, LinkKind::Network);
+        assert_eq!(probe.device_class, None);
     }
 }

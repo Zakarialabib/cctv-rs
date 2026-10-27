@@ -469,7 +469,11 @@ impl RtspSession {
     }
 
     /// Write one request on `stream` and read one response off it.
-    async fn send(&mut self, stream: &mut Stream, request: &Request) -> Result<Response, CameraError> {
+    async fn send(
+        &mut self,
+        stream: &mut Stream,
+        request: &Request,
+    ) -> Result<Response, CameraError> {
         write_request(stream, request).await?;
         read_response(stream).await
     }
@@ -778,6 +782,8 @@ pub fn probe_result(session: &Session, url: &RtspUrl) -> ProbeResult {
         // a vendor's own CGI, which is a vendor crate's business, not this one's.
         ptz_supported: false,
         ai_supported: false,
+        link_kind: cctv_core::LinkKind::Network,
+        device_class: Some(cctv_core::DeviceClass::Video),
     }
 }
 

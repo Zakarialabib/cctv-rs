@@ -1,0 +1,20 @@
+{
+  "idVendor": 1133,
+  "idProduct": 49282,
+  "bDeviceClass": 0,
+  "bDeviceSubClass": 0,
+  "bDeviceProtocol": 0,
+  "vendorName": "Logitech",
+  "productName": "USB Keyboard",
+  "serialNumber": "KEYBOARD-01",
+  "busAddress": "bus-1-port-1",
+  "interfaces": [
+    {
+      "bInterfaceNumber": 0,
+      "bInterfaceClass": 3,
+      "bInterfaceSubClass": 1,
+      "bInterfaceProtocol": 1,
+      "interfaceName": "HID Keyboard"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 //! `cctv-rs` — the facade crate.
 //!
-//! The only crate that SignageMaster's `cctv.ts` talks to.  Nothing in here is
+//! The aggregate facade for host applications and edge clients.  Nothing in here is
 //! vendor-specific: the application sees only the `cctv-core` device model, the
 //! reconciler's graded remediations, and the discovery sweep.
 //!
@@ -24,7 +24,8 @@ pub use facade::{clock_ms, Facade};
 pub use cctv_agent::{Action, Audit, AuditEntry, Grade, Reconciler, Remediation};
 pub use cctv_core::{
     CameraConfig, CameraError, CameraHandle, CameraState, CameraStateCurrent, CameraType,
-    CommandId, CommandResult, CommandResultPayload, Preset, PtzCommand, Snapshot, StreamInfo,
-    StreamQuality,
+    CommandId, CommandResult, CommandResultPayload, DeviceClass, LinkKind, Preset, PtzCommand,
+    Snapshot, StreamInfo, StreamQuality,
 };
 pub use cctv_discovery::DiscoveredCamera;
+pub use cctv_hal_usb::{UsbEnumerator, UsbSweepResult};
