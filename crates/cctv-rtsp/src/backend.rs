@@ -782,8 +782,6 @@ pub fn probe_result(session: &Session, url: &RtspUrl) -> ProbeResult {
         // a vendor's own CGI, which is a vendor crate's business, not this one's.
         ptz_supported: false,
         ai_supported: false,
-        link_kind: cctv_core::LinkKind::Network,
-        device_class: Some(cctv_core::DeviceClass::Video),
     }
 }
 
