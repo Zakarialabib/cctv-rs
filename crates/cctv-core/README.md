@@ -1,44 +1,37 @@
 # cctv-core
 
-The device model for `cctv-rs` — the one type everything else leans on. Used by
-the app, the reconciler and every driver, so it keeps no tokio, no async runtime,
-no protocol layer and no vendor code in it. Only `serde` / `serde_json` for the
-command-result value types, so the aggregate embeds in a Tauri app, a CLI or a
-WASM worker.
+[![Crates.io](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core)
+[![docs.rs](https://docs.rs/cctv-core/badge.svg)](https://docs.rs/cctv-core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## You get
+The foundational device model for `cctv-rs`. `cctv-core` defines the zero-runtime types, command catalogue, state machine, error taxonomy, and mock backend used across the entire workspace.
 
-- `CameraHandle` — an opaque handle addressing one camera in the fleet.
-- `CommandId` — the command catalogue, with `order()` and `supports()` for the
-  reconciler.
-- `CommandResult` / `CommandResultPayload` / `StreamHandle` — typed command
-  results.
-- `CameraState`, `CameraDesired`, `CameraStateCurrent`, `ProbeResult` — the state
-  machine and its trust anchor.
-- `CameraType` — the camera-type taxonomy.
-- `CameraError` — the failure taxonomy every driver returns.
-- `MockBackend` / `mock_camera()` / the conformance suite — the bar every driver
-  is held to.
+Designed for `alloc`-only targets (`#![no_std]` + `extern crate alloc`), `cctv-core` never pulls Tokio, async socket layers, or protocol dependencies into its graph.
 
-## Feature `quirks`
+## Core Capabilities
 
-Model- and firmware-specific defects live in a TOML table instead of `match`
-arms, so a new workaround is a reviewable data change and the table can ship
-newer than the crate. It is behind a feature because it pulls a TOML parser and
-most builds never read it.
+- **`CameraHandle` & `StreamHandle`:** Opaque, lightweight identifiers for cameras and active media streams.
+- **`CommandId` Catalogue:** Enumerable command inventory with strict deterministic ordering (`order()`) and capability checking (`supports()`).
+- **`CommandResult` & `CommandResultPayload`:** Strongly typed result envelopes for all camera operations.
+- **`CameraState` Machine:** `CameraDesired`, `CameraStateCurrent`, and `ProbeResult` data types tracking fleet reconciliation states.
+- **`CameraError` Taxonomy:** Rich, typed error enum eliminating library panics and sentinel error values.
+- **`MockBackend` & Conformance Suite:** Complete mock driver and test suite ensuring all drivers adhere strictly to contract expectations.
+
+## Quirks Engine (Feature `quirks`)
+
+Vendor device and firmware defects are handled declaratively via data tables rather than hardcoded logic.
 
 ```rust,no_run
-use cctv_core::quirks::{QuirkAction, Quirks};
+use cctv_core::quirks::Quirks;
 
-let quirks = Quirks::bundled().expect("the bundled table parses");
-if let Some(action) = quirks.action_for("acme", Some("PTZ-9000"), Some("V5.3")) {
-    // `start_at_<port>` pins a port; `rtsp_udp_only` drops the interleaved channel.
+let quirks = Quirks::bundled().expect("bundled TOML quirks parse");
+if let Some(action) = quirks.action_for("vendor_x", Some("MODEL-100"), Some("V1.0.2")) {
+    // Apply firmware-specific fixup
 }
 ```
 
-Two rules, both load-bearing: **order is precedence** (first matching row wins)
-and **a row is a claim** (no source, no row — an unverified quirk fires on
-devices that never had the defect). The bundled table ships empty for exactly
-that reason.
+## Technical Guarantees
 
-See `docs/architecture.md` for the design.
+- `#![forbid(unsafe_code)]`
+- `alloc`-only compatible (`default-features = false`).
+- Zero async runtime or socket dependencies in the graph.

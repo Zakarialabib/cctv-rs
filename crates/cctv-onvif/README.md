@@ -1,75 +1,46 @@
 # cctv-onvif
 
-The ONVIF driver for `cctv-rs` — the one crate that speaks ONVIF. Device, Media
-and PTZ services over SOAP 1.2, authenticated with a WS-Security
-`UsernameToken`. The ONVIF vocabulary (profiles, tokens, `XAddr`) stops at this
-crate's boundary: everything the rest of the workspace sees is a `cctv-core`
-type.
+[![Crates.io](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif)
+[![docs.rs](https://docs.rs/cctv-onvif/badge.svg)](https://docs.rs/cctv-onvif)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## Layout
+ONVIF protocol driver implementation for `cctv-rs`. Provides Device, Media, and PTZ services over SOAP 1.2 with WS-Security `UsernameToken` authentication.
 
-| Module | What it holds |
-| --- | --- |
-| `soap` | Envelopes, the `#PasswordDigest` header, ISO 8601 timestamps. |
-| `device` | `GetDeviceInformation`, `GetCapabilities`. |
-| `media` | Profiles, stream / snapshot URIs, the encoder write path. |
-| `ptz` | Continuous / absolute moves, stop, presets. |
-| `session` | `OnvifSession` — one device on the wire. |
-| `backend` | `OnvifCameraBackend` — one camera as a `CameraBackend`. |
-| `error` | `OnvifError` and its mapping onto `CameraError`. |
+Translates ONVIF XML protocols cleanly into the standard `cctv-core` device model.
 
-Builders return SOAP **body** fragments; `soap::envelope` wraps them. Parsers are
-namespace-prefix-agnostic, so `tds:`, `SOAP-ENV:` and unprefixed replies are read
-alike.
+## Features
 
-## The session
+- **WS-Security Authentication:** Generates XML `UsernameToken` headers with `#PasswordDigest`, nonces, and ISO 8601 UTC timestamps.
+- **Device Management:** `GetDeviceInformation`, `GetCapabilities`, endpoint caching across ONVIF `XAddr` service locations.
+- **Media Management:** Profile listing, RTSP stream URI extraction, and JPEG snapshot URI acquisition.
+- **PTZ Control:** Continuous PTZ movements, absolute positioning, stop commands, and preset management.
+- **Namespace-Agnostic XML Parsing:** Tolerates non-standard vendor XML prefixes (`tds:`, `trt:`, `tptz:`, `SOAP-ENV:`).
 
-`OnvifSession` is where the builders meet the wire: each call wraps its body in
-an envelope with a fresh WS-Security header and POSTs it through
-`cctv-transport`'s shared client, which already negotiates HTTP Digest / Basic
-for the devices that want that *in addition to* message-level auth.
+## Usage Example
 
 ```rust,no_run
 use cctv_onvif::{Credentials, OnvifSession};
 use cctv_transport::http::HttpConfig;
 
-# async fn run() -> Result<(), cctv_onvif::OnvifError> {
-let session = OnvifSession::new(
-    "http://192.168.1.64/onvif/device_service",
-    Credentials { username: "admin".into(), password: "secret".into() },
-    HttpConfig::default(),
-)?;
-let info = session.device_information().await?;
-let profiles = session.profiles().await?;
-# Ok(())
-# }
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let session = OnvifSession::new(
+        "http://192.168.1.64/onvif/device_service",
+        Credentials { username: "admin".into(), password: "password".into() },
+        HttpConfig::default(),
+    )?;
+
+    let dev_info = session.device_information().await?;
+    println!("Device Model: {}", dev_info.model);
+
+    let profiles = session.profiles().await?;
+    println!("Found {} media profiles", profiles.len());
+
+    Ok(())
+}
 ```
 
-Service endpoints come from `GetCapabilities` and are **cached**: a device
-answers `XAddr`s that differ from its device-service URL, so every later call
-has to address the right one — but only the first has to ask.
+## Technical Guarantees
 
-## Two behaviours worth knowing
-
-- **`Stop` names a profile.** ONVIF's `Stop` takes a profile token; a
-  device-model `PtzCommand::Stop` does not. `OnvifCameraBackend` remembers the
-  profile that started moving, and a stop with nothing moving is a no-op rather
-  than an error.
-- **A snapshot is two requests.** `GetSnapshotUri` returns a *URL*; the bytes
-  come from a plain `GET` against the device's own HTTP server. `snapshot()`
-  does both.
-
-## Testing
-
-`cargo test -p cctv-onvif` runs the builders / parsers, the WS-Security digest
-and the conformance suite against a canned SOAP server (`cctv-transport`'s
-fixture) — no camera, no credentials, no network. The conformance run is
-**7/7** with `Expectations::FULL`: identity, both streams, a snapshot, a move +
-stop, and the preset round trip.
-
-## What this crate does not do
-
-No ONVIF event subscription (`PullPoint` / `BasicNotificationInterface`), no
-imaging / analytics services, and no device time (`GetSystemDateAndTime`) — a
-reply's timestamps are not used for anything yet. Those are unimplemented, not
-faked.
+- `#![forbid(unsafe_code)]`
+- Conformance tested against mock SOAP fixtures.

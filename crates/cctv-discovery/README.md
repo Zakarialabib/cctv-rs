@@ -1,31 +1,38 @@
 # cctv-discovery
 
-Camera discovery for the `cctv-rs` workspace: the SSDP `M-SEARCH` sweep and the
-WS-Discovery `Probe` sweep, over UDP multicast, behind one read-only surface.
+[![Crates.io](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery)
+[![docs.rs](https://docs.rs/cctv-discovery/badge.svg)](https://docs.rs/cctv-discovery)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Discovery is unauthenticated and protocol-thin. A sweep finds cameras and hands
-each one back as a `DiscoveredCamera` — the identity discovery observed, the
-`cctv-core` `ProbeResult` fields, and the control-service URL when the protocol
-advertised one — so the fleet can adopt a device without knowing the vendor's
-protocol. This crate never speaks TLS and never controls a camera.
+Zero-configuration IP camera discovery for `cctv-rs` via UDP multicast sweeps (SSDP `M-SEARCH` and WS-Discovery `Probe`).
 
-## You get
+Read-only, stateless network discovery surface returning strongly typed `DiscoveredCamera` structures.
 
-- `Probe` — a stateless probe. `Probe::scan` is one sweep over a real UDP socket;
-  `Probe::scan_with` is the same sweep over an injected `Datagram`.
-- `DiscoveredCamera` — one camera found by a sweep: its identity, its probe
-  fields, and the advertised control-service URL.
-- `Datagram` / `UdpTransport` — the transport seam a sweep runs on.
-- `ssdp` — the `M-SEARCH` request and the reply codec (pure).
-- `wsd` — the WS-Discovery `Probe` envelope and the `ProbeMatches` parser (pure;
-  reads replies with `cctv-transport`'s prefix-agnostic XML scanner).
+## Discovery Protocols
 
-Both protocols are tried and the results merged, deduped by identity and ordered
-by it. An unreachable network yields an empty sweep — never an error, never a
-fabricated device.
+- **SSDP (Simple Service Discovery Protocol):** UDP multicast search over `239.255.255.250:1900`.
+- **WS-Discovery (Web Services Dynamic Discovery):** SOAP `Probe` envelopes over UDP multicast `239.255.255.250:3702`.
+- **Deduplication & Merging:** Merges responses from both protocol sweeps, deduplicating devices by network identity and address.
 
-USB cameras are enumerated by the **application**: a USB camera is a kernel /
-hardware concern, not a protocol, so this crate does not touch the USB bus.
+## Usage Example
 
-The design, the protocol matrix and the crate's place in the workspace are in
-`docs/architecture.md`.
+```rust,no_run
+use cctv_discovery::Probe;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let probe = Probe::default();
+    let cameras = probe.scan().await?;
+
+    for cam in cameras {
+        println!("Discovered IP Camera: {:?} at Endpoint: {}", cam.identity, cam.endpoint);
+    }
+
+    Ok(())
+}
+```
+
+## Technical Guarantees
+
+- `#![forbid(unsafe_code)]`
+- Network errors return empty discovery sweeps rather than panicking or fabricating devices.
