@@ -97,6 +97,8 @@ impl MockBackend {
             stream_url: Some("http://example.com".into()),
             ptz_supported: false,
             ai_supported: false,
+            link_kind: crate::LinkKind::Network,
+            device_class: Some(crate::DeviceClass::Video),
         };
         b.probe("cam1", probe, true, CameraStateCurrent::Streaming, 0.7);
         let st = b.get("cam1").unwrap();
@@ -186,6 +188,8 @@ impl crate::backend::CameraBackend for MockCamera {
                 stream_url: Some("rtsp://127.0.0.1/main".into()),
                 ptz_supported: true,
                 ai_supported: false,
+                link_kind: crate::LinkKind::Network,
+                device_class: Some(crate::DeviceClass::Video),
             })
         }
     }

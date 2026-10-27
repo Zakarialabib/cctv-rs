@@ -1,0 +1,27 @@
+{
+  "idVendor": 1133,
+  "idProduct": 2061,
+  "bDeviceClass": 239,
+  "bDeviceSubClass": 2,
+  "bDeviceProtocol": 1,
+  "vendorName": "Logitech",
+  "productName": "HD Pro Webcam C920",
+  "serialNumber": "9D1F5B42",
+  "busAddress": "bus-1-port-2",
+  "interfaces": [
+    {
+      "bInterfaceNumber": 0,
+      "bInterfaceClass": 14,
+      "bInterfaceSubClass": 1,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "Video Control"
+    },
+    {
+      "bInterfaceNumber": 1,
+      "bInterfaceClass": 14,
+      "bInterfaceSubClass": 2,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "Video Streaming"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "idVendor": 1133,
+  "idProduct": 2088,
+  "bDeviceClass": 239,
+  "bDeviceSubClass": 2,
+  "bDeviceProtocol": 1,
+  "vendorName": "Logitech",
+  "productName": "Brio 4K Webcam",
+  "serialNumber": "BRIO-4K-99",
+  "busAddress": "bus-2-port-1",
+  "interfaces": [
+    {
+      "bInterfaceNumber": 0,
+      "bInterfaceClass": 14,
+      "bInterfaceSubClass": 1,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "UVC Video Control"
+    },
+    {
+      "bInterfaceNumber": 1,
+      "bInterfaceClass": 14,
+      "bInterfaceSubClass": 2,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "UVC Video Streaming"
+    },
+    {
+      "bInterfaceNumber": 2,
+      "bInterfaceClass": 1,
+      "bInterfaceSubClass": 1,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "UAC Audio Control"
+    },
+    {
+      "bInterfaceNumber": 3,
+      "bInterfaceClass": 1,
+      "bInterfaceSubClass": 2,
+      "bInterfaceProtocol": 0,
+      "interfaceName": "UAC Audio Streaming"
+    }
+  ]
+}

@@ -102,6 +102,8 @@ impl CameraBackend for OnvifCameraBackend {
                 // support: a fixed camera simply has no PTZ service.
                 ptz_supported: services.ptz.is_some(),
                 ai_supported: false,
+                link_kind: cctv_core::LinkKind::Network,
+                device_class: Some(cctv_core::DeviceClass::Video),
             })
         }
     }

@@ -145,6 +145,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-hal-usb"
+version = "0.1.0"
+dependencies = [
+ "cctv-core",
+ "insta",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "cctv-onvif"
 version = "0.1.0"
 dependencies = [
@@ -175,6 +186,7 @@ dependencies = [
  "cctv-core",
  "cctv-discovery",
  "cctv-ezviz",
+ "cctv-hal-usb",
  "cctv-onvif",
  "cctv-protocol-ptp",
  "cctv-storage-msc",
