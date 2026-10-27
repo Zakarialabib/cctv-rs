@@ -1,48 +1,35 @@
 # cctv-ezviz
 
-The Ezviz driver for `cctv-rs` — the one crate that speaks the Ezviz Open
-Platform protocol. It wraps the standalone `ezviz-openapi` client and translates
-its responses into the `cctv-core` device model, so vendor wire detail stops at
-this boundary and never reaches the `cctv-rs` facade's public API.
+[![Crates.io](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz)
+[![docs.rs](https://docs.rs/cctv-ezviz/badge.svg)](https://docs.rs/cctv-ezviz)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## You get
+Ezviz Open Platform cloud driver for `cctv-rs`. Wraps the `ezviz-openapi` client into `cctv-core` device model abstractions.
 
-- `Driver` — the account-level handle: `discover`, `alarms`, `capture`.
-- `EzvizCameraBackend` — one camera / channel, as a `cctv_core::CameraBackend`;
-  the subject of the conformance suite (`probe`, `stream`, `ptz`, presets).
-- `EzvizCamera` / `Connectivity` / `Alarm` — the device-model shapes the driver
-  hands back.
-- `ptz` — the pure translation of a `cctv_core::PtzCommand` into the platform's
-  discrete direction + speed vocabulary.
-- `DriverError` — the driver's failure type, and its mapping onto
-  `cctv_core::CameraError`.
-- `EzvizClient` — the vendor client, re-exported from `ezviz-openapi` for callers
-  that need an endpoint the driver does not model.
+Converts Ezviz API endpoints into the uniform `CameraBackend` trait interface.
 
-## What the platform cannot do
+## Capabilities
 
-Three gaps are typed errors rather than silent failures, and the conformance
-expectations name them:
+- **Account Authentication & Session Tokens:** Dynamic token acquisition and region endpoint redirection.
+- **Device & Channel Inventory:** Discovers account cameras, channels, and online connectivity state.
+- **Stream URL Resolution:** Resolves dynamic RTSP / HLS playback stream URLs on demand.
+- **PTZ & Presets:** Maps continuous PTZ direction and speed commands to platform actions; supports preset saving, goto, and deletion.
+- **Typed Platform Gaps:** Explicitly exposes platform limitations (e.g. out-of-band capture) as typed `CameraError::Unsupported` variants.
 
-- **Snapshots.** `/device/capture` only *requests* a picture; the platform
-  delivers it out of band through its picture service, so the driver cannot
-  return image bytes. `snapshot()` stays at the trait default
-  (`NotImplemented`).
-- **Listing presets.** The platform can add, recall and clear a preset but has no
-  list endpoint, so `presets()` is `NotImplemented`. `save_preset` / `goto_preset`
-  / `delete_preset` work; a preset id is the platform's numeric index.
-- **Absolute PTZ.** Moves are eight compass directions plus zoom, at three
-  speeds. `PtzCommand::Continuous` is mapped onto them, and
-  `PtzCommand::Absolute` is `NotImplemented`.
+## Usage Example
 
-Play addresses expire, so `discover` does not cache a stream URL — `stream()`
-resolves one on demand.
+```rust,no_run
+use cctv_ezviz::Driver;
 
-## Testing
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let driver = Driver::new("app_key", "app_secret", "https://open.ezvizlife.com");
+    // Connect and query device list
+    Ok(())
+}
+```
 
-`tests/mock_server.rs` runs the driver against `cctv-transport`'s fixture HTTP
-server: no camera, no credentials, no network. The token response names the
-fixture as the region's `areaDomain` via the `{{base}}` placeholder, so the
-client's region switch is exercised for real.
+## Technical Guarantees
 
-See `docs/architecture.md` for the full design.
+- `#![forbid(unsafe_code)]`
+- Tested against canned HTTP fixtures with simulated region redirection.

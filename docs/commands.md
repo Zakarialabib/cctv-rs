@@ -1,90 +1,59 @@
-# Commands
+# Command Catalogue
 
-`CommandId` is the *what* a camera is asked to do. The driver crates answer the
-*how*. The facade and the reconciler address commands **by value, never by
-string**, so the application never sees a vendor-specific command id.
+`CommandId` defines *what* an IP camera is asked to do. Driver crates implement *how* the operation is performed over the wire. The facade and reconciler address operations by enum values — eliminating string-based command dispatch.
 
-Source of truth: [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands.rs).
+Source code reference: [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands.rs).
 
-## Two invariants
+## Key Invariants
 
-- **`CommandId::order`** gives the reconciler a deterministic sweep order (coarse
-  to fine). Declaration order matches `order()`, so the reconciler's pass is
-  readable from the top of the enum down.
-- **`CommandId::supports`** is the capability gate. A command a camera cannot
-  perform is a typed `CameraError` — never `unimplemented!()`.
+1. **Deterministic Execution Order (`CommandId::order`):** Fixes a stable coarse-to-fine sweep sequence for fleet reconciliation.
+2. **Typed Capability Guard (`CommandId::supports`):** Queries whether a camera driver supports an operation. Unsupported commands return `CameraError::Unsupported` rather than panicking.
 
-`CommandId` has **56 variants**. They are grouped below exactly as the source
-groups them.
-
-## Catalogue
-
-| Group | Count | Variants |
-| --- | --- | --- |
-| discovery | 3 | `Discover`, `DiscoverByRange`, `ListUsbCameras` |
-| live source | 4 | `LiveSourceList`, `LiveSourceDelete`, `LiveSourceSave`, `LiveSourceGet` |
-| health | 1 | `TestCameraConnection` |
-| stream | 4 | `GetCameraFrame`, `StartCameraStream`, `SetGlobalFrameRate`, `SetQualityProfile` |
-| health | 2 | `MonitorCameraHealth`, `ScanForNewCameras` |
-| settings | 2 | `GetCameraSettings`, `UpdateCameraSettings` |
-| objects | 1 | `DetectObjects` |
-| PTZ | 5 | `PtzMove`, `CameraUpdate`, `CameraSetEnabled`, `CameraSetCritical`, `CameraReorder` |
-| stats | 3 | `CameraGetStats`, `CameraGetAllStats`, `CameraTestAll` |
-| presets | 3 | `CameraSavePreset`, `CameraGotoPreset`, `CameraDeletePreset` |
-| snapshots | 1 | `CameraScreenshot` |
-| settings | 1 | `CameraResetSettings` |
-| zones | 4 | `ZoneList`, `ZoneSave`, `ZoneDelete`, `RunZoneDetection` |
-| zone motion | 6 | `ZoneMotionGetConfig`, `ZoneMotionSaveConfig`, `ZoneMotionStartMonitor`, `ZoneMotionStopMonitor`, `ZoneMotionListEvents`, `ZoneMotionAcknowledgeEvent` |
-| snapshots | 4 | `CameraSaveSnapshot`, `CameraDeleteSnapshot`, `CameraGetSnapshots`, `CameraSnapshotExists` |
-| reconnection | 1 | `CameraGetReconnectionInfo` |
-| config | 2 | `CameraConfigGet`, `CameraConfigSet` |
-| queue | 1 | `CameraPopCorrectedImage` |
-| composite | 2 | `CameraStartComposite`, `CameraStopComposite` |
-| AI models | 4 | `CameraGetAvailableModels`, `CameraSetDetectionModel`, `CameraAiDetectionSetEnabled`, `CameraAiDetectionGetEnabled` |
-| monitors | 2 | `CameraGetMonitorHealth`, `CameraGetMonitorStreamHealth` |
-
-The `health` and `settings` headings each appear twice, and `snapshots` twice,
-because the catalogue is grouped by *concern within declaration order*, not by a
-single contiguous block. That is deliberate: the enum is ordered for the
-reconciler's sweep, and the sections label what each run of variants is for.
-
-## Result payloads
-
-`CommandResultPayload` closes the loop: each `CommandId` maps to exactly one
-result shape, so the app never guesses the concrete variant.
-`CommandResultPayload::default_for(command)` is the "wire" — the zero value a
-command starts from. There are **17** payloads.
-
-| Payload | Carries |
-| --- | --- |
-| `Frame` | one decoded frame: `width`, `height`, `bytes` |
-| `Stream` | a started stream: `handle`, `stream` |
-| `Stats` | `fps`, `bytes_per_sec`, `online` |
-| `AllStats` | `cameras: Vec<CameraSnapshot>` |
-| `Test` | `passed`, `detail` |
-| `Presets` | `presets: Vec<Preset>` |
-| `Settings` | `settings: serde_json::Value` |
-| `Config` | `config: serde_json::Value` |
-| `Snapshot` | `path`, `width`, `height` |
-| `Snapshots` | `snapshots: Vec<SnapshotRef>` |
-| `MotionEvents` | `events: Vec<MotionEvent>` |
-| `Reconfiguration` | `info` |
-| `Composite` | `started` |
-| `AvailableModels` | `models: Vec<String>` |
-| `AiStatus` | `enabled`, `model: Option<String>` |
-| `Health` | `healthy`, `detail` |
-| `Empty` | nothing |
-
-## Supporting types
-
-- `CommandResult` — a payload plus its `CommandId`, optionally tagged with the
-  `camera_id` it came from (`CommandResult::new`, `CommandResult::for_camera`).
-- `CameraSnapshot`, `MotionEvent`, `Preset`, `SnapshotRef` — the value types the
-  payloads carry.
-- `CameraHandle` — an opaque handle addressing one camera in the fleet.
-- `StreamHandle` — an opaque handle addressing one started stream.
+`CommandId` defines **56 variants** organized into distinct domain groups.
 
 ---
 
-**License:** MIT — see [`LICENSE`](../LICENSE).
-**Security:** see [`SECURITY.md`](../SECURITY.md).
+## Catalogue Breakdown
+
+| Group | Count | Enum Variants |
+| --- | --- | --- |
+| Discovery | 3 | `Discover`, `DiscoverByRange`, `ListUsbCameras` |
+| Live Source | 4 | `LiveSourceList`, `LiveSourceDelete`, `LiveSourceSave`, `LiveSourceGet` |
+| Stream Controls | 4 | `GetCameraFrame`, `StartCameraStream`, `SetGlobalFrameRate`, `SetQualityProfile` |
+| Health Monitoring | 3 | `TestCameraConnection`, `MonitorCameraHealth`, `ScanForNewCameras` |
+| Configuration | 5 | `GetCameraSettings`, `UpdateCameraSettings`, `CameraResetSettings`, `CameraConfigGet`, `CameraConfigSet` |
+| PTZ Controls | 5 | `PtzMove`, `CameraUpdate`, `CameraSetEnabled`, `CameraSetCritical`, `CameraReorder` |
+| Fleet Diagnostic | 3 | `CameraGetStats`, `CameraGetAllStats`, `CameraTestAll` |
+| Presets | 3 | `CameraSavePreset`, `CameraGotoPreset`, `CameraDeletePreset` |
+| Snapshots | 5 | `CameraScreenshot`, `CameraSaveSnapshot`, `CameraDeleteSnapshot`, `CameraGetSnapshots`, `CameraSnapshotExists` |
+| Detection & Zones | 10 | `DetectObjects`, `ZoneList`, `ZoneSave`, `ZoneDelete`, `RunZoneDetection`, `ZoneMotionGetConfig`, `ZoneMotionSaveConfig`, `ZoneMotionStartMonitor`, `ZoneMotionStopMonitor`, `ZoneMotionListEvents` |
+| Reconnection | 1 | `CameraGetReconnectionInfo` |
+| Image Pipeline | 3 | `CameraPopCorrectedImage`, `CameraStartComposite`, `CameraStopComposite` |
+| AI Engine | 4 | `CameraGetAvailableModels`, `CameraSetDetectionModel`, `CameraAiDetectionSetEnabled`, `CameraAiDetectionGetEnabled` |
+| Stream Monitors | 2 | `CameraGetMonitorHealth`, `CameraGetMonitorStreamHealth` |
+
+---
+
+## Command Result Payloads (`CommandResultPayload`)
+
+Every `CommandId` maps directly to a typed `CommandResultPayload` variant:
+
+| Result Payload | Carried Data |
+| --- | --- |
+| `Frame` | Decoded frame metadata: `width`, `height`, byte count |
+| `Stream` | Active stream info: `handle`, stream URI / details |
+| `Stats` | Operational state: `online` |
+| `AllStats` | Snapshot inventory: `Vec<CameraSnapshot>` |
+| `Test` | Connection diagnostic result: `passed`, detail message |
+| `Presets` | Configured camera presets: `Vec<Preset>` |
+| `Settings` | Serialized setting value structure |
+| `Config` | Typed camera configuration struct (`CameraConfig`) |
+| `Snapshot` | Captured file path, image width & height |
+| `Snapshots` | Snapshot index: `Vec<SnapshotRef>` |
+| `MotionEvents` | Detected motion log: `Vec<MotionEvent>` |
+| `Reconfiguration` | Reconnection information payload |
+| `Composite` | Composite stream active state |
+| `AvailableModels` | AI models list: `Vec<String>` |
+| `AiStatus` | AI status: `enabled`, active `model` |
+| `Health` | Health check payload: `healthy`, status message |
+| `Empty` | Unit acknowledgement |

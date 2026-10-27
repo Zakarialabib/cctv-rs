@@ -1,32 +1,23 @@
-# Documentation
+# Documentation Index
 
-Every document in `docs/`, and what it is for. Start here.
+Welcome to the `cctv-rs` documentation suite. This index maps all technical documentation files, architectural decisions, and design standards across the workspace.
 
-## Where to go
+## Documentation Map
 
-| If you want to… | Read |
-| --- | --- |
-| understand what `cctv-rs` is and how the crates fit together | [architecture.md](architecture.md) |
-| see the command inventory (`CommandId`) | [commands.md](commands.md) |
-| understand `CameraType` and how capabilities are modelled | [camera-types.md](camera-types.md) |
-| know what is built, what is next, and what is deliberately deferred | [roadmap.md](roadmap.md) |
-| know where the workspace is headed, and the delta from today | [target-architecture.md](target-architecture.md) |
-| know what gets built in what order, and what proves each step | [plan-v0.2.md](plan-v0.2.md) |
-| follow the house conventions — layout, error contract, CI gates | [04-rust-package-standard.md](04-rust-package-standard.md) |
+| Goal | Document | Role |
+| --- | --- | --- |
+| System architecture & crate topology | [architecture.md](architecture.md) | Crate relationships, protocol matrix, event taxonomy, and application integration seam. |
+| Command catalogue (`CommandId`) | [commands.md](commands.md) | Complete list of all 56 typed commands, capabilities, and result payloads. |
+| Camera taxonomy (`CameraType`) | [camera-types.md](camera-types.md) | Fleet device classifications and capability rules. |
+| Release roadmap & milestones | [roadmap.md](roadmap.md) | Phase status, locked design decisions, and acceptance criteria. |
+| Target architecture & delta | [target-architecture.md](target-architecture.md) | Aspirational crate evolution, gap analysis, and architectural decisions. |
+| Work packages & execution plan | [plan-v0.2.md](plan-v0.2.md) | Concrete execution plan across releases v0.2 to v0.4. |
+| Workspace engineering standard | [04-rust-package-standard.md](04-rust-package-standard.md) | House engineering conventions: layout, error contract, CI gates, and release rules. |
 
-## Contents
+## Core Repository References
 
-| Document | Role |
-| --- | --- |
-| [architecture.md](architecture.md) | The system: the camera use surface, the crate map and dependency direction, the protocol matrix, the event taxonomy, the storage model and the integration seam. |
-| [commands.md](commands.md) | The `CommandId` catalogue — the *what* a camera is asked to do — plus the result payloads. |
-| [camera-types.md](camera-types.md) | The `CameraType` taxonomy, its stable order, and the rule that capabilities are not types. |
-| [roadmap.md](roadmap.md) | Implementation phases with their gates, the locked design decisions, the open items and the acceptance criteria. |
-| [target-architecture.md](target-architecture.md) | The v0.2+ crate map, the measured delta from what is built, the decisions it raises, and the Simple-Signage integration seam. **Aspirational** — `architecture.md` is the truth. |
-| [plan-v0.2.md](plan-v0.2.md) | The execution plan: six resolved decisions, nine work packages each with a **gate**, the dependency graph, the Simple-Signage swap in five phases, and the risk register. |
-| [04-rust-package-standard.md](04-rust-package-standard.md) | The house engineering standard. **Authority** for repository shape, the error contract, the CI gates and the release path. |
-
-## Repository root
-
-[README.md](../README.md) · [CONTRIBUTING.md](../CONTRIBUTING.md) · [SECURITY.md](../SECURITY.md) ·
-[CHANGELOG.md](../CHANGELOG.md) · [LICENSE](../LICENSE)
+- [Root README](../README.md)
+- [CONTRIBUTING.md](../CONTRIBUTING.md)
+- [SECURITY.md](../SECURITY.md)
+- [CHANGELOG.md](../CHANGELOG.md)
+- [LICENSE](../LICENSE)

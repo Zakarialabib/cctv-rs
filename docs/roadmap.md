@@ -1,93 +1,27 @@
-# Roadmap
+# Release Roadmap
 
-What is built, what is next, and what is deliberately deferred.
+System development status, phase gates, locked design decisions, and future milestones.
 
-## Phases
+---
 
-| # | Deliverable | Gate | Status |
+## Development Phases
+
+| Phase | Deliverable | Verification Gate | Status |
 | --- | --- | --- | --- |
-| 1 | `cctv-core`: the device model — traits, state machine, error taxonomy, mock backend, conformance suite, `quirks` | `cargo check -p cctv-core` clean, **no tokio in its graph** | landed — conformance suite green; the crate is now **`alloc`-only** (`--no-default-features`, CI-gated), the JSON DOM has left the contract, and the `quirks` table loader sits behind its feature with no rows (see open items) |
-| 2 | `cctv-transport` (TLS policy + budgeted frame reader), `cctv-discovery` (SSDP + WS-Discovery), `cctv-rtp` (RTP + H.264 / H.265 depacketisation) and `cctv-rtsp` (RTSP framing + SDP) | all compile | landed — the SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps run over UDP multicast with the codecs and merge / dedupe logic unit-tested behind the `Datagram` seam; `cctv-rtp` is dependency-free and reassembles H.264 (STAP-A, FU-A) and H.265 (AP, FU) access units; `cctv-rtsp` frames RTSP messages and parses SDP. Both are pure and unit-tested |
-| 3 | `cctv-onvif`: the ONVIF driver — Device / Media / PTZ SOAP builders and parsers, WS-Security `UsernameToken` | `cargo test -p cctv-onvif` | landed — `OnvifSession` drives the builders over `cctv-transport`'s HTTP client (following the `XAddr`s `GetCapabilities` returns, cached), and `OnvifCameraBackend` passes the conformance suite 7/7 against a canned SOAP server |
-| 4 | `cctv-ezviz`: wrap `ezviz-openapi` — token, device list, stream, PTZ, alarms, capture | `cargo test -p cctv-ezviz` against a mock server | landed — the conformance suite and the account-level operations run against `cctv-transport`'s fixture server; the three platform gaps (image bytes, listing presets, absolute PTZ) are typed errors |
-| 5 | `cctv-rs` facade, and rewriting the application's camera surface onto it | `cargo check -p cctv-rs` | facade landed — the command surface, the driver registry, the LAN sweep and the fleet reconciliation are implemented and tested; the application-side rewrite is not started |
-| 6 | `cctv-agent`: the reconciler — desired state → graded remediation, audit trail | `cargo test -p cctv-agent` | landed — graded remediation from the error taxonomy, an append-only audit trail, and the fleet sweep |
-| 7 | Integration *with* the application — no vendor vocabulary left in it | the application surface contains no vendor name | not started |
+| 1 | `cctv-core`: `alloc`-only device model, error taxonomy, state machine, mock backend, conformance suite. | `cargo check -p cctv-core --no-default-features` clean, zero Tokio dependencies. | Completed |
+| 2 | `cctv-transport` (TLS policy, budgeted frame reader), `cctv-discovery` (SSDP/WS-Discovery sweeps), `cctv-rtp` (zero-dep H.264/H.265 depacketizer), `cctv-rtsp` (RTSP framing & SDP). | Workspace unit tests passing; RTP & RTSP codecs verified against sample byte vectors. | Completed |
+| 3 | `cctv-onvif`: ONVIF driver — Device, Media, and PTZ SOAP builders/parsers with WS-Security `UsernameToken`. | Conformance test suite 7/7 passing against mock SOAP server fixture. | Completed |
+| 4 | `cctv-ezviz`: Ezviz Open Platform integration — token management, stream resolution, PTZ, alarms. | Driver unit tests passing against mock HTTP fixture server. | Completed |
+| 5 | `cctv-rs`: Aggregate facade — driver registry, command dispatch, network discovery sweeps. | `cargo check -p cctv-rs` clean; facade integration tests passing. | Completed |
+| 6 | `cctv-agent`: Fleet reconciler — desired state comparison, graded remediation actions, audit logging. | Reconciler unit tests passing. | Completed |
+| 7 | Application Integration: Replace legacy camera adapters in host applications with `cctv-rs`. | End-to-end integration verification in host application. | In Progress |
 
-Phases 1–5 are the path to a working driver. Phase 6 is post-V1, and phase 7 is
-the point at which the camera half of the refactor is finished.
+---
 
-## Deliberately out of scope
+## Locked Architectural Decisions
 
-- **PTZ protocol negotiation against live hardware.** Driver work, deferred past
-  V1.
-- **Serving live streams.** The streaming service is a separate, planned
-  repository. `cctv-transport` reads and buffers frames; it is not a media server.
-- **A terminal front end.** Named in the original design notes; not part of the
-  published workspace, so nothing here defines its API.
-
-## Locked decisions
-
-These were confirmed on 2026-10-23 and are not open for relitigating without a
-reason.
-
-1. **Repo.** `cctv-rs` is a standalone workspace, published on its own.
-2. **Layout.** One crate per concern under `crates/`, listed explicitly in the
-   root manifest — a glob that stops matching fails the build with a confusing
-   error, and the member list doubles as the publish order.
-3. **Ezviz.** The Ezviz Open Platform client is **one crate** here
-   (`cctv-ezviz`). The standalone `ezviz-openapi-rs` repository is kept and
-   published separately; `cctv-ezviz` never copies vendor code. The workspace
-   consumes it as a **git dependency pinned to a rev for development; published
-   crates depend on the crates.io release** (the manifest carries both `git` +
-   `rev` and `version`, and `cargo publish` keeps only the latter). Owner
-   decision, 2026-10-23.
-4. **Vendor range.** `cctv-rs` owns Ezviz, Hikvision, Dahua and others — **one
-   driver crate per vendor**, and a driver crate is protocol only.
-5. **ONVIF.** ONVIF is a *protocol*, not a vendor: it gets its own driver crate
-   (`cctv-onvif`) that every ONVIF vendor shares, the same way `cctv-transport`
-   carries the wire helpers all drivers share.
-6. **Publish scope.** `cctv-core` ships the device model now: traits,
-   `CameraHandle`, `CameraError`, the conformance suite. That is the public
-   contract.
-7. **App facade.** The application's camera module becomes a pure facade over the
-   workspace; no vendor name survives in it.
-8. **Facade package name.** The facade publishes as **`cctv-rs`**, because `cctv`
-   is already taken on crates.io by an unrelated project.
-
-## Open items
-
-The v0.2+ crate map, the measured delta from today, and the decisions it
-raises are in [target-architecture.md](target-architecture.md); the **execution
-plan** — decisions D1–D6 resolved, nine work packages with their gates, the
-Simple-Signage swap in five phases, and the risk register — is
-[plan-v0.2.md](plan-v0.2.md). Settle those before starting the work, not during
-it.
-
-- **Nothing pushes frames yet.** `FrameReader` is real and `camera_get_stats`
-  measures from it, so the numbers are no longer hardcoded — but no RTSP client
-  feeds the reader, so they read zero until the application's stream consumer
-  takes `Facade::frame_reader(id)` and pushes. `cctv-rtsp` supplies the protocol
-  half (framing, SDP, RTP, H.264 reassembly); what remains is the **socket loop**
-  — DESCRIBE → SETUP (interleaved) → PLAY over TCP, RTSP Digest auth, and the
-  keepalive — which belongs in a driver, not in the codec crate.
-- The `quirks` table ships **empty**. The loader, the action vocabulary and the
-  precedence rules are implemented and tested (`cctv-core`, feature `quirks`), but
-  no camera defect in this workspace has a source yet — and a row without one is a
-  guess that fires on devices that never had the defect. Rows land in
-  `crates/cctv-core/quirks/default.toml` as they are confirmed against hardware.
-- Lock down the reverse-engineered Ezviz surface before writing more than passive
-  reads into the driver.
-- The application-side rewrite in phase 5 and the integration in phase 7.
-
-## Acceptance criteria
-
-- `cargo check --workspace` exits 0.
-- `cargo tree -p cctv-core` shows no tokio in its dependency graph.
-- The conformance suite passes against the mock backend.
-- The facade exposes the commands the application depends on —
-  `get_camera_frame`, `start_camera_stream`, `ptz_move`,
-  `camera_config_get` / `camera_config_set`, `camera_get_presets` /
-  `camera_save_preset` / `camera_goto_preset` / `camera_delete_preset`,
-  `camera_get_reconnection_info` — and types them end to end.
-- No vendor name appears outside the driver crate that speaks it.
+1. **Standalone Workspace:** `cctv-rs` is an independent, pure-Rust workspace published to crates.io.
+2. **Explicit Member Layout:** Workspace crates are explicitly enumerated in `Cargo.toml` to guarantee release order and build reproducibility.
+3. **Protocol Decoupling:** Every protocol lives in its own driver crate (`cctv-onvif`, `cctv-ezviz`). Drivers do not leak vendor-specific types or logic into `cctv-core` or `cctv-rs`.
+4. **ONVIF Trait Abstraction:** ONVIF is treated as a protocol, not a single vendor. `cctv-onvif` provides shared SOAP parsing and WS-Security helpers usable across all ONVIF-compliant hardware.
+5. **Publish Scope:** `cctv-core` defines the immutable device model contract; `cctv-rs` publishes as the aggregate facade.

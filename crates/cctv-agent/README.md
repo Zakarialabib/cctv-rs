@@ -1,42 +1,38 @@
 # cctv-agent
 
-The fleet reconciler for `cctv-rs`. It holds the desired state (from the
-dashboard), diffs it against the observed state read through `cctv-core` and the
-drivers, applies **graded** remediation, and records every change so a
-misconfigured fleet can be rewound.
+[![Crates.io](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent)
+[![docs.rs](https://docs.rs/cctv-agent/badge.svg)](https://docs.rs/cctv-agent)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-The grade is the point. A camera that is merely unreachable earns a *retry*, one
-that failed authentication earns a *reconfigure* (only an operator can fix it),
-and one the fleet no longer has earns a *disable*. An error the reconciler does
-not recognise is *notify* — never *disable*, because an unknown failure is not
-evidence that the camera is gone.
+Deterministic fleet reconciliation engine for `cctv-rs`. Compares desired fleet configuration against observed camera state and applies graded remediation actions.
 
-## You get
+## Graded Remediation Model
 
-- `Reconciler` — `new`, `set_desired`, `record_error`, `clear_error`,
-  `reconcile`, `reconcile_all`.
-- `Remediation` — one graded decision: the camera, the `Action`, the `Grade`, and
-  a one-line reason.
-- `Grade` — `None` < `Observe` < `Notify` < `Retry` < `Reconfigure` < `Disable`.
-- `Action` — `Hold`, `Advance(CameraStateCurrent)`, `MarkOffline`,
-  `TakeOutOfService`.
-- `Audit` / `AuditEntry` — the append-only record: camera, change, grade,
-  timestamp.
+Instead of binary on/off states, `cctv-agent` grades failures to avoid unnecessary service disruptions:
 
-## Grading
-
-| Observed | Grade | Action |
+| Severity Grade | Remediation Action | Trigger |
 | --- | --- | --- |
-| matches its desired state | `None` | `Hold` |
-| capability not present (`PtzDisabled`, `NotImplemented`) | `Observe` | `Hold` |
-| confidence below the floor | `Observe` | `Hold` |
-| refused, unclassified, unknown error | `Notify` | `Hold` |
-| stepping toward the desired state | `Notify` | `Advance(..)` |
-| offline / network / stream / capture failure | `Retry` | `MarkOffline` or `Hold` |
-| authentication failed, operator disabled it | `Reconfigure` | `Hold` or `TakeOutOfService` |
-| no camera matches the identity | `Disable` | `TakeOutOfService` |
+| `None` | `Hold` | Observed state matches desired state. |
+| `Observe` | `Hold` | Capability disabled or unverified. |
+| `Notify` | `Hold` / `Advance` | Transient state transition or unknown error. |
+| `Retry` | `MarkOffline` | Transient socket / network dropped packet. |
+| `Reconfigure` | `TakeOutOfService` | Authentication error or operator disable. |
+| `Disable` | `TakeOutOfService` | Camera missing from hardware registry. |
 
-The audit store is in memory here; the application persists it, because the
-workspace owns no database.
+## Audit Logging
 
-See `docs/architecture.md` for the full design.
+Every state transition and remediation decision records an append-only `AuditEntry` containing timestamps, camera handle, remediation grade, and actionable cause.
+
+## Usage Example
+
+```rust,no_run
+use cctv_agent::Reconciler;
+
+let mut reconciler = Reconciler::new();
+// Configure desired camera state and run reconciliation pass
+```
+
+## Technical Guarantees
+
+- `#![forbid(unsafe_code)]`
+- Deterministic, side-effect-free decision evaluation.

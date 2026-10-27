@@ -1,48 +1,45 @@
 # cctv-rs
 
-The facade over the whole `cctv-rs` workspace, and the only crate the
-SignageMaster app (`src/core/cctv.ts`) is allowed to talk to. It fronts
-discovery, frames, PTZ, stats and fleet reconciliation behind one handle, using
-only the `cctv-core` device model — its public API contains no vendor name.
+[![Crates.io](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs)
+[![docs.rs](https://docs.rs/cctv-rs/badge.svg)](https://docs.rs/cctv-rs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-- `Facade` — the single handle the app holds:
-  - registry: `register`, `attach`, `unregister`, `list_cameras`, `config`,
-  - commands: `get_camera_frame`, `start_camera_stream`, `ptz_move`,
-    `camera_config_get` / `camera_config_set`, `camera_set_enabled`,
-    `camera_get_presets` / `save` / `goto` / `delete`,
-    `test_camera_connection`, `monitor_camera_health`, `camera_get_stats`,
-    `camera_get_reconnection_info`, `camera_test_all`, `camera_get_all_stats`,
-  - the catalogue entry point `execute(id, CommandId)`,
-  - fleet: `reconcile`, and `discover` / `discover_with` for the LAN sweep.
-  - frames: `frame_reader(id)` — the shared `FrameReader` the application pushes
-    frames into; `camera_get_stats` measures from it. `clock_ms()` is the clock
-    both sides stamp with.
-- `DriverFactory` — how a connection record's `driver` key becomes a live
-  backend, so no vendor name is part of this API. `Facade::with_builtin_drivers`
-  registers the ones the workspace ships (`ezviz`, `onvif`).
-- `Remediation` / `Grade` / `Action` / `Audit` — re-exported from `cctv-agent`:
-  what the reconciler decided, and why.
+The unified aggregate facade for the `cctv-rs` workspace. Exposes camera discovery, streaming, PTZ control, and fleet reconciliation behind a single, clean API handle.
 
-## Return types
+Public API surface is 100% vendor-agnostic and relies entirely on `cctv-core` device types.
 
-Two shapes, on purpose:
+## Facade API Surface
 
-- A command with a device-model equivalent returns **it** — `get_camera_frame`
-  gives back a `Snapshot` (the image bytes; the catalogue's `Frame` payload
-  carries only dimensions and a length, so the image cannot travel in it),
-  `start_camera_stream` a `StreamInfo`, `camera_get_presets` the presets.
-- A command whose result has no device-model equivalent returns a
-  `CommandResult` carrying the `CommandResultPayload` variant that names it —
-  health probes, stats, reconnection info, the fleet self-test.
+- **`Facade` Handle:**
+  - **Registry Operations:** `register`, `attach`, `unregister`, `list_cameras`, `config`.
+  - **Camera Controls:** `get_camera_frame`, `start_camera_stream`, `ptz_move`, `camera_config_get` / `set`, `camera_set_enabled`, preset operations (`save`, `goto`, `delete`).
+  - **Command Execution:** Universal `execute(camera_id, command)` entry point accepting any `CommandId`.
+  - **Discovery:** Async LAN sweeps (`discover`, `discover_with`).
+  - **Fleet Management:** Fleet health checks and state reconciliation (`reconcile`).
+- **`DriverFactory`:** Dynamic driver factory mapping configuration keys to backend instances (`Facade::with_builtin_drivers()` registers ONVIF and Ezviz).
 
-## Known zeros
+## Usage Example
 
-`camera_get_stats` reports `fps: 0.0` and `bytes_per_sec: 0` today: nothing
-measures them until `cctv-transport`'s frame reader is wired into the stream
-path (see [`docs/roadmap.md`](../../docs/roadmap.md)). Only `online` is measured.
+```rust,no_run
+use cctv_rs::Facade;
+use cctv_core::{CameraConfig, CameraHandle};
 
-`discover` blocks for the probe's collection window, so it belongs on a worker
-thread; `discover_with` takes an injected transport.
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let facade = Facade::with_builtin_drivers();
 
-See [`docs/architecture.md`](../../docs/architecture.md) for the full
-architecture.
+    let handle = CameraHandle::from("camera-main");
+    let config = CameraConfig::new("camera-main", "192.168.1.100", "onvif");
+    facade.register(handle, config).await?;
+
+    let frame = facade.get_camera_frame("camera-main").await?;
+    println!("Captured frame snapshot with size {}x{}", frame.width, frame.height);
+
+    Ok(())
+}
+```
+
+## Technical Guarantees
+
+- `#![forbid(unsafe_code)]`
+- Zero vendor leak in public traits or methods.

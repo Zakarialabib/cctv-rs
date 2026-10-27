@@ -1,58 +1,47 @@
 # cctv-rtp
 
-**The payload.** Standalone RTP header parsing and H.264 / H.265 depacketisation
-into contiguous NAL units.
+[![Crates.io](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp)
+[![docs.rs](https://docs.rs/cctv-rtp/badge.svg)](https://docs.rs/cctv-rtp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A camera does not send frames; it sends RTP packets. One frame arrives as a
-single NAL unit, as an aggregation of several, or split across many fragments —
-and the only thing marking the end is the RTP marker bit. This crate puts them
-back together.
+Zero-dependency RTP header parsing and H.264 / H.265 video access-unit depacketization into contiguous NAL units.
 
-**No dependencies at all.** Byte slices in, no socket, no runtime, no codec
-library. It knows nothing about RTSP or SDP — that is `cctv-rtsp` — which is why
-it is tested exhaustively and reusable by any transport.
+`cctv-rtp` is pure byte-slice manipulation: no sockets, no async runtime, no memory allocations during header parsing.
 
-## Layout
+## Codec Depacketization Details
 
-| Module | What it holds |
-| --- | --- |
-| `rtp` | The 12-byte header, with CSRC lists, extensions and padding handled. |
-| `h264` | Access units from single NALs, STAP-A and FU-A (RFC 6184). |
-| `h265` | Access units from single NALs, AP and FU (RFC 7798). |
-| `types` | `AccessUnit` — the shape both depacketisers produce. |
-| `error` | `RtpError`, including `Incomplete`. |
+- **RTP Header Parsing:** Full 12-byte header parsing, CSRC lists, header extensions, and padding calculations.
+- **H.264 (RFC 6184):** Handles Single NAL Unit packets, STAP-A aggregation packets, and FU-A fragmentation units.
+- **H.265 / HEVC (RFC 7798):** Handles Single NAL Unit packets, AP aggregation packets, and FU fragmentation units.
+- **Loss Detection & Recovery:** Drops corrupted fragments mid-unit (e.g., missing FU start/end or timestamp drift) and tracks drop metrics (`dropped()`) without emitting partial or malformed NAL units to decoders.
 
-## Two loss modes, dropped rather than emitted
+## Codec Translation Summary
 
-Both are normal on a real network, and both are **dropped** — a decoder handed
-half a frame produces garbage, which is worse than a dropped frame:
-
-- **A lost fragment** — the FU start arrived, the end never did, and the marker
-  closed the unit anyway.
-- **A timestamp change mid-unit** — the next frame started while the previous
-  one was still open. This is how loss is usually noticed *before* the marker.
-
-`dropped()` counts them on both depacketisers, so a caller can tell a bad
-network from a bad camera.
-
-## Codec differences that actually matter
-
-| | H.264 | H.265 |
+| Feature | H.264 | H.265 / HEVC |
 | --- | --- | --- |
-| NAL header | 1 byte | **2 bytes** |
-| Aggregation | STAP-A (type 24), 1-byte header then length-prefixed NALs | AP (type 48), 2-byte header then length-prefixed NALs |
-| Fragmentation | FU-A (type 28), 2-byte prefix | FU (type 49), **3-byte** prefix |
-| Rebuild | `(indicator & 0xE0) \| type` | `(byte0 & 0x81) \| (type << 1)`, byte 1 carried unchanged |
+| NAL Header | 1 byte | 2 bytes |
+| Aggregation Packets | STAP-A (Type 24) | AP (Type 48) |
+| Fragmentation Units | FU-A (Type 28) | FU (Type 49) |
 
-Not reassembled, and deliberately not guessed at: H.264 types 25–27
-(interleaved STAP-B / MTAP / FU-B modes) and H.265 type 50 (PACI) plus the
-reserved ranges.
+## Usage Example
 
-## Testing
+```rust,no_run
+use cctv_rtp::h264::H264Depacketizer;
+use cctv_rtp::rtp::RtpHeader;
 
-`cargo test -p cctv-rtp` — 34 tests, no camera, no server, no network. They pin
-what breaks: padding claiming more bytes than the packet holds is rejected
-rather than slicing out of range; a truncated aggregate yields no unit rather
-than a partial one; a FU header is rebuilt from the indicator plus the fragment
-header; a continuation whose start was lost is counted and ignored; the reserved
-types do not corrupt the unit in progress.
+let mut depacketizer = H264Depacketizer::new();
+let packet = &[/* raw RTP bytes */];
+
+if let Ok(header) = RtpHeader::parse(packet) {
+    let payload = &packet[header.header_len..packet.len() - header.padding_len];
+    if let Ok(Some(access_unit)) = depacketizer.push(&header, payload) {
+        println!("Reassembled complete NAL unit of {} bytes", access_unit.data.len());
+    }
+}
+```
+
+## Technical Guarantees
+
+- `#![forbid(unsafe_code)]`
+- Zero external dependencies.
+- Zero-copy header inspection over byte slices.
