@@ -93,6 +93,8 @@ pub enum CommandId {
     // -- snapshots ---------------------------------------------------------
     /// Capture a still image.
     CameraScreenshot,
+    /// Hardware capture trigger (e.g. PTP DeviceTriggerCapture).
+    DeviceTriggerCapture,
     // -- settings ----------------------------------------------------------
     /// Reset a camera to its factory settings.
     CameraResetSettings,
@@ -194,33 +196,34 @@ impl CommandId {
             Self::CameraGotoPreset => 27,
             Self::CameraDeletePreset => 28,
             Self::CameraScreenshot => 29,
-            Self::CameraResetSettings => 30,
-            Self::ZoneList => 31,
-            Self::ZoneSave => 32,
-            Self::ZoneDelete => 33,
-            Self::RunZoneDetection => 34,
-            Self::ZoneMotionGetConfig => 35,
-            Self::ZoneMotionSaveConfig => 36,
-            Self::ZoneMotionStartMonitor => 37,
-            Self::ZoneMotionStopMonitor => 38,
-            Self::ZoneMotionListEvents => 39,
-            Self::ZoneMotionAcknowledgeEvent => 40,
-            Self::CameraSaveSnapshot => 41,
-            Self::CameraDeleteSnapshot => 42,
-            Self::CameraGetSnapshots => 43,
-            Self::CameraSnapshotExists => 44,
-            Self::CameraGetReconnectionInfo => 45,
-            Self::CameraConfigGet => 46,
-            Self::CameraConfigSet => 47,
-            Self::CameraPopCorrectedImage => 48,
-            Self::CameraStartComposite => 49,
-            Self::CameraStopComposite => 50,
-            Self::CameraGetAvailableModels => 51,
-            Self::CameraSetDetectionModel => 52,
-            Self::CameraAiDetectionSetEnabled => 53,
-            Self::CameraAiDetectionGetEnabled => 54,
-            Self::CameraGetMonitorHealth => 55,
-            Self::CameraGetMonitorStreamHealth => 56,
+            Self::DeviceTriggerCapture => 30,
+            Self::CameraResetSettings => 31,
+            Self::ZoneList => 32,
+            Self::ZoneSave => 33,
+            Self::ZoneDelete => 34,
+            Self::RunZoneDetection => 35,
+            Self::ZoneMotionGetConfig => 36,
+            Self::ZoneMotionSaveConfig => 37,
+            Self::ZoneMotionStartMonitor => 38,
+            Self::ZoneMotionStopMonitor => 39,
+            Self::ZoneMotionListEvents => 40,
+            Self::ZoneMotionAcknowledgeEvent => 41,
+            Self::CameraSaveSnapshot => 42,
+            Self::CameraDeleteSnapshot => 43,
+            Self::CameraGetSnapshots => 44,
+            Self::CameraSnapshotExists => 45,
+            Self::CameraGetReconnectionInfo => 46,
+            Self::CameraConfigGet => 47,
+            Self::CameraConfigSet => 48,
+            Self::CameraPopCorrectedImage => 49,
+            Self::CameraStartComposite => 50,
+            Self::CameraStopComposite => 51,
+            Self::CameraGetAvailableModels => 52,
+            Self::CameraSetDetectionModel => 53,
+            Self::CameraAiDetectionSetEnabled => 54,
+            Self::CameraAiDetectionGetEnabled => 55,
+            Self::CameraGetMonitorHealth => 56,
+            Self::CameraGetMonitorStreamHealth => 57,
         }
     }
 
@@ -271,6 +274,7 @@ impl CommandId {
             | Self::CameraGotoPreset
             | Self::CameraDeletePreset => true,
             Self::CameraScreenshot
+            | Self::DeviceTriggerCapture
             | Self::CameraSaveSnapshot
             | Self::CameraDeleteSnapshot
             | Self::CameraGetSnapshots
@@ -368,6 +372,11 @@ pub enum CommandResultPayload {
     Config {
         /// The record, as stored.
         config: crate::CameraConfig,
+    },
+    /// A media file captured from a camera.
+    MediaFile {
+        /// The media file entity.
+        file: crate::MediaFile,
     },
     /// A snapshot reference + dimensions.
     Snapshot {
@@ -472,6 +481,15 @@ impl CommandResultPayload {
                     height: 0,
                 }
             }
+            crate::CommandId::DeviceTriggerCapture => CommandResultPayload::MediaFile {
+                file: crate::MediaFile {
+                    id: String::new(),
+                    filename: String::new(),
+                    bytes: Vec::new(),
+                    mime_type: String::new(),
+                    created_at: 0,
+                },
+            },
             crate::CommandId::CameraGetSnapshots
             | crate::CommandId::CameraDeleteSnapshot
             | crate::CommandId::CameraSnapshotExists => CommandResultPayload::Snapshots {

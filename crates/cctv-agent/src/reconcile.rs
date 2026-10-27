@@ -15,7 +15,7 @@
 
 use std::collections::BTreeMap;
 
-use cctv_core::{CameraDesired, CameraError, CameraState, CameraStateCurrent};
+use cctv_core::{CameraDesired, CameraError, CameraState, CameraStateCurrent, DomainEvent};
 
 use crate::audit::Audit;
 
@@ -179,6 +179,52 @@ impl Reconciler {
             .map(|camera| self.reconcile(camera))
             .collect()
     }
+
+    /// React to a [`DomainEvent`] emitted by the HAL (e.g. hot-plug attached/dropped).
+    ///
+    /// When `DomainEvent::DeviceDropped` is received, transitions the Aggregate Root to
+    /// [`CameraStateCurrent::Disconnected`] and records a `CameraDropped` audit log entry
+    /// preserving the historical context ("Ghost Device" audit).
+    pub fn handle_event(&mut self, event: &DomainEvent, camera: &mut CameraState) -> Remediation {
+        match event {
+            DomainEvent::DeviceAttached { camera_id, driver } => {
+                camera.online = true;
+                camera.transition(CameraStateCurrent::Standby);
+                let remediation = Remediation {
+                    camera_id: camera_id.clone(),
+                    grade: Grade::Observe,
+                    action: Action::Advance(CameraStateCurrent::Standby),
+                    reason: format!("device attached via driver {driver}"),
+                };
+                self.audit.log(
+                    camera_id.clone(),
+                    &format!("{}: {}", remediation.grade, remediation.reason),
+                    remediation.grade.as_u8(),
+                );
+                remediation
+            }
+            DomainEvent::DeviceDropped { camera_id } => {
+                camera.online = false;
+                camera.transition(CameraStateCurrent::Disconnected);
+                let remediation = Remediation {
+                    camera_id: camera_id.clone(),
+                    grade: Grade::Disable,
+                    action: Action::MarkOffline,
+                    reason: "CameraDropped: device hot-unplugged (ghost device preserved)"
+                        .to_string(),
+                };
+                self.audit.log(
+                    camera_id.clone(),
+                    &format!(
+                        "CameraDropped: {}: {}",
+                        remediation.grade, remediation.reason
+                    ),
+                    remediation.grade.as_u8(),
+                );
+                remediation
+            }
+        }
+    }
 }
 
 /// Grade a failure from the `cctv-core` error taxonomy.
@@ -191,6 +237,16 @@ fn grade_error(camera_id: &str, error: &CameraError) -> Remediation {
             Grade::Retry,
             Action::MarkOffline,
             "not reachable; reconnect attempts are warranted",
+        ),
+        CameraError::DeviceBusy => (
+            Grade::Retry,
+            Action::Hold,
+            "device busy; wait and retry (resource contention)",
+        ),
+        CameraError::MediaUnavailable => (
+            Grade::Observe,
+            Action::Hold,
+            "media unavailable; defer until storage ready",
         ),
         CameraError::StreamFailed => (Grade::Retry, Action::Hold, "the stream dropped"),
         CameraError::CaptureFailed => (Grade::Retry, Action::Hold, "capture failed"),
@@ -213,7 +269,7 @@ fn grade_error(camera_id: &str, error: &CameraError) -> Remediation {
         CameraError::NoCamera => (
             Grade::Disable,
             Action::TakeOutOfService,
-            "no camera matches this identity",
+            "no camera matches this identity (hardware removed or manual config error)",
         ),
         CameraError::Other(_) => (Grade::Notify, Action::Hold, "unclassified failure"),
     };
@@ -520,5 +576,49 @@ mod tests {
         assert!(Grade::Retry < Grade::Reconfigure);
         assert!(Grade::Reconfigure < Grade::Disable);
         assert_eq!(Grade::Disable.as_u8(), 5);
+    }
+
+    #[test]
+    fn device_busy_grades_to_wait_and_retry() {
+        let mut r = reconciler();
+        r.record_error("cam", CameraError::DeviceBusy);
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+
+        let remediation = r.reconcile(&mut camera);
+        assert_eq!(remediation.grade, Grade::Retry);
+        assert_eq!(remediation.action, Action::Hold);
+        assert!(remediation.reason.contains("device busy"));
+    }
+
+    #[test]
+    fn media_unavailable_grades_to_defer() {
+        let mut r = reconciler();
+        r.record_error("cam", CameraError::MediaUnavailable);
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+
+        let remediation = r.reconcile(&mut camera);
+        assert_eq!(remediation.grade, Grade::Observe);
+        assert_eq!(remediation.action, Action::Hold);
+        assert!(remediation.reason.contains("media unavailable"));
+    }
+
+    #[test]
+    fn hot_unplug_device_dropped_creates_ghost_device_audit() {
+        let mut r = reconciler();
+        let mut camera = observed("cam", CameraStateCurrent::Streaming, 1.0);
+
+        let event = DomainEvent::DeviceDropped {
+            camera_id: "cam".into(),
+        };
+        let remediation = r.handle_event(&event, &mut camera);
+
+        assert_eq!(camera.state, CameraStateCurrent::Disconnected);
+        assert!(!camera.online);
+        assert_eq!(remediation.grade, Grade::Disable);
+
+        let entries = r.audit().entries();
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].what.contains("CameraDropped"));
+        assert!(entries[0].what.contains("ghost device preserved"));
     }
 }

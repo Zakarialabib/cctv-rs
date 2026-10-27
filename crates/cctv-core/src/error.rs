@@ -47,6 +47,12 @@ pub enum CameraError {
     /// Capture (still/image) failed.
     #[error("capture failed")]
     CaptureFailed,
+    /// The device or subsystem is held by another process or OS shell (e.g. EBUSY, MF_E_ALREADY_INITIALIZED).
+    #[error("camera device is busy")]
+    DeviceBusy,
+    /// Storage or media is writing or locked (e.g. PTP StoreNotReady).
+    #[error("camera media is unavailable")]
+    MediaUnavailable,
     /// Unknown — the driver surfaced something unclassified.
     #[error("{0}")]
     Other(String),
@@ -67,6 +73,11 @@ mod tests {
         // These strings reach the audit trail and the reconnection report, so
         // they are asserted rather than left to drift.
         assert_eq!(CameraError::Offline.to_string(), "camera is offline");
+        assert_eq!(CameraError::DeviceBusy.to_string(), "camera device is busy");
+        assert_eq!(
+            CameraError::MediaUnavailable.to_string(),
+            "camera media is unavailable"
+        );
         assert_eq!(
             CameraError::PtzDisabled.to_string(),
             "camera PTZ is disabled"

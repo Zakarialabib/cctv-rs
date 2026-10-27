@@ -1,0 +1,20 @@
+[package]
+name = "cctv-stream-uvc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "UVC and PTP adapters and OS seam for cctv-rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+cctv-core = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

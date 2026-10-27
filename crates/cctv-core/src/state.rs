@@ -83,6 +83,8 @@ pub enum CameraStateCurrent {
     PtzMoving,
     /// Away / offline (firmware-level).
     Away,
+    /// Disconnected / hot-unplugged (Ghost Device audit state).
+    Disconnected,
 }
 
 /// Raw trust anchor from a probe.  Used to update confidence.
@@ -167,6 +169,7 @@ impl CameraState {
     /// cooling confidence respectively.
     pub fn transition(&mut self, next: CameraStateCurrent) {
         let chain = [
+            CameraStateCurrent::Disconnected,
             CameraStateCurrent::Off,
             CameraStateCurrent::Standby,
             CameraStateCurrent::On,
