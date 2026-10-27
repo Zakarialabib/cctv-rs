@@ -40,8 +40,8 @@
 //! ```
 //!
 //! The crate carries no runtime and no network — `serde` is only used for the
-//! command-result value types.  That makes the aggregate embeddable in a Tauri
-//! app, a terminal CLI, or even a WASM worker.
+//! That makes the aggregate embeddable in an edge client,
+//! a terminal CLI, or even a WASM worker.
 
 #![cfg_attr(not(any(feature = "testing", feature = "quirks")), no_std)]
 #![forbid(unsafe_code)]
@@ -72,6 +72,7 @@ pub mod backend;
 pub mod commands;
 pub mod conformance;
 pub mod error;
+pub mod events;
 #[cfg(feature = "testing")]
 pub mod mock;
 #[cfg(feature = "quirks")]
@@ -90,13 +91,14 @@ pub mod types;
 // ---------------------------------------------------------------------------
 
 pub use backend::{
-    jpeg_dimensions, redact_uri, with_credentials, CameraBackend, CameraConfig, PtzCommand,
-    Snapshot, StreamInfo, StreamQuality,
+    jpeg_dimensions, redact_uri, with_credentials, CameraBackend, CameraConfig, FrameSource,
+    MediaFile, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,
 };
 pub use error::CameraError;
+pub use events::DomainEvent;
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
 pub use types::CameraType;

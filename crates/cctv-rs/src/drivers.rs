@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use cctv_core::{CameraBackend, CameraConfig, CameraError};
 use cctv_ezviz::{EzvizCameraBackend, EzvizClient};
+use cctv_stream_uvc::{OsPlatform, PtpAdapter, UvcAdapter};
 use cctv_onvif::{Credentials, OnvifCameraBackend, OnvifSession};
 use cctv_transport::http::HttpConfig;
 
@@ -17,6 +18,39 @@ use cctv_transport::http::HttpConfig;
 /// through data (`CameraConfig::driver`), never through the facade's API.
 pub type DriverFactory =
     Arc<dyn Fn(&CameraConfig) -> Result<Arc<dyn CameraBackend>, CameraError> + Send + Sync>;
+
+/// The key the built-in UVC factory is registered under.
+pub const UVC: &str = "uvc";
+
+/// The factory for [`UVC`].
+pub fn uvc(config: &CameraConfig) -> Result<Arc<dyn CameraBackend>, CameraError> {
+    let device_path = if config.host.is_empty() {
+        "/dev/video0".to_string()
+    } else {
+        config.host.clone()
+    };
+    #[cfg(target_os = "windows")]
+    let platform = OsPlatform::WindowsMediaFoundation;
+    #[cfg(target_os = "macos")]
+    let platform = OsPlatform::MacOsAvFoundation;
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let platform = OsPlatform::LinuxV4l2;
+
+    Ok(Arc::new(UvcAdapter::new(&config.id, device_path, platform)))
+}
+
+/// The key the built-in PTP factory is registered under.
+pub const PTP: &str = "ptp";
+
+/// The factory for [`PTP`].
+pub fn ptp(config: &CameraConfig) -> Result<Arc<dyn CameraBackend>, CameraError> {
+    let serial = if config.host.is_empty() {
+        "PTP-SN-001".to_string()
+    } else {
+        config.host.clone()
+    };
+    Ok(Arc::new(PtpAdapter::new(&config.id, serial)))
+}
 
 /// The key the built-in Ezviz factory is registered under.
 pub const EZVIZ: &str = "ezviz";

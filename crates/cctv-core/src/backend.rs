@@ -61,6 +61,28 @@ impl StreamInfo {
     }
 }
 
+/// Port interface for frame reading and UVC adapters.
+#[async_trait]
+pub trait FrameSource: Send + Sync {
+    /// Read the next encoded or raw frame bytes from the adapter.
+    async fn read_frame(&mut self) -> Result<Vec<u8>, CameraError>;
+}
+
+/// A media file captured from a camera (e.g. via PTP DeviceTriggerCapture).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MediaFile {
+    /// Unique file identifier or path on device.
+    pub id: String,
+    /// Operator or device filename.
+    pub filename: String,
+    /// Media file raw bytes.
+    pub bytes: Vec<u8>,
+    /// MIME type (e.g. image/jpeg, image/x-raw).
+    pub mime_type: String,
+    /// File creation timestamp (seconds since epoch).
+    pub created_at: u64,
+}
+
 /// One still image captured from a camera.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Snapshot {
@@ -285,6 +307,11 @@ pub trait CameraBackend: Send + Sync {
 
     /// Capture one still image.
     async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        Err(CameraError::NotImplemented)
+    }
+
+    /// Trigger an immediate hardware capture (e.g. PTP DeviceTriggerCapture) resulting in a [`MediaFile`].
+    async fn trigger_capture(&self) -> Result<MediaFile, CameraError> {
         Err(CameraError::NotImplemented)
     }
 

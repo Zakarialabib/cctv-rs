@@ -85,6 +85,8 @@ impl Facade {
     pub fn with_builtin_drivers(mut self) -> Self {
         self.register_driver(EZVIZ, Arc::new(crate::drivers::ezviz));
         self.register_driver(ONVIF, Arc::new(crate::drivers::onvif));
+        self.register_driver(crate::drivers::UVC, Arc::new(crate::drivers::uvc));
+        self.register_driver(crate::drivers::PTP, Arc::new(crate::drivers::ptp));
         self
     }
 
@@ -257,6 +259,11 @@ impl Facade {
         quality: StreamQuality,
     ) -> Result<StreamInfo, CameraError> {
         self.backend(id)?.stream(quality).await
+    }
+
+    /// `device_trigger_capture`: trigger a hardware capture returning a [`cctv_core::MediaFile`].
+    pub async fn device_trigger_capture(&self, id: &str) -> Result<cctv_core::MediaFile, CameraError> {
+        self.backend(id)?.trigger_capture().await
     }
 
     /// `ptz_move`: move the camera, in the device-model vocabulary.
@@ -507,6 +514,14 @@ impl Facade {
                     command,
                     id.to_string(),
                     CommandResultPayload::Presets { presets },
+                ))
+            }
+            CommandId::DeviceTriggerCapture => {
+                let file = self.device_trigger_capture(id).await?;
+                Ok(CommandResult::for_camera(
+                    command,
+                    id.to_string(),
+                    CommandResultPayload::MediaFile { file },
                 ))
             }
             _ => Err(CameraError::NotImplemented),

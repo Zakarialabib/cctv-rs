@@ -336,8 +336,54 @@ fn the_builtin_registry_names_the_ezviz_driver() {
     let facade = Facade::new().with_builtin_drivers();
     assert_eq!(
         facade.driver_keys(),
-        vec!["ezviz".to_string(), "onvif".to_string()]
+        vec![
+            "ezviz".to_string(),
+            "onvif".to_string(),
+            "ptp".to_string(),
+            "uvc".to_string()
+        ]
     );
+}
+
+#[test]
+fn uvc_and_ptp_drivers_attach_and_execute_via_facade() {
+    let mut facade = Facade::new().with_builtin_drivers();
+
+    let uvc_cfg = CameraConfig::new("uvc_cam", cctv_rs::UVC, "/dev/video0");
+    facade.attach(uvc_cfg).expect("attached uvc");
+    assert!(facade.contains("uvc_cam"));
+
+    let ptp_cfg = CameraConfig::new("ptp_cam", cctv_rs::PTP, "SN-9999");
+    facade.attach(ptp_cfg).expect("attached ptp");
+    assert!(facade.contains("ptp_cam"));
+
+    let media = block_on(facade.device_trigger_capture("ptp_cam")).expect("triggered capture");
+    assert_eq!(media.filename, "IMG_0001.JPG");
+    assert_eq!(media.mime_type, "image/jpeg");
+}
+
+#[test]
+fn event_driven_hot_plug_reconciliation_tracks_ghost_device_audit() {
+    let mut facade = Facade::new();
+    let mut camera = cctv_core::CameraState::new(
+        "usb_cam".into(),
+        "uvc".into(),
+        cctv_core::CameraType::Consumer,
+    );
+    camera.online = true;
+
+    let drop_event = cctv_rs::DomainEvent::DeviceDropped {
+        camera_id: "usb_cam".into(),
+    };
+    let remediation = facade.reconciler_mut().handle_event(&drop_event, &mut camera);
+
+    assert_eq!(camera.state, CameraStateCurrent::Disconnected);
+    assert!(!camera.online);
+    assert_eq!(remediation.grade, Grade::Disable);
+
+    let audit_entries = facade.reconciler().audit().entries();
+    assert_eq!(audit_entries.len(), 1);
+    assert!(audit_entries[0].what.contains("CameraDropped"));
 }
 
 #[test]

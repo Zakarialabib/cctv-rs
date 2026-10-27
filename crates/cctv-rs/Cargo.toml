@@ -16,6 +16,7 @@ cctv-agent.workspace = true
 cctv-discovery.workspace = true
 cctv-ezviz.workspace = true
 cctv-onvif.workspace = true
+cctv-stream-uvc.workspace = true
 # `http` carries the shared rustls client the ONVIF factory hands to its session.
 cctv-transport = { workspace = true, features = ["http"] }
 serde_json.workspace = true

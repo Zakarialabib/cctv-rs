@@ -156,6 +156,7 @@ dependencies = [
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-onvif",
+ "cctv-stream-uvc",
  "cctv-transport",
  "serde_json",
 ]
@@ -175,6 +176,17 @@ dependencies = [
  "cctv-transport",
  "tokio",
  "tokio-rustls",
+]
+
+[[package]]
+name = "cctv-stream-uvc"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cctv-core",
+ "serde",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

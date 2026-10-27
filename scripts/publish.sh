@@ -45,6 +45,7 @@ ORDER=(
     cctv-onvif       # -> cctv-core, cctv-transport
     cctv-discovery   # -> cctv-core
     cctv-ezviz       # -> ezviz-openapi (published separately: must land first)
+    cctv-stream-uvc  # -> cctv-core
     cctv-agent       # -> cctv-core
     cctv-rs          # facade: depends on all of the above; `cctv` itself is taken
 )
