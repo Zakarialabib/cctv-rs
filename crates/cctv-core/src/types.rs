@@ -56,3 +56,59 @@ impl CameraType {
         ]
     }
 }
+
+/// The physical or protocol link layer for reaching a camera device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default)]
+pub enum LinkKind {
+    /// IP network connection (ONVIF, RTSP, HTTP/TCP/UDP).
+    #[default]
+    Network,
+    /// USB direct host attachment.
+    Usb,
+    /// Cloud platform or vendor platform relay.
+    Cloud,
+    /// Unknown or unspecified link layer.
+    Unknown,
+}
+
+impl LinkKind {
+    /// Whether this link is a USB connection.
+    pub fn is_usb(self) -> bool {
+        matches!(self, Self::Usb)
+    }
+
+    /// Whether this link is a network connection.
+    pub fn is_network(self) -> bool {
+        matches!(self, Self::Network)
+    }
+}
+
+/// Hardware classification for attached or discovered devices.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, Default)]
+pub enum DeviceClass {
+    /// Video capture / camera device (e.g. UVC).
+    Video,
+    /// Audio input/output device (e.g. UAC microphone or speaker).
+    Audio,
+    /// Human Interface Device.
+    Hid,
+    /// Composite device combining multiple device classes (e.g. video + audio).
+    Composite,
+    /// Vendor-specific hardware device class.
+    VendorSpecific,
+    /// Unknown hardware device class.
+    #[default]
+    Unknown,
+}
+
+impl DeviceClass {
+    /// Whether this device class includes video capture.
+    pub fn is_video(self) -> bool {
+        matches!(self, Self::Video | Self::Composite)
+    }
+
+    /// Whether this device class includes audio.
+    pub fn is_audio(self) -> bool {
+        matches!(self, Self::Audio | Self::Composite)
+    }
+}
