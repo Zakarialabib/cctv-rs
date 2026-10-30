@@ -77,7 +77,7 @@ insta = { version = "1.42", features = ["json"] }
 # Generates the self-signed certificate the `net` feature's TLS test serves, at
 # test time: no checked-in key material, and the test proves the certificate is
 # genuinely unverifiable rather than trusting a canned one.
-rcgen = "0.13"
+rcgen = "0.14"
 
 [workspace.lints.rust]
 # A missing doc comment is a build failure, so the public device model cannot rot
