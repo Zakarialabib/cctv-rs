@@ -7,25 +7,65 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::session_budget::CameraId;
+use cctv_core::{CameraId, ImperativeCameraCommand};
+use cctv_onvif::{build_continuous_move, build_stop};
 use serde::{Deserialize, Serialize};
 
 /// Heartbeat pulse keeping a PTZ continuous move alive.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PtzPulse {
     /// Camera target identifier.
     pub camera_id: CameraId,
+    /// Pan velocity in `-1.0..=1.0`.
+    #[serde(default)]
+    pub pan: f32,
+    /// Tilt velocity in `-1.0..=1.0`.
+    #[serde(default)]
+    pub tilt: f32,
+    /// Zoom velocity in `-1.0..=1.0`.
+    #[serde(default)]
+    pub zoom: f32,
     /// Time-to-live for this pulse in milliseconds.
     pub ttl_ms: u64,
 }
 
 impl PtzPulse {
-    /// Create a new PTZ heartbeat pulse.
+    /// Create a new PTZ heartbeat pulse with zero velocities.
     pub fn new(camera_id: impl Into<CameraId>, ttl_ms: u64) -> Self {
         Self {
             camera_id: camera_id.into(),
+            pan: 0.0,
+            tilt: 0.0,
+            zoom: 0.0,
             ttl_ms,
         }
+    }
+
+    /// Create a new PTZ pulse with directional velocities.
+    pub fn with_velocities(
+        camera_id: impl Into<CameraId>,
+        pan: f32,
+        tilt: f32,
+        zoom: f32,
+        ttl_ms: u64,
+    ) -> Self {
+        Self {
+            camera_id: camera_id.into(),
+            pan,
+            tilt,
+            zoom,
+            ttl_ms,
+        }
+    }
+
+    /// Convert to the canonical `ImperativeCameraCommand::PtzPulse`.
+    pub fn to_imperative_command(&self) -> Result<ImperativeCameraCommand, cctv_core::CoreError> {
+        ImperativeCameraCommand::ptz_pulse(self.pan, self.tilt, self.zoom, self.ttl_ms as u16)
+    }
+
+    /// Build the ONVIF `ContinuousMove` SOAP fragment for this pulse.
+    pub fn build_continuous_move_soap(&self, profile_token: &str) -> String {
+        build_continuous_move(profile_token, self.pan, self.tilt, self.zoom, None)
     }
 }
 
@@ -42,6 +82,16 @@ impl PtzStop {
         Self {
             camera_id: camera_id.into(),
         }
+    }
+
+    /// Convert to the canonical `ImperativeCameraCommand::PtzStop`.
+    pub fn to_imperative_command(&self) -> ImperativeCameraCommand {
+        ImperativeCameraCommand::PtzStop
+    }
+
+    /// Build the ONVIF `Stop` SOAP fragment.
+    pub fn build_stop_soap(&self, profile_token: &str) -> String {
+        build_stop(profile_token, true, true)
     }
 }
 

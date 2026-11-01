@@ -42,6 +42,11 @@ pub fn build_continuous_move(
     )
 }
 
+/// Alias for `set_system_date_and_time` matching PR #33 naming conventions.
+pub fn build_set_system_date_and_time_soap(utc_now: i64) -> String {
+    set_system_date_and_time(utc_now)
+}
+
 /// `SetSystemDateAndTime` SOAP body for clock healing.
 ///
 /// Sets the camera system date and time to `utc_now` (milliseconds since Unix epoch).

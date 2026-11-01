@@ -34,7 +34,8 @@ pub use runner::{
     AgentRunner, InMemoryJsonlAuditLog, JsonlAuditEntry, JsonlAuditLog, OnvifPtzDispatcher,
     RunnerCommand,
 };
-pub use session_budget::{CameraCapabilities, CameraId, MaintenanceLease, SessionManager};
+pub use cctv_core::{CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth, ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet};
+pub use session_budget::{CameraCapabilities, SessionManager};
 pub use snapshot_proxy::{CachedSnapshot, SnapshotProxy, SnapshotProxyConfig};
 pub use stream_mux::{
     classify_nalu, GopCache, Nalu, NaluType, StreamMux, StreamMuxConfig, StreamSubscription,

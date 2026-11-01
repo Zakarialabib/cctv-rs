@@ -36,5 +36,10 @@ pub mod soap;
 pub use backend::OnvifCameraBackend;
 pub use discovery::{Discoverable, OnvifDiscovery};
 pub use error::OnvifError;
+pub use ptz::{
+    build_absolute_move, build_continuous_move, build_get_presets, build_goto_preset,
+    build_remove_preset, build_set_preset, build_set_system_date_and_time_soap, build_stop,
+    parse_presets, parse_set_preset, set_system_date_and_time,
+};
 pub use session::OnvifSession;
 pub use soap::Credentials;
