@@ -14,7 +14,8 @@ categories = ["api-bindings", "hardware-support"]
 # Serialization only: the command-result contract is plain data. No runtime,
 # no protocol, no async. This crate is embeddable in a Tauri app, a CLI, or
 # even a WASM worker, so only the types that cross the seam own serde.
-serde.workspace = true
+serde = { workspace = true, optional = true }
+zeroize = { version = "1", features = ["derive"] }
 thiserror.workspace = true
 async-trait.workspace = true
 # The quirks table is TOML; the parser is only pulled in when the feature is on,
@@ -28,6 +29,8 @@ toml = { workspace = true, optional = true }
 # alloc-only contract build.
 default = ["testing"]
 testing = []
+# Gate serde behind `serde-sync`
+serde-sync = ["dep:serde"]
 # The model- and firmware-specific quirks table (`cctv_core::quirks`). Off by
 # default because it drags in a TOML parser for a table most builds never read.
 quirks = ["dep:toml"]
