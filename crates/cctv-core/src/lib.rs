@@ -101,4 +101,4 @@ pub use commands::{
 pub use error::CameraError;
 pub use events::DomainEvent;
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
-pub use types::CameraType;
+pub use types::{CameraType, DecryptedCameraAuth};

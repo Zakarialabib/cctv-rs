@@ -56,3 +56,38 @@ impl CameraType {
         ]
     }
 }
+
+/// Decrypted camera authentication credentials held strictly in memory.
+///
+/// Passwords and sensitive secrets are wrapped in [`zeroize::Zeroizing`] so
+/// they are automatically wiped from memory when dropped, and redacted from
+/// debug outputs.
+#[derive(Clone, PartialEq, Eq)]
+pub struct DecryptedCameraAuth {
+    /// Account username.
+    pub username: crate::prelude::String,
+    /// Raw cleartext password wrapped in zero-on-drop memory.
+    pub password: zeroize::Zeroizing<crate::prelude::String>,
+}
+
+impl DecryptedCameraAuth {
+    /// Create new credentials from a username and cleartext password.
+    pub fn new(
+        username: impl Into<crate::prelude::String>,
+        password: impl Into<crate::prelude::String>,
+    ) -> Self {
+        Self {
+            username: username.into(),
+            password: zeroize::Zeroizing::new(password.into()),
+        }
+    }
+}
+
+impl core::fmt::Debug for DecryptedCameraAuth {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("DecryptedCameraAuth")
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .finish()
+    }
+}

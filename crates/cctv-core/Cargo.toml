@@ -17,6 +17,7 @@ categories = ["api-bindings", "hardware-support"]
 serde.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
+zeroize = { workspace = true }
 # The quirks table is TOML; the parser is only pulled in when the feature is on,
 # so a build that just needs the device model does not pay for it.
 toml = { workspace = true, optional = true }

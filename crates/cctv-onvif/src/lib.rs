@@ -23,6 +23,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod auth;
 pub mod backend;
 pub mod device;
 pub mod discovery;
