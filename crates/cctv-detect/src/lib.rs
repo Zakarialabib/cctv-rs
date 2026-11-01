@@ -38,7 +38,7 @@ pub use zone::{Region, RegionKind, Zone, ZoneConfig};
 /// ```
 /// use cctv_detect::{Detection, Zone};
 ///
-/// let zone = Zone::point(1, 1, 4);
+/// let zone = Zone::point(1.0, 1.0, 4.0);
 /// let det = Detection::motion(zone, 0.87);
 /// assert_eq!(det.confidence, 0.87);
 /// assert!(det.is_motion());
@@ -67,7 +67,12 @@ impl Detection {
     }
 
     /// Build an object detection in `zone`.
-    pub fn object(zone: Zone, class: impl Into<String>, confidence: f32, bbox: Option<Region>) -> Self {
+    pub fn object(
+        zone: Zone,
+        class: impl Into<String>,
+        confidence: f32,
+        bbox: Option<Region>,
+    ) -> Self {
         Self {
             zone,
             class: class.into(),
@@ -93,7 +98,7 @@ mod tests {
 
     #[test]
     fn a_motion_detection_fires_in_the_zone_it_was_given() {
-        let zone = Zone::point(1, 1, 3);
+        let zone = Zone::point(1.0, 1.0, 3.0);
         let det = Detection::motion(zone, 0.9);
         assert_eq!(det.zone, zone);
         assert!(det.is_motion());
@@ -102,8 +107,8 @@ mod tests {
 
     #[test]
     fn an_object_detection_carries_bounded_box_and_confidence() {
-        let zone = Zone::rectangle(0.0, 0.0, 4, 4);
-        let det = Detection::object(zone, "person", 0.81, Some(Region::new(1.0, 1.0, 2.0, 2.0)));
+        let zone = Zone::rectangle(0.0, 0.0, 0.5, 0.5);
+        let det = Detection::object(zone, "person", 0.81, Some((1.0, 1.0, 2.0, 2.0)));
         assert_eq!(det.class, "person");
         assert!((det.confidence - 0.81).abs() < f32::EPSILON);
         assert!(det.is_object());
@@ -111,18 +116,19 @@ mod tests {
 
     #[test]
     fn confidence_is_clamped_to_unit_interval() {
-        let low = Detection::motion(Zone::point(0, 0, 1), -0.5);
-        let high = Detection::motion(Zone::point(0, 0, 1), 2.0);
+        let low = Detection::motion(Zone::point(0.0, 0.0, 1.0), -0.5);
+        let high = Detection::motion(Zone::point(0.0, 0.0, 1.0), 2.0);
         assert!((low.confidence - 0.0).abs() < f32::EPSILON);
         assert!((high.confidence - 1.0).abs() < f32::EPSILON);
     }
 
     #[test]
     fn a_point_zone_is_fully_specified_by_top_left_and_size() {
-        let z = Zone::point(2, 3, 7);
+        let z = Zone::point(2.0, 3.0, 7.0);
         assert_eq!(z.kind, RegionKind::Point);
-        assert_eq!(z.top, 2.0);
-        assert_eq!(z.left, 3.0);
-        assert_eq!(z.size, 7.0);
+        assert_eq!(z.left, 2.0);
+        assert_eq!(z.top, 3.0);
+        assert_eq!(z.width, 7.0);
+        assert_eq!(z.height, 7.0);
     }
 }

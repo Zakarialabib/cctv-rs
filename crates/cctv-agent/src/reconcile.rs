@@ -328,6 +328,10 @@ fn diff(camera_id: &str, desired: CameraDesired, observed: &CameraState) -> Reme
         CameraDesired::Idle => CameraStateCurrent::On,
         CameraDesired::Armed => CameraStateCurrent::Streaming,
         CameraDesired::Recording => CameraStateCurrent::Recording,
+        // The recovery loop owns this camera: the target it steps toward is the
+        // retrying state itself, so a camera already retrying holds and one
+        // that drifted gets stepped back rather than promoted mid-recovery.
+        CameraDesired::Retrying => CameraStateCurrent::Retrying,
         // Handled above; a belt-and-braces value rather than a panic, because
         // nothing in this crate may panic.
         CameraDesired::Disabled => CameraStateCurrent::Off,

@@ -113,6 +113,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-detect"
+version = "0.1.0"
+dependencies = [
+ "cctv-core",
+]
+
+[[package]]
 name = "cctv-discovery"
 version = "0.1.0"
 dependencies = [

@@ -166,9 +166,14 @@ impl CameraState {
         self.confidence = confidence.clamp(0.0, 1.0);
         if online {
             self.online_at = Some(Self::now());
-            // A camera that comes back online resets its retry counters.
+            // A camera that comes back online resets its retry counters and
+            // ends the recovery episode: the retrying intent is withdrawn with
+            // them, so `is_retrying` reflects the probe, not the past.
             self.retry_count = 0;
             self.retry_after = None;
+            if self.desired == CameraDesired::Retrying {
+                self.desired = CameraDesired::Idle;
+            }
         } else {
             self.offline_at = Some(Self::now());
         }
@@ -229,7 +234,7 @@ impl CameraState {
         self.desired = CameraDesired::Retrying;
         self.state = CameraStateCurrent::Retrying;
         self.retry_count += 1;
-        self.retry_after = Some(retry_after.max(Self::now()));
+        self.retry_after = Some(retry_after);
     }
 
     /// Has the camera been retried?
@@ -267,6 +272,11 @@ impl CameraState {
     fn now() -> u64 {
         0
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     #[test]
     fn a_camera_state_new_initialises_retry_counters_to_zero() {
@@ -297,4 +307,3 @@ impl CameraState {
         assert_eq!(state.retry_after, None);
     }
 }
-

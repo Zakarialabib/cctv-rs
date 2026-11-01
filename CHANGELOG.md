@@ -10,6 +10,18 @@ All seven crates are versioned and released together.
 
 ### Added
 
+- `cctv-detect`, the detection device model: `Detection` (motion or object, with
+  class, clamped confidence and an optional bounding box), `Zone` / `RegionKind`
+  (`point` in native pixels or `rectangle` normalised to 0.0..1.0, each field
+  clamped on its own) and `ZoneConfig` (threshold, minimum detections, window).
+  Free of I/O by design — the driver owns the frame, the reconciler owns the
+  response.  Workspace member; not yet referenced by another crate and not yet
+  in the publish order.
+- `CameraState` retry tracking: `retry_count` / `retry_after` fields, the
+  `Retrying` desired and current states, and `CameraState::retry` to enter
+  recovery.  A successful probe resets the counters and withdraws the retrying
+  intent; the agent's reconciler grades `Retrying` by stepping toward the
+  retrying state rather than panicking on the unhandled variant.
 - `cctv-transport`'s `net` feature: the raw socket layer (plan v0.2 W2). TCP,
   UDP and TLS over `tokio` + `rustls`, with the crate's existing `Policy`
   applied as data — minimum version, pinned certificates, ALPN — rather than a
@@ -142,6 +154,18 @@ All seven crates are versioned and released together.
 
 ### Fixed
 
+- The workspace builds again: three commits (`2e032a6`, `a31c4aa`) had left
+  `cctv-core`, `cctv-agent`, `cctv-detect` and the RTSP fixture test broken —
+  tests stranded inside `impl CameraState`, the fixture's `respond` function
+  body spliced into `serve`, an unhandled `CameraDesired::Retrying` match arm,
+  `cctv-detect` tests written against an API that was never committed, and two
+  retry-tracking logic bugs.  `cargo fmt --check`, `clippy -D warnings`,
+  `cargo test --workspace`, the `quirks` / `net` feature gates, the
+  alloc-only and tokio-free contract gates, `cargo doc -D warnings` and
+  `publish.sh --dry-run` all pass again.
+- `CameraState::retry` now records the caller's `retry_after` verbatim instead
+  of silently raising it to the wall clock (the state machine has no clock of
+  its own in an `alloc`-only build, where the old `max` was a no-op anyway).
 - `scripts/publish.sh --dry-run` no longer fails when a dependent crate's
   workspace dependency is not on crates.io yet — the state of every dependent on
   the first release. It warns and continues; the real publish waits for the index

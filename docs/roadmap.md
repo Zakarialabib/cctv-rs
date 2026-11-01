@@ -16,6 +16,21 @@ System development status, phase gates, locked design decisions, and future mile
 | 6 | `cctv-agent`: Fleet reconciler — desired state comparison, graded remediation actions, audit logging. | Reconciler unit tests passing. | Completed |
 | 7 | Application Integration: Replace legacy camera adapters in host applications with `cctv-rs`. | End-to-end integration verification in host application. | In Progress |
 
+### Open Items
+
+- **Host integration (Phase 7 / plan-v0.2 Phases A–E):** `Simple-Signage` does
+  not yet depend on `cctv-rs` — no `cctv_rs` reference exists in its
+  `src-tauri` camera modules. The RTSP socket loop (`W3`) has landed, so the
+  `camera_get_stats` swap-order prerequisite is met.
+- **plan-v0.2 W4/W5:** ONVIF `Discoverable` delegate and the agent's active
+  remediation loop are not started (no `Discoverable` impl in `cctv-onvif`; the
+  reconciler grades and applies state but issues no commands).
+- **crates.io drift:** `cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc` and
+  `cctv-detect` have never been published; the facade's dry run warns until
+  they land. `cctv-detect` is also missing from `scripts/publish.sh`'s order.
+- **`cctv-detect` is an orphan:** in the workspace, but no other crate depends
+  on it — wire it into the facade/application or defer it.
+
 ---
 
 ## Locked Architectural Decisions

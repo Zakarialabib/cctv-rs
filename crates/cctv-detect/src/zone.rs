@@ -59,18 +59,17 @@ impl Zone {
     /// Build a normalised rectangle zone.
     ///
     /// `left` / `top` are the top-left corner in 0.0..1.0; `width` / `height`
-    /// are the extents, also 0.0..1.0.
+    /// are the extents, also 0.0..1.0.  Each field is clamped into range on its
+    /// own — the configured origin is preserved rather than repositioned, so a
+    /// window wider than the frame keeps its start point (the part outside the
+    /// view is inert, not a reason to move what the caller configured).
     pub fn rectangle(left: f32, top: f32, width: f32, height: f32) -> Self {
-        let width = width.clamp(0.0, 1.0);
-        let height = height.clamp(0.0, 1.0);
-        let left = left.clamp(0.0, 1.0).min(1.0 - width);
-        let top = top.clamp(0.0, 1.0).min(1.0 - height);
         Self {
             kind: RegionKind::Rectangle,
-            left,
-            top,
-            width,
-            height,
+            left: left.clamp(0.0, 1.0),
+            top: top.clamp(0.0, 1.0),
+            width: width.clamp(0.0, 1.0),
+            height: height.clamp(0.0, 1.0),
         }
     }
 
