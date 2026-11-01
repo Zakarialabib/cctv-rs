@@ -450,7 +450,11 @@ async fn run_mux_loop(
         {
             video_track.control.clone()
         } else {
-            format!("{}/{}", config.sub_rtsp_path.trim_end_matches('/'), video_track.control.trim_start_matches('/'))
+            format!(
+                "{}/{}",
+                config.sub_rtsp_path.trim_end_matches('/'),
+                video_track.control.trim_start_matches('/')
+            )
         };
 
         let session_id = match rtsp_setup_and_play(
@@ -481,8 +485,11 @@ async fn run_mux_loop(
                 return;
             }
 
-            let read =
-                tokio::time::timeout(Duration::from_secs(15), net::read_chunks(&mut stream, READ_CHUNK)).await;
+            let read = tokio::time::timeout(
+                Duration::from_secs(15),
+                net::read_chunks(&mut stream, READ_CHUNK),
+            )
+            .await;
             let bytes = match read {
                 Ok(Ok(Some(bytes))) => bytes,
                 _ => break, // Reconnect on stall or EOF
@@ -580,7 +587,12 @@ fn parse_rtsp_url(url: &str) -> Option<(String, String, String, bool)> {
     } else {
         format!("{authority}:554")
     };
-    Some((authority_with_port, host.to_string(), path.to_string(), is_tls))
+    Some((
+        authority_with_port,
+        host.to_string(),
+        path.to_string(),
+        is_tls,
+    ))
 }
 
 /// Send RTSP DESCRIBE with Digest / Basic negotiation and return SDP string.
@@ -593,12 +605,18 @@ async fn rtsp_describe(
 ) -> Result<String, CameraError> {
     let req = Request::new(Method::Describe, url, 1);
     let bytes = req.to_bytes();
-    stream.write_all(&bytes).await.map_err(|e| CameraError::Other(e.to_string()))?;
+    stream
+        .write_all(&bytes)
+        .await
+        .map_err(|e| CameraError::Other(e.to_string()))?;
 
     let mut buf = Vec::with_capacity(4096);
     let mut chunk = [0u8; 1024];
     loop {
-        let n = stream.read(&mut chunk).await.map_err(|e| CameraError::Other(e.to_string()))?;
+        let n = stream
+            .read(&mut chunk)
+            .await
+            .map_err(|e| CameraError::Other(e.to_string()))?;
         if n == 0 {
             return Err(CameraError::Offline);
         }
@@ -623,11 +641,17 @@ async fn rtsp_describe(
                     let mut req2 = Request::new(Method::Describe, url, 2);
                     req2.headers.insert("Authorization", auth_val);
                     let b2 = req2.to_bytes();
-                    stream.write_all(&b2).await.map_err(|e| CameraError::Other(e.to_string()))?;
+                    stream
+                        .write_all(&b2)
+                        .await
+                        .map_err(|e| CameraError::Other(e.to_string()))?;
 
                     let mut buf2 = Vec::with_capacity(4096);
                     loop {
-                        let n2 = stream.read(&mut chunk).await.map_err(|e| CameraError::Other(e.to_string()))?;
+                        let n2 = stream
+                            .read(&mut chunk)
+                            .await
+                            .map_err(|e| CameraError::Other(e.to_string()))?;
                         if n2 == 0 {
                             return Err(CameraError::Offline);
                         }
@@ -636,7 +660,10 @@ async fn rtsp_describe(
                             if resp2.is_success() {
                                 return Ok(String::from_utf8_lossy(&resp2.body).to_string());
                             }
-                            return Err(CameraError::Other(format!("RTSP status {}", resp2.status)));
+                            return Err(CameraError::Other(format!(
+                                "RTSP status {}",
+                                resp2.status
+                            )));
                         }
                     }
                 }
@@ -659,14 +686,22 @@ async fn rtsp_setup_and_play(
 ) -> Result<String, CameraError> {
     let _ = (base_url, username, password);
     let mut setup_req = Request::new(Method::Setup, control_url, 3);
-    setup_req.headers.insert("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1");
+    setup_req
+        .headers
+        .insert("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1");
     let bytes = setup_req.to_bytes();
-    stream.write_all(&bytes).await.map_err(|e| CameraError::Other(e.to_string()))?;
+    stream
+        .write_all(&bytes)
+        .await
+        .map_err(|e| CameraError::Other(e.to_string()))?;
 
     let mut buf = Vec::with_capacity(2048);
     let mut chunk = [0u8; 1024];
     let session_id = loop {
-        let n = stream.read(&mut chunk).await.map_err(|e| CameraError::Other(e.to_string()))?;
+        let n = stream
+            .read(&mut chunk)
+            .await
+            .map_err(|e| CameraError::Other(e.to_string()))?;
         if n == 0 {
             return Err(CameraError::Offline);
         }
@@ -686,7 +721,10 @@ async fn rtsp_setup_and_play(
         play_req.headers.insert("Session", &session_id);
     }
     let bytes_play = play_req.to_bytes();
-    stream.write_all(&bytes_play).await.map_err(|e| CameraError::Other(e.to_string()))?;
+    stream
+        .write_all(&bytes_play)
+        .await
+        .map_err(|e| CameraError::Other(e.to_string()))?;
 
     Ok(session_id)
 }
@@ -697,8 +735,14 @@ mod tests {
 
     #[test]
     fn h264_nalu_classification() {
-        assert_eq!(classify_nalu(VideoCodec::H264, &[0x67, 0x42]), NaluType::Sps);
-        assert_eq!(classify_nalu(VideoCodec::H264, &[0x68, 0xCE]), NaluType::Pps);
+        assert_eq!(
+            classify_nalu(VideoCodec::H264, &[0x67, 0x42]),
+            NaluType::Sps
+        );
+        assert_eq!(
+            classify_nalu(VideoCodec::H264, &[0x68, 0xCE]),
+            NaluType::Pps
+        );
         assert_eq!(
             classify_nalu(VideoCodec::H264, &[0x65, 0x88]),
             NaluType::IdrKeyframe
@@ -766,13 +810,15 @@ mod tests {
 
     #[test]
     fn rtsp_url_parser_handles_standard_urls() {
-        let (auth, host, path, is_tls) = parse_rtsp_url("rtsp://admin:pass@10.0.0.1:8554/stream1").expect("parsed");
+        let (auth, host, path, is_tls) =
+            parse_rtsp_url("rtsp://admin:pass@10.0.0.1:8554/stream1").expect("parsed");
         assert_eq!(auth, "10.0.0.1:8554");
         assert_eq!(host, "10.0.0.1");
         assert_eq!(path, "/stream1");
         assert!(!is_tls);
 
-        let (auth2, host2, path2, is_tls2) = parse_rtsp_url("rtsps://cam.local/live").expect("parsed");
+        let (auth2, host2, path2, is_tls2) =
+            parse_rtsp_url("rtsps://cam.local/live").expect("parsed");
         assert_eq!(auth2, "cam.local:554");
         assert_eq!(host2, "cam.local");
         assert_eq!(path2, "/live");
