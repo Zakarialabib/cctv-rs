@@ -11,6 +11,7 @@ keywords = ["cctv", "camera", "reconciler", "fleet", "audit"]
 categories = ["hardware-support", "development-tools"]
 
 [dependencies]
+async-trait.workspace = true
 cctv-core.workspace = true
 cctv-rtp.workspace = true
 cctv-rtsp.workspace = true
@@ -20,7 +21,9 @@ async-trait.workspace = true
 
 [dev-dependencies]
 cctv-transport = { workspace = true, features = ["http", "net", "fixture"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+tokio = { workspace = true, features = ["sync","rt-multi-thread", "macros", "time", "rt"] }
+serde.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

@@ -18,14 +18,25 @@
 #![forbid(unsafe_code)]
 
 pub mod audit;
+pub mod ptz_watchdog;
 pub mod reconcile;
 pub mod snapshot_proxy;
 pub mod stream_mux;
+pub mod remedy;
+pub mod runner;
+pub mod session_budget;
 
 pub use audit::{Audit, AuditEntry};
+pub use ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
 pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};
 pub use snapshot_proxy::{CachedSnapshot, SnapshotProxy, SnapshotProxyConfig};
 pub use stream_mux::{
     classify_nalu, GopCache, Nalu, NaluType, StreamMux, StreamMuxConfig, StreamSubscription,
     VideoCodec,
 };
+pub use remedy::{ClockHealing, ClockSyncDevice, RemedyStep, MAX_CLOCK_OFFSET_MS};
+pub use runner::{
+    AgentRunner, InMemoryJsonlAuditLog, JsonlAuditEntry, JsonlAuditLog, OnvifPtzDispatcher,
+    RunnerCommand,
+};
+pub use session_budget::{CameraCapabilities, CameraId, MaintenanceLease, SessionManager};
