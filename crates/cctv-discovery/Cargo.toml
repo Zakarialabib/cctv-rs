@@ -10,11 +10,19 @@ readme = "README.md"
 keywords = ["cctv", "camera", "ssdp", "discovery", "onvif"]
 categories = ["network-programming", "hardware-support"]
 
+[features]
+mobile = ["dep:tokio"]
+
 [dependencies]
 cctv-core.workspace = true
 # Only the shared, prefix-agnostic XML scanner (no `http` feature): WS-Discovery
 # replies are read with it, and nothing here opens a TCP connection.
-cctv-transport.workspace = true
+cctv-transport = { workspace = true, features = ["http"] }
+thiserror.workspace = true
+tokio = { workspace = true, optional = true, features = ["sync", "time", "net", "rt", "macros"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true
