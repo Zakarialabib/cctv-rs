@@ -8,8 +8,8 @@ Work packages, release targets, and verification criteria for `cctv-rs`.
 
 | Milestone | Target Scope | Key Deliverables |
 | --- | --- | --- |
-| **0.2.0** | Core & Streaming | Core `alloc`-only refactor (W1), `cctv-transport` socket layer (W2), RTSP `CameraBackend` driver (W3). |
-| **0.3.0** | Discovery & Agent | ONVIF `Discoverable` implementation (W4), active agent remediation loop (W5), vendor drivers (W6). |
+| **0.2.0** | Core & Streaming | Core `alloc`-only refactor (W1), `cctv-transport` socket layer (W2), RTSP `CameraBackend` driver (W3). **Released 2026-11-01** — the release also carries W4, W5, the facade zone surface, PR #36 auth, and PR #38 StreamMux/SnapshotProxy. |
+| **0.3.0** | Discovery & Agent | ONVIF `Discoverable` implementation (W4), active agent remediation loop (W5), vendor drivers (W6). *(W4/W5 shipped inside 0.2.0; this milestone now hinges on W6.)* |
 | **0.4.0** | Vendor Expansion | Additional vendor protocol drivers (W7, W8), facade polish (W9). |
 
 ---

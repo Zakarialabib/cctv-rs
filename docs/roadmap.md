@@ -30,9 +30,12 @@ System development status, phase gates, locked design decisions, and future mile
   and the agent's active remediation loop (a `CommandRelay` issues the
   commands a remediation authorizes). Milestone 0.3.0 still needs **W6**
   (vendor drivers); 0.4.0 needs W7–W9.
-- **crates.io drift:** `cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc` and
-  `cctv-detect` have never been published; the facade's dry run warns until
-  they land. `cctv-detect` is also missing from `scripts/publish.sh`'s order.
+- **0.2.0 released (2026-11-01):** all eleven crates on crates.io — including
+  the four that had never shipped (`cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc`,
+  `cctv-detect`), each verified against the registry and by an
+  outside-workspace `cargo add cctv-rs@0.2.0` build. The release also fixed
+  `publish.sh`'s second-release awaiting-dependency matcher. Consumers can
+  pin `cctv-rs = "0.2.0"` instead of a git rev.
 - **`cctv-detect` wired (2026-11-01):** the facade owns the zone surface
   (`zone_save`/`record_detection`/`motion_events`, `ZoneMotionListEvents` via
   `execute`); the crate is in the publish order with its README.  What remains
