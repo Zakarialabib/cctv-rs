@@ -42,8 +42,8 @@ ORDER=(
     cctv-transport   # no workspace deps
     cctv-rtp         # zero dependencies: pure payload parsers
     cctv-rtsp        # -> base64 only: session codecs
-    cctv-onvif       # -> cctv-core, cctv-transport
     cctv-discovery   # -> cctv-core
+    cctv-onvif       # -> cctv-core, cctv-transport, cctv-discovery
     cctv-ezviz       # -> ezviz-openapi (published separately: must land first)
     cctv-stream-uvc  # -> cctv-core
     cctv-agent       # -> cctv-core

@@ -38,12 +38,17 @@ Work packages, release targets, and verification criteria for `cctv-rs`.
   cargo test -p cctv-rtsp
   ```
 
-### W4 — `cctv-onvif`: WS-Discovery Delegate
+### W4 — `cctv-onvif`: WS-Discovery Delegate ✅ (complete 2026-11-01)
 - **Goal:** Implement `Discoverable` trait delegating UDP multicast sweeps to `cctv-discovery`.
 - **Verification Gate:**
   ```bash
   cargo test -p cctv-onvif
   ```
+- **Outcome:** `cctv-onvif::discovery` — `Discoverable` (object-safe, `Send + Sync`)
+  and `OnvifDiscovery`, filtering `wsd::parse_probe_matches` results by ONVIF
+  evidence and an HTTP(S) `XAddr`, converting via `cctv_discovery::probe`.
+  `cctv-discovery`'s `message_id` and `camera_from_probe_match` are published
+  as the delegation seams; publish order swapped (`discovery` before `onvif`).
 
 ### W5 — `cctv-agent`: Active Remediation
 - **Goal:** Enable the reconciler to issue remediation commands directly when state drift is detected.
