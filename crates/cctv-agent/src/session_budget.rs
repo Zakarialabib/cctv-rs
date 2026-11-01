@@ -7,52 +7,11 @@
 //! when a `MaintenanceLease` commands `DisconnectAndYield`.
 
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 
-use cctv_core::{CameraError, StreamHandle};
+use cctv_core::{
+    CameraCapabilitySet, CameraError, CameraId, LeaseMode, MaintenanceLease, StreamHandle,
+};
 use serde::{Deserialize, Serialize};
-
-/// Type-safe identifier for a camera in the fleet.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct CameraId(pub String);
-
-impl CameraId {
-    /// Create a new `CameraId` from an identifier.
-    pub fn new(id: impl Into<String>) -> Self {
-        Self(id.into())
-    }
-
-    /// Access the underlying string slice.
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for CameraId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<&str> for CameraId {
-    fn from(s: &str) -> Self {
-        Self(s.to_string())
-    }
-}
-
-impl From<String> for CameraId {
-    fn from(s: String) -> Self {
-        Self(s)
-    }
-}
-
-impl std::ops::Deref for CameraId {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 /// Operational capabilities of a camera, including concurrent stream limits.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,13 +29,12 @@ impl CameraCapabilities {
     }
 }
 
-/// Maintenance lease state commanding agent behaviour towards camera hardware.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MaintenanceLease {
-    /// Normal operation: retain active sessions.
-    Retain,
-    /// Yield hardware slots to mobile or external clients: tear down active RTSP sessions.
-    DisconnectAndYield,
+impl From<CameraCapabilitySet> for CameraCapabilities {
+    fn from(caps: CameraCapabilitySet) -> Self {
+        Self {
+            max_concurrent_rtsp_streams: caps.max_concurrent_rtsp_streams as u32,
+        }
+    }
 }
 
 /// Tracks active RTSP streams per camera and enforces hardware concurrency limits.
@@ -142,16 +100,30 @@ impl SessionManager {
 
     /// Apply a maintenance lease directive.
     ///
-    /// When `MaintenanceLease` is `DisconnectAndYield`, tears down active RTSP sessions
+    /// When `MaintenanceLease` mode is `LeaseMode::DisconnectAndYield`, tears down active RTSP sessions
     /// to free hardware slots for Mobile or external clients, returning the drained handles.
     pub fn apply_maintenance_lease(
         &mut self,
         camera_id: &CameraId,
-        lease: MaintenanceLease,
+        lease: &MaintenanceLease,
     ) -> Vec<StreamHandle> {
-        match lease {
-            MaintenanceLease::Retain => Vec::new(),
-            MaintenanceLease::DisconnectAndYield => {
+        match lease.mode {
+            LeaseMode::ObserveAndRelay => Vec::new(),
+            LeaseMode::DisconnectAndYield => {
+                if let Some(handles) = self.active_streams.remove(camera_id) {
+                    handles.into_iter().collect()
+                } else {
+                    Vec::new()
+                }
+            }
+        }
+    }
+
+    /// Apply a maintenance lease mode directly.
+    pub fn apply_lease_mode(&mut self, camera_id: &CameraId, mode: LeaseMode) -> Vec<StreamHandle> {
+        match mode {
+            LeaseMode::ObserveAndRelay => Vec::new(),
+            LeaseMode::DisconnectAndYield => {
                 if let Some(handles) = self.active_streams.remove(camera_id) {
                     handles.into_iter().collect()
                 } else {
@@ -206,7 +178,13 @@ mod tests {
         assert_eq!(mgr.active_count(&cam), 2);
 
         // Yielding maintenance lease tears down sessions to free slots for Mobile
-        let drained = mgr.apply_maintenance_lease(&cam, MaintenanceLease::DisconnectAndYield);
+        let lease = MaintenanceLease::new(
+            "operator-1",
+            cam.clone(),
+            999_999,
+            LeaseMode::DisconnectAndYield,
+        );
+        let drained = mgr.apply_maintenance_lease(&cam, &lease);
         assert_eq!(drained.len(), 2);
         assert!(drained.contains(&s1));
         assert!(drained.contains(&s2));
@@ -227,7 +205,13 @@ mod tests {
         let caps = CameraCapabilities::new(2);
 
         let _s1 = mgr.acquire_session(&cam, &caps).unwrap();
-        let drained = mgr.apply_maintenance_lease(&cam, MaintenanceLease::Retain);
+        let lease = MaintenanceLease::new(
+            "operator-1",
+            cam.clone(),
+            999_999,
+            LeaseMode::ObserveAndRelay,
+        );
+        let drained = mgr.apply_maintenance_lease(&cam, &lease);
         assert!(drained.is_empty());
         assert_eq!(mgr.active_count(&cam), 1);
     }

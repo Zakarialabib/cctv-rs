@@ -12,7 +12,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use cctv_core::CameraError;
+use cctv_core::{CameraError, CameraId, LeaseMode, StreamHandle};
 use cctv_rtp::h264::H264Depacketizer;
 use cctv_rtp::h265::{parse_nal_header, H265Depacketizer};
 use cctv_rtp::parse_rtp;
@@ -22,6 +22,8 @@ use cctv_transport::digest::{self, client_nonce, digest_authorization};
 use cctv_transport::net::{self, Stream, TcpOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::{broadcast, Mutex, RwLock};
+
+use crate::session_budget::{CameraCapabilities, SessionManager};
 
 /// Chunk size for reading media from the underlying socket.
 pub const READ_CHUNK: usize = 65_536;
@@ -227,10 +229,14 @@ pub struct StreamSubscription {
 /// Configuration for the sub-stream NAL multiplexer.
 #[derive(Debug, Clone)]
 pub struct StreamMuxConfig {
+    /// Camera ID.
+    pub camera_id: CameraId,
     /// Upstream RTSP sub-stream URL (`sub_rtsp_path`).
     pub sub_rtsp_path: String,
     /// Channel capacity for broadcast channel (default: 256).
     pub broadcast_capacity: usize,
+    /// Hardware stream capabilities.
+    pub capabilities: CameraCapabilities,
     /// Credentials for RTSP authentication.
     pub username: Option<String>,
     /// Password for RTSP authentication.
@@ -241,11 +247,34 @@ impl StreamMuxConfig {
     /// Create a new configuration for the given `sub_rtsp_path`.
     pub fn new(sub_rtsp_path: impl Into<String>) -> Self {
         Self {
+            camera_id: CameraId::new("cam-sub-stream"),
             sub_rtsp_path: sub_rtsp_path.into(),
             broadcast_capacity: 256,
+            capabilities: CameraCapabilities::new(2),
             username: None,
             password: None,
         }
+    }
+
+    /// Create a new configuration with explicit camera identifier and stream path.
+    pub fn with_camera_id(
+        camera_id: impl Into<CameraId>,
+        sub_rtsp_path: impl Into<String>,
+    ) -> Self {
+        Self {
+            camera_id: camera_id.into(),
+            sub_rtsp_path: sub_rtsp_path.into(),
+            broadcast_capacity: 256,
+            capabilities: CameraCapabilities::new(2),
+            username: None,
+            password: None,
+        }
+    }
+
+    /// Builder: set capabilities.
+    pub fn with_capabilities(mut self, capabilities: CameraCapabilities) -> Self {
+        self.capabilities = capabilities;
+        self
     }
 
     /// Builder: set username and password.
@@ -267,18 +296,30 @@ pub struct StreamMux {
     gop_cache: Arc<RwLock<GopCache>>,
     sender: broadcast::Sender<Nalu>,
     codec: Arc<RwLock<VideoCodec>>,
+    session_manager: Arc<Mutex<SessionManager>>,
+    active_handle: Arc<Mutex<Option<StreamHandle>>>,
     running: Arc<Mutex<Option<tokio::sync::watch::Sender<bool>>>>,
 }
 
 impl StreamMux {
-    /// Create a new `StreamMux` for a camera's sub-stream.
+    /// Create a new `StreamMux` for a camera's sub-stream with a default session manager.
     pub fn new(config: StreamMuxConfig) -> Self {
+        Self::with_session_manager(config, Arc::new(Mutex::new(SessionManager::new())))
+    }
+
+    /// Create a new `StreamMux` backed by a shared `SessionManager`.
+    pub fn with_session_manager(
+        config: StreamMuxConfig,
+        session_manager: Arc<Mutex<SessionManager>>,
+    ) -> Self {
         let (sender, _) = broadcast::channel(config.broadcast_capacity);
         Self {
             config,
             gop_cache: Arc::new(RwLock::new(GopCache::new())),
             sender,
             codec: Arc::new(RwLock::new(VideoCodec::H264)),
+            session_manager,
+            active_handle: Arc::new(Mutex::new(None)),
             running: Arc::new(Mutex::new(None)),
         }
     }
@@ -305,12 +346,48 @@ impl StreamMux {
         StreamSubscription { burst, receiver }
     }
 
+    /// Acquire 1 RTSP session slot from the `SessionManager` before pulling `sub_rtsp_path`.
+    /// Releases previous slot if one was active.
+    pub async fn acquire_slot(&self) -> Result<StreamHandle, CameraError> {
+        let mut mgr = self.session_manager.lock().await;
+        let mut active = self.active_handle.lock().await;
+        if let Some(h) = *active {
+            mgr.release_session(&self.config.camera_id, h);
+            *active = None;
+        }
+        let handle = mgr.acquire_session(&self.config.camera_id, &self.config.capabilities)?;
+        *active = Some(handle);
+        Ok(handle)
+    }
+
+    /// Release the held session slot.
+    pub async fn release_slot(&self) {
+        let mut active = self.active_handle.lock().await;
+        if let Some(h) = active.take() {
+            let mut mgr = self.session_manager.lock().await;
+            mgr.release_session(&self.config.camera_id, h);
+        }
+    }
+
+    /// React to a maintenance lease change. If `mode == LeaseMode::DisconnectAndYield`,
+    /// immediately stops upstream stream and yields the session slot.
+    pub async fn handle_lease_mode(&self, mode: LeaseMode) {
+        if mode == LeaseMode::DisconnectAndYield {
+            self.stop().await;
+            self.release_slot().await;
+        }
+    }
+
     /// Start the upstream pulling task if not already started.
+    /// Acquires 1 slot from `SessionManager` before pulling.
     pub async fn start(&self) -> Result<(), CameraError> {
         let mut guard = self.running.lock().await;
         if guard.is_some() {
             return Ok(());
         }
+
+        // Acquire session slot before pulling sub-stream
+        self.acquire_slot().await?;
 
         let (stop_tx, stop_rx) = tokio::sync::watch::channel(false);
         *guard = Some(stop_tx);
@@ -319,20 +396,31 @@ impl StreamMux {
         let gop_cache = self.gop_cache.clone();
         let sender = self.sender.clone();
         let codec_lock = self.codec.clone();
+        let active_handle = self.active_handle.clone();
+        let session_manager = self.session_manager.clone();
+        let camera_id = self.config.camera_id.clone();
 
         tokio::spawn(async move {
             run_mux_loop(config, gop_cache, sender, codec_lock, stop_rx).await;
+
+            // Ensure slot is cleaned up when loop exits
+            let mut active = active_handle.lock().await;
+            if let Some(h) = active.take() {
+                let mut mgr = session_manager.lock().await;
+                mgr.release_session(&camera_id, h);
+            }
         });
 
         Ok(())
     }
 
-    /// Stop the upstream pulling task.
+    /// Stop the upstream pulling task and release session slot.
     pub async fn stop(&self) {
         let mut guard = self.running.lock().await;
         if let Some(stop_tx) = guard.take() {
             let _ = stop_tx.send(true);
         }
+        self.release_slot().await;
     }
 
     /// Ingest a completed access unit into the GOP cache and broadcast channel.
@@ -358,6 +446,18 @@ impl StreamMux {
         for nalu in parsed_nals {
             cache.update(&nalu);
             let _ = self.sender.send(nalu);
+        }
+    }
+}
+
+impl Drop for StreamMux {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.active_handle.try_lock() {
+            if let Some(h) = active.take() {
+                if let Ok(mut mgr) = self.session_manager.try_lock() {
+                    mgr.release_session(&self.config.camera_id, h);
+                }
+            }
         }
     }
 }
@@ -806,6 +906,35 @@ mod tests {
         let live_nalu = sub.receiver.recv().await.expect("live nalu");
         assert_eq!(live_nalu.nalu_type, NaluType::Other);
         assert_eq!(live_nalu.data, vec![0x41, 0x9A, 0xCC]);
+    }
+
+    #[tokio::test]
+    async fn stream_mux_session_budgeting_and_yield() {
+        let session_mgr = Arc::new(Mutex::new(SessionManager::new()));
+        let cam_id = CameraId::new("cam-test-budget");
+        let config = StreamMuxConfig::with_camera_id(cam_id.clone(), "rtsp://localhost:8554/sub")
+            .with_capabilities(CameraCapabilities::new(1));
+
+        let mux = StreamMux::with_session_manager(config, session_mgr.clone());
+
+        // Acquire slot
+        let handle = mux.acquire_slot().await.expect("slot acquired");
+        assert_eq!(session_mgr.lock().await.active_count(&cam_id), 1);
+
+        // Second slot fails due to budget limit (1)
+        assert_eq!(
+            session_mgr
+                .lock()
+                .await
+                .acquire_session(&cam_id, &CameraCapabilities::new(1))
+                .unwrap_err(),
+            CameraError::SessionLimitExceeded
+        );
+
+        // Maintenance lease DisconnectAndYield yields the slot
+        mux.handle_lease_mode(LeaseMode::DisconnectAndYield).await;
+        assert_eq!(session_mgr.lock().await.active_count(&cam_id), 0);
+        let _ = handle;
     }
 
     #[test]

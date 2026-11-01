@@ -14,8 +14,9 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, Mutex};
 use tokio::time::sleep;
 
+use cctv_core::CameraId;
+
 use crate::ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
-use crate::session_budget::CameraId;
 
 /// An append-only JSONL audit log entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,7 +92,7 @@ pub trait OnvifPtzDispatcher: Send + Sync {
 }
 
 /// Input messages sent to the runner's PTZ watchdog handler.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RunnerCommand {
     /// Heartbeat pulse keeping PTZ moving.
     Pulse(PtzPulse),

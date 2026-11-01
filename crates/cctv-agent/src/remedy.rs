@@ -9,7 +9,8 @@
 use std::time::SystemTime;
 
 use async_trait::async_trait;
-use cctv_core::CameraError;
+use cctv_core::{CameraError, ImperativeCameraCommand};
+use cctv_onvif::build_set_system_date_and_time_soap;
 use serde::{Deserialize, Serialize};
 
 /// Maximum permissible clock drift between camera and host before healing is triggered (1 minute).
@@ -20,6 +21,28 @@ pub const MAX_CLOCK_OFFSET_MS: i64 = 60_000;
 pub enum RemedyStep {
     /// Synchronise device system clock to UTC.
     SyncClockToUtc,
+}
+
+impl RemedyStep {
+    /// Convert remedy step into the canonical `ImperativeCameraCommand`.
+    pub fn to_imperative_command(self) -> ImperativeCameraCommand {
+        match self {
+            RemedyStep::SyncClockToUtc => ImperativeCameraCommand::SyncClockToUtc,
+        }
+    }
+
+    /// Build the ONVIF SOAP envelope payload for this remedy step if applicable.
+    pub fn build_soap_body(self, now: SystemTime) -> Option<String> {
+        match self {
+            RemedyStep::SyncClockToUtc => {
+                let ms = now
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis() as i64)
+                    .unwrap_or(0);
+                Some(build_set_system_date_and_time_soap(ms))
+            }
+        }
+    }
 }
 
 /// Device interface for managing system clock and date/time.
