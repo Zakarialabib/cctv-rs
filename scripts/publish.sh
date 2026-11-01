@@ -218,9 +218,12 @@ for crate in "${ORDER[@]}"; do
             exit 1
         fi
 
-        # The dependency is not on crates.io (yet). During a dry run this is the
-        # expected first-release state; during a real publish it is index lag.
-        if printf '%s' "$output" | grep -q 'no matching package named `\(cctv\|ezviz-openapi\)'; then
+        # The dependency is not on crates.io (yet). Two wordings, one story: a
+        # first release has the crate absent entirely, a later release has it
+        # present only at the OLD version while the new one is not indexed yet.
+        # Dry run = expected; real publish = index lag.
+        if printf '%s' "$output" | grep -q 'no matching package named `\(cctv\|ezviz-openapi\)' \
+            || printf '%s' "$output" | grep -q 'failed to select a version for the requirement `\(cctv\|ezviz-openapi\)'; then
             if [ "$MODE" = "--dry-run" ]; then
                 echo "warning: $crate not fully verified — a workspace dependency is not on" \
                      "crates.io yet. Re-run after the earlier crates have been published."
