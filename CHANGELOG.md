@@ -10,6 +10,18 @@ All seven crates are versioned and released together.
 
 ### Added
 
+- `cctv_agent::CommandRelay` and `Remediation::commands` (plan v0.2 **W5** —
+  active remediation): a remediation now *names* the `CommandId`s it
+  authorizes (`MarkOffline` → `TestCameraConnection`, `TakeOutOfService` →
+  `CameraSetEnabled`, `Advance(Streaming|Recording)` → `StartCameraStream`,
+  `Advance(Retrying)` → `TestCameraConnection`; `Hold` and non-actionable
+  grades issue nothing — an auth failure never commands, only an operator can
+  supply credentials).  `Reconciler::with_command_relay` makes issuance
+  active: commands flow through the relay as they are graded, each audited as
+  `issued <CommandId>`, and without a relay the reconciler stays report-only.
+  The relay is sync by contract (`Send + Debug`) — `cctv-agent` still opens no
+  connection and pulls no runtime, modeled on `tv-rs`'s `with_command_relay`.
+  Gate: `cargo test -p cctv-agent` (25 passed, 5 new).
 - `cctv-onvif::discovery` (plan v0.2 **W4**): the `Discoverable` trait and
   `OnvifDiscovery`, a WS-Discovery sweep delegated to `cctv-discovery` — same
   `Datagram` seam, envelope, parser and identity converter — gated by ONVIF

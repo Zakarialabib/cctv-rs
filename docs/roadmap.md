@@ -22,9 +22,10 @@ System development status, phase gates, locked design decisions, and future mile
   not yet depend on `cctv-rs` — no `cctv_rs` reference exists in its
   `src-tauri` camera modules. The RTSP socket loop (`W3`) has landed, so the
   `camera_get_stats` swap-order prerequisite is met.
-- **plan-v0.2 W5:** the agent's active remediation loop is not started (the
-  reconciler grades and applies state but issues no commands). W4 — the ONVIF
-  `Discoverable` delegate — is complete (2026-11-01).
+- **plan-v0.2 W4 + W5 complete (2026-11-01):** ONVIF `Discoverable` delegate
+  and the agent's active remediation loop (a `CommandRelay` issues the
+  commands a remediation authorizes). Milestone 0.3.0 still needs **W6**
+  (vendor drivers); 0.4.0 needs W7–W9.
 - **crates.io drift:** `cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc` and
   `cctv-detect` have never been published; the facade's dry run warns until
   they land. `cctv-detect` is also missing from `scripts/publish.sh`'s order.

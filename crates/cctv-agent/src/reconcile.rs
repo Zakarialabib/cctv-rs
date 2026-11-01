@@ -11,11 +11,16 @@
 //! reconciler does not recognise is *notify* — never *disable*, because an
 //! unknown failure is not evidence that the camera is gone.
 //!
-//! Everything here is runtime-only.  No commands cross into `cctv-core`.
+//! Everything here is runtime-only.  A remediation *names* the `CommandId`s it
+//! authorizes ([`Remediation::commands`]); issuing them is the caller's choice
+//! through a [`CommandRelay`], so the reconciler itself opens no connection and
+//! pulls no runtime into this crate.
 
 use std::collections::BTreeMap;
 
-use cctv_core::{CameraDesired, CameraError, CameraState, CameraStateCurrent, DomainEvent};
+use cctv_core::{
+    CameraDesired, CameraError, CameraState, CameraStateCurrent, CommandId, DomainEvent,
+};
 
 use crate::audit::Audit;
 
@@ -94,6 +99,60 @@ impl Remediation {
     pub fn is_actionable(&self) -> bool {
         self.grade != Grade::None
     }
+
+    /// The [`CommandId`]s this remediation authorizes, in execution order.
+    ///
+    /// Derived from the action, gated on the grade:
+    ///
+    /// - [`Action::Hold`] issues nothing — holding *is* leaving the camera
+    ///   alone, which is why an auth failure (reconfigure + hold) never
+    ///   commands: only an operator can supply credentials.
+    /// - [`Action::MarkOffline`] → `TestCameraConnection`, the reconnect probe
+    ///   the grade promises.
+    /// - [`Action::TakeOutOfService`] → `CameraSetEnabled`: disabling the
+    ///   camera in the fleet is the configuration change itself.
+    /// - [`Action::Advance`] steps toward `Streaming` / `Recording` →
+    ///   `StartCameraStream`, and toward `Retrying` → `TestCameraConnection`.
+    ///   These execute the operator's own `set_desired` intent, so they are
+    ///   authorized by the desire, not "acting on its own" — `Notify`'s
+    ///   prohibition covers escalation (reconfigure / disable).  Other
+    ///   targets are belief steps with no wire command.
+    ///
+    /// A non-actionable grade (`Grade::None`) issues nothing.
+    pub fn commands(&self) -> Vec<CommandId> {
+        if !self.is_actionable() {
+            return Vec::new();
+        }
+        match self.action {
+            Action::Hold => Vec::new(),
+            Action::MarkOffline => vec![CommandId::TestCameraConnection],
+            Action::TakeOutOfService => vec![CommandId::CameraSetEnabled],
+            Action::Advance(CameraStateCurrent::Streaming | CameraStateCurrent::Recording) => {
+                vec![CommandId::StartCameraStream]
+            }
+            Action::Advance(CameraStateCurrent::Retrying) => {
+                vec![CommandId::TestCameraConnection]
+            }
+            Action::Advance(_) => Vec::new(),
+        }
+    }
+}
+
+/// Where the reconciler sends the commands a remediation authorizes.
+///
+/// The seam that makes remediation *active*: `reconcile` issues each command
+/// in [`Remediation::commands`] through the relay as it grades, instead of
+/// only reporting the grade.  Sync by contract — `cctv-agent` has no runtime —
+/// so an implementor queues for whoever does (the facade's async loop, a
+/// channel to the application, a test's `Vec`).  `Send + Debug` are required:
+/// the reconciler travels inside `Send` application state, and `Debug` keeps
+/// `Reconciler`'s derive intact.
+///
+/// Modeled on `tv-rs`'s `Reconciler::with_command_relay`, which feeds an
+/// imperative channel from the same grading pass.
+pub trait CommandRelay: std::fmt::Debug + Send {
+    /// Issue one remediation command for one camera.
+    fn issue(&mut self, camera_id: &str, command: CommandId);
 }
 
 /// Brings a fleet's observed state back to the desired state, recording each
@@ -103,6 +162,8 @@ pub struct Reconciler {
     audit: Audit,
     desired: BTreeMap<String, CameraDesired>,
     errors: BTreeMap<String, CameraError>,
+    /// Where remediation commands go, when the caller wants active issuance.
+    relay: Option<Box<dyn CommandRelay>>,
 }
 
 impl Reconciler {
@@ -112,6 +173,7 @@ impl Reconciler {
             audit,
             desired: BTreeMap::new(),
             errors: BTreeMap::new(),
+            relay: None,
         }
     }
 
@@ -123,6 +185,17 @@ impl Reconciler {
     /// Take the audit trail back out, e.g. to persist it.
     pub fn into_audit(self) -> Audit {
         self.audit
+    }
+
+    /// Issue remediation commands through `relay` as they are graded
+    /// (plan v0.2 W5 — active remediation).
+    ///
+    /// Without a relay the reconciler stays report-only: `Remediation::commands`
+    /// still names what it would issue, so nothing is lost by not installing one.
+    #[must_use]
+    pub fn with_command_relay(mut self, relay: Box<dyn CommandRelay>) -> Self {
+        self.relay = Some(relay);
+        self
     }
 
     /// Record the operator's intent for one camera.
@@ -168,7 +241,30 @@ impl Reconciler {
             &format!("{}: {}", remediation.grade, remediation.reason),
             remediation.grade.as_u8(),
         );
+        self.issue(&remediation);
         remediation
+    }
+
+    /// Push a remediation's commands through the relay, auditing each issue.
+    ///
+    /// Nothing to do when no relay is installed or the remediation authorizes
+    /// no command — the report-only path is unchanged.
+    fn issue(&mut self, remediation: &Remediation) {
+        let commands = remediation.commands();
+        if commands.is_empty() {
+            return;
+        }
+        let Some(relay) = self.relay.as_mut() else {
+            return;
+        };
+        for command in commands {
+            relay.issue(&remediation.camera_id, command);
+            self.audit.log(
+                remediation.camera_id.clone(),
+                &format!("issued {command:?}"),
+                remediation.grade.as_u8(),
+            );
+        }
     }
 
     /// Reconcile a whole fleet, in camera-id order.
@@ -513,6 +609,105 @@ mod tests {
         assert_eq!(r.reconcile(&mut camera).grade, Grade::Retry);
         // The second pass sees no error and the state matches, so nothing is left.
         assert_eq!(r.reconcile(&mut camera).grade, Grade::None);
+    }
+
+    /// A relay that records what it was issued, through a handle the test
+    /// keeps (`Arc<Mutex<..>>` so the `Box`'d relay shares the log).
+    #[derive(Debug, Default)]
+    struct Issued(std::sync::Arc<std::sync::Mutex<Vec<(String, CommandId)>>>);
+
+    impl CommandRelay for Issued {
+        fn issue(&mut self, camera_id: &str, command: CommandId) {
+            self.0
+                .lock()
+                .unwrap()
+                .push((camera_id.to_string(), command));
+        }
+    }
+
+    #[test]
+    fn commands_follow_the_action_not_the_grade() {
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+        let mut r = reconciler();
+
+        // Drift up to streaming authorizes the stream start.
+        r.set_desired("cam", CameraDesired::Armed);
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.commands(), vec![CommandId::StartCameraStream]);
+
+        // An unreachable camera authorizes the reconnect probe.
+        let mut offline = observed("cam", CameraStateCurrent::On, 1.0);
+        offline.online = false;
+        let rem = r.reconcile(&mut offline);
+        assert_eq!(rem.action, Action::MarkOffline);
+        assert_eq!(rem.commands(), vec![CommandId::TestCameraConnection]);
+    }
+
+    #[test]
+    fn a_hold_licenses_no_command_even_at_a_high_grade() {
+        // Auth failure grades high (reconfigure) but holds: only an operator
+        // can supply credentials, so nothing may be issued.
+        let mut r = reconciler();
+        r.record_error("cam", CameraError::AuthFailed);
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.grade, Grade::Reconfigure);
+        assert!(rem.commands().is_empty(), "{rem:?}");
+
+        // Same for a matching camera: grade None, no commands.
+        let mut quiet = observed("cam", CameraStateCurrent::On, 1.0);
+        quiet.desired = CameraDesired::Idle;
+        let rem = r.reconcile(&mut quiet);
+        assert_eq!(rem.grade, Grade::None);
+        assert!(rem.commands().is_empty());
+    }
+
+    #[test]
+    fn taking_a_camera_out_of_service_authorizes_disabling_it() {
+        let mut r = reconciler();
+        r.set_desired("cam", CameraDesired::Disabled);
+        let mut camera = observed("cam", CameraStateCurrent::Streaming, 1.0);
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.action, Action::TakeOutOfService);
+        assert_eq!(rem.commands(), vec![CommandId::CameraSetEnabled]);
+    }
+
+    #[test]
+    fn an_installed_relay_receives_the_commands_as_they_are_graded() {
+        let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let mut r = reconciler().with_command_relay(Box::new(Issued(std::sync::Arc::clone(&log))));
+        r.set_desired("cam", CameraDesired::Armed);
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+        r.reconcile(&mut camera);
+
+        let issued = log.lock().unwrap().clone();
+        assert_eq!(
+            issued,
+            vec![("cam".to_string(), CommandId::StartCameraStream)]
+        );
+        // The issuance itself is audited, after the remediation entry.
+        let audit = r.into_audit();
+        let whats: Vec<&str> = audit.entries().iter().map(|e| e.what.as_str()).collect();
+        assert!(
+            whats.iter().any(|w| w.starts_with("issued ")),
+            "issuance must be audited: {whats:?}"
+        );
+    }
+
+    #[test]
+    fn without_a_relay_the_reconciler_stays_report_only() {
+        let mut r = reconciler();
+        r.set_desired("cam", CameraDesired::Armed);
+        let mut camera = observed("cam", CameraStateCurrent::On, 1.0);
+        let rem = r.reconcile(&mut camera);
+        // The remediation still names what it would issue...
+        assert_eq!(rem.commands(), vec![CommandId::StartCameraStream]);
+        // ...and the audit carries no issuance entry.
+        let audit = r.into_audit();
+        assert!(audit
+            .entries()
+            .iter()
+            .all(|e| !e.what.starts_with("issued ")));
     }
 
     #[test]
