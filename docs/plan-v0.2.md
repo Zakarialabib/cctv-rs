@@ -68,7 +68,13 @@ Work packages, release targets, and verification criteria for `cctv-rs`.
 
 ## Host Application Integration Phases
 
-1. **Phase A:** Add `cctv-rs` as a dependency; construct `Facade` instance.
+1. **Phase A — ✅ done (2026-11-01):** `Simple-Signage` depends on `cctv-rs`
+   (git-pinned `a4a827f`, post-W3/W4/W5 — crates.io 0.1.0 predates the RTSP
+   driver); `Facade::new().with_builtin_drivers()` is constructed and managed
+   as Tauri state behind `Mutex`, desktop-gated with the camera stack.
+   Landed in SignageMaster PRs #722 + #723. Note: its adoption matrix's
+   "reject facade" row was overridden by owner decision — the matrix records
+   the override.
 2. **Phase B:** Migrate LAN network discovery and stream URI resolution to `cctv-rs`.
 3. **Phase C:** Connect application video consumers to `cctv-rs` stream readers.
 4. **Phase D:** Migrate PTZ, preset, and snapshot commands to `cctv-rs` facade entry points.

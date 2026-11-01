@@ -18,10 +18,14 @@ System development status, phase gates, locked design decisions, and future mile
 
 ### Open Items
 
-- **Host integration (Phase 7 / plan-v0.2 Phases A–E):** `Simple-Signage` does
-  not yet depend on `cctv-rs` — no `cctv_rs` reference exists in its
-  `src-tauri` camera modules. The RTSP socket loop (`W3`) has landed, so the
-  `camera_get_stats` swap-order prerequisite is met.
+- **Host integration (Phase 7 / plan-v0.2 Phases A–E):** **Phase A done
+  (2026-11-01)** — `Simple-Signage` carries a git-pinned `cctv-rs`
+  dependency and manages `Facade::new().with_builtin_drivers()` as Tauri
+  state (SignageMaster PRs #722 + #723; owner chose the facade path over
+  the adoption matrix's reject row, which now records the override).
+  Phases **B–E pending** (discovery + stream URI migration → stream readers
+  → PTZ/presets/snapshots → legacy removal). The RTSP socket loop (`W3`)
+  prerequisite remains met.
 - **plan-v0.2 W4 + W5 complete (2026-11-01):** ONVIF `Discoverable` delegate
   and the agent's active remediation loop (a `CommandRelay` issues the
   commands a remediation authorizes). Milestone 0.3.0 still needs **W6**
