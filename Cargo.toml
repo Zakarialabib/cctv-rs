@@ -13,8 +13,8 @@ members = [
     "crates/cctv-ezviz",
     "crates/cctv-stream-uvc",
     "crates/cctv-agent",
-    "crates/cctv-rs",
     "crates/cctv-detect",
+    "crates/cctv-rs",
 ]
 
 [workspace.package]
@@ -35,6 +35,7 @@ cctv-onvif = { path = "crates/cctv-onvif", version = "0.1.0" }
 cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.1.0" }
 cctv-stream-uvc = { path = "crates/cctv-stream-uvc", version = "0.1.0" }
 cctv-agent = { path = "crates/cctv-agent", version = "0.1.0" }
+cctv-detect = { path = "crates/cctv-detect", version = "0.1.0" }
 # The facade is published last: it re-exports every crate above.  It cannot be
 # called `cctv` — that name is taken on crates.io by an unrelated project.
 cctv-rs = { path = "crates/cctv-rs", version = "0.1.0" }

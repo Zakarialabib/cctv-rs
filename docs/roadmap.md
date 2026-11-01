@@ -29,8 +29,10 @@ System development status, phase gates, locked design decisions, and future mile
 - **crates.io drift:** `cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc` and
   `cctv-detect` have never been published; the facade's dry run warns until
   they land. `cctv-detect` is also missing from `scripts/publish.sh`'s order.
-- **`cctv-detect` is an orphan:** in the workspace, but no other crate depends
-  on it — wire it into the facade/application or defer it.
+- **`cctv-detect` wired (2026-11-01):** the facade owns the zone surface
+  (`zone_save`/`record_detection`/`motion_events`, `ZoneMotionListEvents` via
+  `execute`); the crate is in the publish order with its README.  What remains
+  is the *application* side: feeding detections from the frame pipeline.
 
 ---
 

@@ -10,6 +10,20 @@ All seven crates are versioned and released together.
 
 ### Added
 
+- **`cctv-detect` wired into the facade** (it was an orphan — nothing depended
+  on it): `Facade` gains the zone surface — `zone_save` / `zone_list` /
+  `zone_config` / `zone_delete` for `ZoneConfig`, and `record_detection`, which
+  gates a `Detection` on the zone's own monitor settings (unknown zone = typed
+  error, below `threshold` = not reported, `min_detections` inside `window_s`
+  before the monitor fires) and emits a `MotionEvent` stamped on the facade
+  clock with the window cleared.  `ZoneMotionListEvents` now answers through
+  `Facade::execute` with the `MotionEvents` payload.  Types re-exported from
+  `cctv_rs` (`Detection`, `Zone`, `ZoneConfig`, `Region`, `RegionKind`).
+  Publishing fixed for the crate: `README.md` added (the manifest declared it
+  but the file did not exist — `cargo package` would have failed), and it takes
+  its place in the workspace dependency table, the `Cargo.toml` member order,
+  `scripts/publish.sh` ORDER (before the facade) and CI's per-crate job.
+  The facade's dry run now covers 11 crates.
 - `cctv_agent::CommandRelay` and `Remediation::commands` (plan v0.2 **W5** —
   active remediation): a remediation now *names* the `CommandId`s it
   authorizes (`MarkOffline` → `TestCameraConnection`, `TakeOutOfService` →

@@ -25,9 +25,10 @@ use std::sync::{Arc, Mutex};
 use cctv_agent::{Audit, Reconciler, Remediation};
 use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraSnapshot,
-    CameraState, CameraStateCurrent, CommandId, CommandResult, CommandResultPayload, Preset,
-    PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    CameraState, CameraStateCurrent, CommandId, CommandResult, CommandResultPayload, MotionEvent,
+    Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
+use cctv_detect::{Detection, ZoneConfig};
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
 use cctv_transport::reader::FrameReader;
 
@@ -65,6 +66,13 @@ pub struct Facade {
     /// the bytes belong to whoever owns the wire.
     readers: BTreeMap<String, Arc<Mutex<FrameReader>>>,
     reconciler: Reconciler,
+    /// Detection monitor settings, keyed by zone id (the `ZoneMotion*` /
+    /// `Zone*` command surface).
+    zones: BTreeMap<String, ZoneConfig>,
+    /// Motion events the monitor has fired, per the zone configs.
+    events: Vec<MotionEvent>,
+    /// Detection timestamps inside each zone's open monitor window.
+    pending: BTreeMap<String, Vec<u64>>,
 }
 
 impl Facade {
@@ -75,6 +83,9 @@ impl Facade {
             drivers: BTreeMap::new(),
             readers: BTreeMap::new(),
             reconciler: Reconciler::new(Audit::new()),
+            zones: BTreeMap::new(),
+            events: Vec::new(),
+            pending: BTreeMap::new(),
         }
     }
 
@@ -240,6 +251,91 @@ impl Facade {
             fleet.push(state);
         }
         self.reconciler.reconcile_all(&mut fleet)
+    }
+
+    // -- zones & detections (cctv-detect) ----------------------------------
+
+    /// Save (or replace) a detection zone's monitor settings under `zone_id`.
+    pub fn zone_save(&mut self, zone_id: impl Into<String>, config: ZoneConfig) {
+        self.zones.insert(zone_id.into(), config);
+    }
+
+    /// Every saved zone as `(zone_id, config)`, in zone-id order.
+    pub fn zone_list(&self) -> Vec<(String, ZoneConfig)> {
+        self.zones
+            .iter()
+            .map(|(id, config)| (id.clone(), config.clone()))
+            .collect()
+    }
+
+    /// One zone's monitor settings, if saved.
+    pub fn zone_config(&self, zone_id: &str) -> Option<ZoneConfig> {
+        self.zones.get(zone_id).cloned()
+    }
+
+    /// Delete a zone and its pending detection window; `true` if it was there.
+    pub fn zone_delete(&mut self, zone_id: &str) -> bool {
+        self.pending.remove(zone_id);
+        self.zones.remove(zone_id).is_some()
+    }
+
+    /// Report one [`Detection`] to the zone's monitor (the `RunZoneDetection`
+    /// data path — the frame decoding and AI stay in the application).
+    ///
+    /// The monitor's own settings decide, straight from [`ZoneConfig`]:
+    ///
+    /// - an unknown zone is a typed error, not a silent drop;
+    /// - below `threshold` the detection is not reported at all;
+    /// - the monitor fires only once `min_detections` qualifying detections
+    ///   have arrived inside `window_s` seconds — until then this returns
+    ///   `Ok(None)` and the window keeps accumulating;
+    /// - a fire appends a [`MotionEvent`] stamped on the facade's clock and
+    ///   clears the window, so the next fire needs a fresh run.
+    pub fn record_detection(
+        &mut self,
+        camera_id: &str,
+        zone_id: &str,
+        detection: &Detection,
+    ) -> Result<Option<MotionEvent>, CameraError> {
+        let config = self
+            .zones
+            .get(zone_id)
+            .cloned()
+            .ok_or_else(|| CameraError::Other(format!("no zone `{zone_id}`")))?;
+
+        if detection.confidence < config.threshold {
+            return Ok(None);
+        }
+
+        let now_s = clock_ms() / 1_000;
+        let window = self.pending.entry(zone_id.to_string()).or_default();
+        window.push(now_s);
+        // Prune the window to its configured length.
+        window.retain(|ts| now_s.saturating_sub(*ts) <= config.window_s);
+
+        if window.len() < config.min_detections as usize {
+            return Ok(None);
+        }
+        window.clear();
+
+        let event = MotionEvent {
+            camera_id: camera_id.to_string(),
+            zone_id: zone_id.to_string(),
+            ts: now_s,
+            confidence: detection.confidence,
+        };
+        self.events.push(event.clone());
+        Ok(Some(event))
+    }
+
+    /// The motion events fired for one camera — the `ZoneMotionListEvents`
+    /// payload.
+    pub fn motion_events(&self, camera_id: &str) -> Vec<MotionEvent> {
+        self.events
+            .iter()
+            .filter(|event| event.camera_id == camera_id)
+            .cloned()
+            .collect()
     }
 
     // -- commands: device-model results ------------------------------------
@@ -517,6 +613,14 @@ impl Facade {
                     command,
                     id.to_string(),
                     CommandResultPayload::Presets { presets },
+                ))
+            }
+            CommandId::ZoneMotionListEvents => {
+                let events = self.motion_events(id);
+                Ok(CommandResult::for_camera(
+                    command,
+                    id.to_string(),
+                    CommandResultPayload::MotionEvents { events },
                 ))
             }
             CommandId::DeviceTriggerCapture => {
