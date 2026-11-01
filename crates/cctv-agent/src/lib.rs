@@ -27,6 +27,10 @@ pub mod snapshot_proxy;
 pub mod stream_mux;
 
 pub use audit::{Audit, AuditEntry};
+pub use cctv_core::{
+    CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth,
+    ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet,
+};
 pub use ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
 pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};
 pub use remedy::{ClockHealing, ClockSyncDevice, RemedyStep, MAX_CLOCK_OFFSET_MS};
@@ -34,7 +38,6 @@ pub use runner::{
     AgentRunner, InMemoryJsonlAuditLog, JsonlAuditEntry, JsonlAuditLog, OnvifPtzDispatcher,
     RunnerCommand,
 };
-pub use cctv_core::{CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth, ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet};
 pub use session_budget::{CameraCapabilities, SessionManager};
 pub use snapshot_proxy::{CachedSnapshot, SnapshotProxy, SnapshotProxyConfig};
 pub use stream_mux::{

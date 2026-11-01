@@ -257,7 +257,10 @@ impl StreamMuxConfig {
     }
 
     /// Create a new configuration with explicit camera identifier and stream path.
-    pub fn with_camera_id(camera_id: impl Into<CameraId>, sub_rtsp_path: impl Into<String>) -> Self {
+    pub fn with_camera_id(
+        camera_id: impl Into<CameraId>,
+        sub_rtsp_path: impl Into<String>,
+    ) -> Self {
         Self {
             camera_id: camera_id.into(),
             sub_rtsp_path: sub_rtsp_path.into(),

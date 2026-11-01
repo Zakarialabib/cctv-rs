@@ -64,10 +64,9 @@ impl SnapshotProxyConfig {
         base_url: &str,
         profile_set: &StreamProfileSet,
     ) -> Result<Self, CameraError> {
-        let snapshot_path = profile_set
-            .snapshot_http_path
-            .as_deref()
-            .ok_or_else(|| CameraError::Other("no snapshot_http_path defined in profile set".into()))?;
+        let snapshot_path = profile_set.snapshot_http_path.as_deref().ok_or_else(|| {
+            CameraError::Other("no snapshot_http_path defined in profile set".into())
+        })?;
 
         let url = if snapshot_path.starts_with("http://") || snapshot_path.starts_with("https://") {
             snapshot_path.to_string()
@@ -299,6 +298,9 @@ mod tests {
 
         let config = SnapshotProxyConfig::from_profile_set("http://192.168.1.10:80", &profiles)
             .expect("config created");
-        assert_eq!(config.snapshot_http_path, "http://192.168.1.10:80/onvif/snapshot");
+        assert_eq!(
+            config.snapshot_http_path,
+            "http://192.168.1.10:80/onvif/snapshot"
+        );
     }
 }

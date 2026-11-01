@@ -8,7 +8,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use cctv_core::{CameraCapabilitySet, CameraError, CameraId, LeaseMode, MaintenanceLease, StreamHandle};
+use cctv_core::{
+    CameraCapabilitySet, CameraError, CameraId, LeaseMode, MaintenanceLease, StreamHandle,
+};
 use serde::{Deserialize, Serialize};
 
 /// Operational capabilities of a camera, including concurrent stream limits.
@@ -118,11 +120,7 @@ impl SessionManager {
     }
 
     /// Apply a maintenance lease mode directly.
-    pub fn apply_lease_mode(
-        &mut self,
-        camera_id: &CameraId,
-        mode: LeaseMode,
-    ) -> Vec<StreamHandle> {
+    pub fn apply_lease_mode(&mut self, camera_id: &CameraId, mode: LeaseMode) -> Vec<StreamHandle> {
         match mode {
             LeaseMode::ObserveAndRelay => Vec::new(),
             LeaseMode::DisconnectAndYield => {
@@ -180,7 +178,12 @@ mod tests {
         assert_eq!(mgr.active_count(&cam), 2);
 
         // Yielding maintenance lease tears down sessions to free slots for Mobile
-        let lease = MaintenanceLease::new("operator-1", cam.clone(), 999_999, LeaseMode::DisconnectAndYield);
+        let lease = MaintenanceLease::new(
+            "operator-1",
+            cam.clone(),
+            999_999,
+            LeaseMode::DisconnectAndYield,
+        );
         let drained = mgr.apply_maintenance_lease(&cam, &lease);
         assert_eq!(drained.len(), 2);
         assert!(drained.contains(&s1));
@@ -202,7 +205,12 @@ mod tests {
         let caps = CameraCapabilities::new(2);
 
         let _s1 = mgr.acquire_session(&cam, &caps).unwrap();
-        let lease = MaintenanceLease::new("operator-1", cam.clone(), 999_999, LeaseMode::ObserveAndRelay);
+        let lease = MaintenanceLease::new(
+            "operator-1",
+            cam.clone(),
+            999_999,
+            LeaseMode::ObserveAndRelay,
+        );
         let drained = mgr.apply_maintenance_lease(&cam, &lease);
         assert!(drained.is_empty());
         assert_eq!(mgr.active_count(&cam), 1);
