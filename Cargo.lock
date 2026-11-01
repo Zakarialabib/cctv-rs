@@ -95,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-agent"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "cctv-core",
@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "insta",
@@ -123,14 +123,14 @@ dependencies = [
 
 [[package]]
 name = "cctv-detect"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cctv-core",
 ]
 
 [[package]]
 name = "cctv-discovery"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cctv-core",
  "cctv-transport",
@@ -140,7 +140,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-ezviz"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "cctv-core",
@@ -153,7 +153,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-onvif"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-rs"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "cctv-agent",
@@ -183,11 +183,11 @@ dependencies = [
 
 [[package]]
 name = "cctv-rtp"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "cctv-rtsp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-stream-uvc"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "cctv-core",
@@ -212,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-transport"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base64 0.23.1",
  "md-5",
