@@ -19,7 +19,6 @@ default = []
 # in cctv-transport::digest, which is always compiled.
 net = [
     "dep:async-trait",
-    "dep:cctv-core",
     "dep:cctv-rtp",
     "dep:cctv-transport",
     "dep:tokio",
@@ -30,10 +29,11 @@ net = [
 # `sprop-parameter-sets` in SDP is base64; nothing else is needed for the pure
 # half of this crate, because it parses bytes and opens no socket.
 base64.workspace = true
+cctv-core.workspace = true
+md-5 = { workspace = true }
 # The live half (`net`): the device model, the payload depacketisers and the
 # socket layer.  All optional, because they are what the feature turns on.
 async-trait = { workspace = true, optional = true }
-cctv-core = { workspace = true, optional = true }
 cctv-rtp = { workspace = true, optional = true }
 cctv-transport = { workspace = true, optional = true, features = ["net"] }
 tokio = { workspace = true, optional = true, features = ["net", "io-util", "rt", "time", "sync"] }

@@ -29,6 +29,9 @@ pub mod sdp;
 #[cfg(feature = "net")]
 pub mod streaming;
 
+pub mod digest;
+
+pub use digest::{DigestChallenge, DigestState};
 pub use error::RtspError;
 pub use message::{Headers, Message, Method, Request, Response};
 pub use sdp::{parse_sdp, Session, Track};

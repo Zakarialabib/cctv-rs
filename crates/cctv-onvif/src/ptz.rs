@@ -24,23 +24,54 @@ fn clamp_unit(v: f32) -> f32 {
     }
 }
 
-/// `ContinuousMove` body.  Velocities are clamped to `-1..=1`; the timeout
-/// defaults to 30 s, after which the camera stops on its own.
+/// `ContinuousMove` body. Velocities are clamped to `-1..=1`; the timeout
+/// always emits `<tptz:Timeout>PT0.5S</tptz:Timeout>` for bounded movement.
 pub fn build_continuous_move(
     profile_token: &str,
     pan: f32,
     tilt: f32,
     zoom: f32,
-    timeout_secs: Option<u64>,
+    _timeout_secs: Option<u64>,
 ) -> String {
     format!(
-        "<tptz:ContinuousMove><tptz:ProfileToken>{}</tptz:ProfileToken><tptz:Velocity><tt:PanTilt x=\"{}\" y=\"{}\" space=\"{VELOCITY_PT}\"/><tt:Zoom x=\"{}\" space=\"{VELOCITY_Z}\"/></tptz:Velocity><tptz:Timeout>PT{}S</tptz:Timeout></tptz:ContinuousMove>",
+        "<tptz:ContinuousMove><tptz:ProfileToken>{}</tptz:ProfileToken><tptz:Velocity><tt:PanTilt x=\"{}\" y=\"{}\" space=\"{VELOCITY_PT}\"/><tt:Zoom x=\"{}\" space=\"{VELOCITY_Z}\"/></tptz:Velocity><tptz:Timeout>PT0.5S</tptz:Timeout></tptz:ContinuousMove>",
         xml::escape(profile_token),
         clamp_unit(pan),
         clamp_unit(tilt),
-        clamp_unit(zoom),
-        timeout_secs.unwrap_or(30)
+        clamp_unit(zoom)
     )
+}
+
+/// `SetSystemDateAndTime` SOAP body for clock healing.
+///
+/// Sets the camera system date and time to `utc_now` (milliseconds since Unix epoch).
+pub fn set_system_date_and_time(utc_now: i64) -> String {
+    let non_neg_ms = if utc_now < 0 { 0 } else { utc_now as u64 };
+    let secs = non_neg_ms / 1000;
+    let days = secs / 86_400;
+    let rem = secs % 86_400;
+    let (year, month, day) = civil_from_days(i64::try_from(days).unwrap_or(0));
+    let hour = rem / 3600;
+    let minute = (rem % 3600) / 60;
+    let second = rem % 60;
+
+    format!(
+        "<tds:SetSystemDateAndTime><tds:DateTimeType>Manual</tds:DateTimeType><tds:DaylightSavings>false</tds:DaylightSavings><tds:UTCDateTime><tt:Time><tt:Hour>{hour}</tt:Hour><tt:Minute>{minute}</tt:Minute><tt:Second>{second}</tt:Second></tt:Time><tt:Date><tt:Year>{year}</tt:Year><tt:Month>{month}</tt:Month><tt:Day>{day}</tt:Day></tt:Date></tds:UTCDateTime></tds:SetSystemDateAndTime>"
+    )
+}
+
+/// Days since 1970-01-01 -> (year, month, day). Howard Hinnant's algorithm.
+fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
 /// `AbsoluteMove` body in the generic position space.
@@ -142,8 +173,20 @@ mod tests {
         assert!(s.contains("<tptz:ProfileToken>token-123</tptz:ProfileToken>"));
         assert!(s.contains("x=\"0.5\" y=\"-0.3\""));
         assert!(s.contains("<tt:Zoom x=\"0.1\""));
-        assert!(s.contains("PT30S"));
-        assert!(build_continuous_move("t", 0.0, 0.0, 0.0, Some(15)).contains("PT15S"));
+        assert!(s.contains("<tptz:Timeout>PT0.5S</tptz:Timeout>"));
+        assert!(build_continuous_move("t", 0.0, 0.0, 0.0, Some(15))
+            .contains("<tptz:Timeout>PT0.5S</tptz:Timeout>"));
+    }
+
+    #[test]
+    fn set_system_date_and_time_formats_manual_utc() {
+        // 2026-10-23T01:01:01Z -> (1_792_713_600 + 3_661) * 1000
+        let utc_ms = (1_792_713_600 + 3_661) * 1000;
+        let s = set_system_date_and_time(utc_ms);
+        assert!(s.contains("<tds:DateTimeType>Manual</tds:DateTimeType>"));
+        assert!(s.contains("<tds:DaylightSavings>false</tds:DaylightSavings>"));
+        assert!(s.contains("<tt:Hour>1</tt:Hour><tt:Minute>1</tt:Minute><tt:Second>1</tt:Second>"));
+        assert!(s.contains("<tt:Year>2026</tt:Year><tt:Month>10</tt:Month><tt:Day>23</tt:Day>"));
     }
 
     #[test]

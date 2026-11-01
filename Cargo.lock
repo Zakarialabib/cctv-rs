@@ -193,6 +193,7 @@ dependencies = [
  "cctv-core",
  "cctv-rtp",
  "cctv-transport",
+ "md-5",
  "tokio",
  "tokio-rustls",
 ]

@@ -54,6 +54,7 @@ md-5 = "0.11"
 sha1 = "0.11"
 sha2 = "0.11"
 base64 = "0.23"
+zeroize = { version = "1", default-features = false, features = ["alloc", "derive"] }
 # The socket layer's TLS stack. `reqwest` above already resolves these majors,
 # so enabling both `http` and `net` links one rustls, not two.
 tokio-rustls = "0.26"
