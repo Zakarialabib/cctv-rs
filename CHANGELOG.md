@@ -10,6 +10,16 @@ All eleven crates are versioned and released together.
 
 ### Added
 
+- **StreamMux & SnapshotProxy** (PR #38, Phase 5): `cctv_agent::StreamMux` is a
+  GOP-cached NALU multiplexer for RTSP sub-streams — pulls the sub-stream once,
+  caches `[SPS, PPS, (VPS), IDR]`, and broadcasts NAL units so a client joining
+  `GET /agent/cameras/{id}/live_ws` renders frame 1 with zero GOP wait.
+  `SnapshotProxy` proxies native snapshot retrieval with RTSP Digest auth behind
+  a 500 ms cache, so concurrent requests neither consume camera RTSP sessions
+  nor burn host CPU. `cctv-onvif` now exports its PTZ SOAP builders/parsers
+  (`build_*` / `parse_*`) for the watchdog, and `cctv-agent` re-exports the
+  provisioning and session-budget types (`SessionManager`, `CameraCapabilities`,
+  `DecryptedCameraAuth`, …).
 - **Skewed-clock WS-Security & RTSP Digest** (PR #36): `cctv_onvif::auth`
   computes `<wsu:Created>` and the `#PasswordDigest` from host UTC plus the
   observed camera-clock offset, so devices with drifted clocks or wrong
@@ -41,8 +51,9 @@ All eleven crates are versioned and released together.
   supply credentials).  `Reconciler::with_command_relay` makes issuance
   active: commands flow through the relay as they are graded, each audited as
   `issued <CommandId>`, and without a relay the reconciler stays report-only.
-  The relay is sync by contract (`Send + Debug`) — `cctv-agent` still opens no
-  connection and pulls no runtime, modeled on `tv-rs`'s `with_command_relay`.
+  The relay is sync by contract (`Send + Debug`) — reconciler issuance is
+  I/O-free (the runner and stream modules own connections), modeled on
+  `tv-rs`'s `with_command_relay`.
   Gate: `cargo test -p cctv-agent` (25 passed, 5 new).
 - `cctv-onvif::discovery` (plan v0.2 **W4**): the `Discoverable` trait and
   `OnvifDiscovery`, a WS-Discovery sweep delegated to `cctv-discovery` — same
