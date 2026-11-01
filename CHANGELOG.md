@@ -10,6 +10,16 @@ All seven crates are versioned and released together.
 
 ### Added
 
+- `cctv-onvif::discovery` (plan v0.2 **W4**): the `Discoverable` trait and
+  `OnvifDiscovery`, a WS-Discovery sweep delegated to `cctv-discovery` — same
+  `Datagram` seam, envelope, parser and identity converter — gated by ONVIF
+  evidence (`onvif://` scope or an ONVIF `Types` entry) and by an addressable
+  HTTP(S) `XAddr`, because without the control-service URL there is no
+  [`OnvifSession`] to open.  WS-Discovery only: the ONVIF Core Specification
+  requires every device to answer a `Probe`, so SSDP's UPnP noise stays out of
+  the ONVIF crate (the merged sweep remains in `cctv-discovery`).  Publish
+  order updated: `cctv-discovery` now precedes `cctv-onvif`.
+  Gate: `cargo test -p cctv-onvif` (34 passed).
 - `cctv-detect`, the detection device model: `Detection` (motion or object, with
   class, clamped confidence and an optional bounding box), `Zone` / `RegionKind`
   (`point` in native pixels or `rectangle` normalised to 0.0..1.0, each field

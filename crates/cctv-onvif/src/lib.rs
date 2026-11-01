@@ -11,6 +11,8 @@
 //! - [`media`] — profiles, stream / snapshot URIs, the encoder write path.
 //! - [`ptz`] — moves, stop and presets.
 //! - [`session`] — one device on the wire: the builders above, POSTed.
+//! - [`discovery`] — WS-Discovery sweeps delegated to `cctv-discovery`,
+//!   filtered to devices with ONVIF evidence and an addressable `XAddr`.
 //! - [`backend`] — one camera as a [`cctv_core::CameraBackend`], which is what
 //!   the facade and the conformance suite drive.
 //! - [`error`] — [`OnvifError`] and its mapping onto [`cctv_core::CameraError`].
@@ -23,6 +25,7 @@
 
 pub mod backend;
 pub mod device;
+pub mod discovery;
 pub mod error;
 pub mod media;
 pub mod ptz;
@@ -30,6 +33,7 @@ pub mod session;
 pub mod soap;
 
 pub use backend::OnvifCameraBackend;
+pub use discovery::{Discoverable, OnvifDiscovery};
 pub use error::OnvifError;
 pub use session::OnvifSession;
 pub use soap::Credentials;
