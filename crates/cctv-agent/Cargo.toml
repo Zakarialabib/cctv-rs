@@ -12,6 +12,15 @@ categories = ["hardware-support", "development-tools"]
 
 [dependencies]
 cctv-core.workspace = true
+cctv-rtp.workspace = true
+cctv-rtsp.workspace = true
+cctv-transport = { workspace = true, features = ["http", "net"] }
+tokio = { workspace = true, features = ["sync", "rt", "time", "macros", "net"] }
+async-trait.workspace = true
+
+[dev-dependencies]
+cctv-transport = { workspace = true, features = ["http", "net", "fixture"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 
 [lints]
 workspace = true
