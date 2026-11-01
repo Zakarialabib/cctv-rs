@@ -98,12 +98,12 @@ impl DigestState {
     /// - If legacy RFC 2617: computes `MD5(HA1:nonce:HA2)`
     pub fn authorize(
         &mut self,
+        username: &str,
         auth: &DecryptedCameraAuth,
         method: &str,
         uri: &str,
         cnonce: &str,
     ) -> String {
-        let username = &auth.username;
         let password = auth.password.as_str();
         let realm = &self.challenge.realm;
         let nonce = &self.challenge.nonce;
@@ -224,7 +224,7 @@ mod tests {
         // Worked RFC 2617 example without qop:
         // user="Mufasa", realm="testrealm@host.com", password="Circle Of Life"
         // method="GET", uri="/dir/index.html", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093"
-        let auth = DecryptedCameraAuth::new("Mufasa", "Circle Of Life");
+        let auth = DecryptedCameraAuth::new("Circle Of Life", "");
         let challenge = DigestChallenge {
             realm: "testrealm@host.com".to_string(),
             nonce: "dcd98b7102dd2f0e8b11d0f600bfb0c093".to_string(),
@@ -234,7 +234,7 @@ mod tests {
         };
         let mut state = DigestState::new(challenge);
 
-        let header = state.authorize(&auth, "GET", "/dir/index.html", "ignored");
+        let header = state.authorize("Mufasa", &auth, "GET", "/dir/index.html", "ignored");
         assert_eq!(state.nonce_count(), 0); // Not incremented when qop is not used
 
         // HA1 = MD5(Mufasa:testrealm@host.com:Circle Of Life) = 939e7578ed9e3c518a452acee763bce9
@@ -254,7 +254,7 @@ mod tests {
         // method="GET", uri="/dir/index.html"
         // nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093"
         // cnonce="0a4f113b", nc=1 (formatted 00000001)
-        let auth = DecryptedCameraAuth::new("Mufasa", "Circle Of Life");
+        let auth = DecryptedCameraAuth::new("Circle Of Life", "");
         let challenge = DigestChallenge {
             realm: "testrealm@host.com".to_string(),
             nonce: "dcd98b7102dd2f0e8b11d0f600bfb0c093".to_string(),
@@ -264,7 +264,7 @@ mod tests {
         };
         let mut state = DigestState::new(challenge);
 
-        let header = state.authorize(&auth, "GET", "/dir/index.html", "0a4f113b");
+        let header = state.authorize("Mufasa", &auth, "GET", "/dir/index.html", "0a4f113b");
         assert_eq!(state.nonce_count(), 1);
 
         // HA1 = 939e7578e77acac5157648b7602f71dd
@@ -278,7 +278,7 @@ mod tests {
         assert!(header.contains(r#"opaque="5ccc069c403ebaf9f0171e9517f40e41""#));
 
         // Subsequent call increments nc
-        let header2 = state.authorize(&auth, "GET", "/dir/index.html", "0a4f113b");
+        let header2 = state.authorize("Mufasa", &auth, "GET", "/dir/index.html", "0a4f113b");
         assert_eq!(state.nonce_count(), 2);
         assert!(header2.contains(r#"nc=00000002"#));
     }

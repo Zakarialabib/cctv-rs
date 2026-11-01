@@ -71,6 +71,7 @@ pub fn compute_password_digest(nonce: &[u8], created: &str, password: &str) -> S
 
 /// Generate the `<wsse:Security>` SOAP header for skewed-clock WS-Security.
 pub fn build_ws_security_header(
+    username: &str,
     auth: &DecryptedCameraAuth,
     nonce_bytes: &[u8],
     host_utc_ms: i64,
@@ -80,7 +81,7 @@ pub fn build_ws_security_header(
     let created = iso8601_utc_ms(effective_ms);
     let digest = compute_password_digest(nonce_bytes, &created, auth.password.as_str());
     let nonce_b64 = base64::engine::general_purpose::STANDARD.encode(nonce_bytes);
-    let escaped_user = cctv_transport::xml::escape(&auth.username);
+    let escaped_user = cctv_transport::xml::escape(username);
 
     format!(
         r#"<wsse:Security xmlns:wsse="{WSSE_NS}" xmlns:wsu="{WSU_NS}" s:mustUnderstand="1"><wsse:UsernameToken><wsse:Username>{escaped_user}</wsse:Username><wsse:Password Type="{PASSWORD_DIGEST}">{digest}</wsse:Password><wsse:Nonce EncodingType="{NONCE_B64}">{nonce_b64}</wsse:Nonce><wsu:Created>{created}</wsu:Created></wsse:UsernameToken></wsse:Security>"#
@@ -114,12 +115,12 @@ mod tests {
 
     #[test]
     fn ws_security_header_contains_skewed_created_and_digest() {
-        let auth = DecryptedCameraAuth::new("admin&user", "secret_pass");
+        let auth = DecryptedCameraAuth::new("secret_pass", "");
         let nonce = b"0123456789abcdef";
         let host_utc_ms = 1_792_713_600_000i64; // 2026-10-23T00:00:00.000Z
         let offset_ms = 3_661_500i64; // + 1 hr 1 min 1 sec 500 ms -> 2026-10-23T01:01:01.500Z
 
-        let header = build_ws_security_header(&auth, nonce, host_utc_ms, offset_ms);
+        let header = build_ws_security_header("admin&user", &auth, nonce, host_utc_ms, offset_ms);
         assert!(header.contains("<wsse:Username>admin&amp;user</wsse:Username>"));
         assert!(header.contains("<wsu:Created>2026-10-23T01:01:01.500Z</wsu:Created>"));
         assert!(header.contains("MDEyMzQ1Njc4OWFiY2RlZg=="));

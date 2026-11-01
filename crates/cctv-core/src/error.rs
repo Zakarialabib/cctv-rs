@@ -53,9 +53,32 @@ pub enum CameraError {
     /// Storage or media is writing or locked (e.g. PTP StoreNotReady).
     #[error("camera media is unavailable")]
     MediaUnavailable,
+    /// Concurrent RTSP session capacity reached on the camera device.
+    #[error("session limit exceeded")]
+    SessionLimitExceeded,
     /// Unknown — the driver surfaced something unclassified.
     #[error("{0}")]
     Other(String),
+}
+
+/// Core domain error distinct from driver failure taxonomy.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum CoreError {
+    /// Credentials were found embedded in a path where forbidden.
+    #[error("credentials present in path")]
+    CredentialsPresentInPath,
+    /// Operation or parameter error.
+    #[error("{0}")]
+    Other(String),
+}
+
+impl From<CoreError> for CameraError {
+    fn from(e: CoreError) -> Self {
+        match e {
+            CoreError::CredentialsPresentInPath => CameraError::AuthFailed,
+            CoreError::Other(msg) => CameraError::Other(msg),
+        }
+    }
 }
 
 impl From<CameraError> for String {
@@ -85,6 +108,10 @@ mod tests {
         assert_eq!(
             CameraError::NotImplemented.to_string(),
             "command not implemented by this vendor"
+        );
+        assert_eq!(
+            CameraError::SessionLimitExceeded.to_string(),
+            "session limit exceeded"
         );
         assert_eq!(
             CameraError::Other("vendor said no".into()).to_string(),

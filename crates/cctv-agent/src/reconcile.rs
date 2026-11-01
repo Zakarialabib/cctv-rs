@@ -339,6 +339,11 @@ fn grade_error(camera_id: &str, error: &CameraError) -> Remediation {
             Action::Hold,
             "device busy; wait and retry (resource contention)",
         ),
+        CameraError::SessionLimitExceeded => (
+            Grade::Retry,
+            Action::Hold,
+            "session limit exceeded; wait for a session slot to free",
+        ),
         CameraError::MediaUnavailable => (
             Grade::Observe,
             Action::Hold,

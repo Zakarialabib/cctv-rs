@@ -97,7 +97,11 @@ dependencies = [
 name = "cctv-agent"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cctv-core",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -126,6 +130,8 @@ version = "0.1.0"
 dependencies = [
  "cctv-core",
  "cctv-transport",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

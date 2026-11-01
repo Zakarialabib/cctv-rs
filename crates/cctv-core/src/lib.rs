@@ -73,8 +73,11 @@ pub mod commands;
 pub mod conformance;
 pub mod error;
 pub mod events;
+pub mod imperative;
+pub mod lease;
 #[cfg(feature = "testing")]
 pub mod mock;
+pub mod provisioning;
 #[cfg(feature = "quirks")]
 pub mod quirks;
 pub mod state;
@@ -98,7 +101,13 @@ pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,
 };
-pub use error::CameraError;
+pub use error::{CameraError, CoreError};
 pub use events::DomainEvent;
+pub use imperative::ImperativeCameraCommand;
+pub use lease::{CameraId, LeaseMode, MaintenanceLease};
+pub use provisioning::{
+    CameraCapabilitySet, CameraProvisioningBundleV1, DecryptedCameraAuth, EncryptedAuthEnvelope,
+    MacAddress, StreamProfileSet,
+};
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
-pub use types::{CameraType, DecryptedCameraAuth};
+pub use types::CameraType;
