@@ -21,7 +21,7 @@ pub mod facade;
 pub use drivers::{DriverFactory, EZVIZ, ONVIF, PTP, UVC};
 pub use facade::{clock_ms, Facade};
 
-pub use cctv_agent::{Action, Audit, AuditEntry, Grade, Reconciler, Remediation};
+pub use cctv_agent::{Action, Audit, AuditEntry, CommandRelay, Grade, Reconciler, Remediation};
 pub use cctv_core::{
     CameraConfig, CameraError, CameraHandle, CameraState, CameraStateCurrent, CameraType,
     CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource, MediaFile, Preset,

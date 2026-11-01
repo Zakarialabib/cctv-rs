@@ -16,4 +16,4 @@ pub mod audit;
 pub mod reconcile;
 
 pub use audit::{Audit, AuditEntry};
-pub use reconcile::{Action, Grade, Reconciler, Remediation};
+pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};

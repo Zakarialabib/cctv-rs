@@ -50,12 +50,19 @@ Work packages, release targets, and verification criteria for `cctv-rs`.
   `cctv-discovery`'s `message_id` and `camera_from_probe_match` are published
   as the delegation seams; publish order swapped (`discovery` before `onvif`).
 
-### W5 — `cctv-agent`: Active Remediation
+### W5 — `cctv-agent`: Active Remediation ✅ (complete 2026-11-01)
 - **Goal:** Enable the reconciler to issue remediation commands directly when state drift is detected.
 - **Verification Gate:**
   ```bash
   cargo test -p cctv-agent
   ```
+- **Outcome:** `Remediation::commands` derives the authorized `CommandId`s from
+  the action (hold issues nothing; offline → connection test; out-of-service →
+  set-enabled; streaming/recording drift → start-stream; retrying drift →
+  connection test).  `Reconciler::with_command_relay(Box<dyn CommandRelay>)`
+  issues them through the sync relay as they are graded, auditing each as
+  `issued <CommandId>`; no relay = report-only, unchanged.  Exported from
+  `cctv-rs`.  **Milestone 0.3.0: W4 + W5 complete; W6 (vendor drivers) open.**
 
 ---
 
