@@ -161,6 +161,7 @@ dependencies = [
  "async-trait",
  "cctv-agent",
  "cctv-core",
+ "cctv-detect",
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-onvif",

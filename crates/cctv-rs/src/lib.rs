@@ -27,6 +27,7 @@ pub use cctv_core::{
     CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource, MediaFile, Preset,
     PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
+pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
 pub use cctv_discovery::DiscoveredCamera;
 pub use cctv_stream_uvc::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,

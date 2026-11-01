@@ -15,6 +15,7 @@ use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraStateCurrent, CommandId,
     CommandResultPayload, ProbeResult, PtzCommand, StreamInfo, StreamQuality,
 };
+use cctv_detect::{Detection, Zone, ZoneConfig};
 use cctv_discovery::Datagram;
 use cctv_rs::{Action, DriverFactory, Facade};
 
@@ -500,6 +501,114 @@ fn reconciling_advances_the_fleet_and_records_every_remediation() {
     assert_eq!(dead.action, Action::MarkOffline);
 
     assert_eq!(facade.reconciler().audit().len(), 2, "all on the record");
+}
+
+#[test]
+fn zones_round_trip_through_the_facade() {
+    let mut facade = Facade::new();
+    let zone = Zone::rectangle(0.25, 0.25, 0.5, 0.5);
+    let config = ZoneConfig::default_for(zone, 0.7);
+
+    facade.zone_save("door", config.clone());
+    assert_eq!(
+        facade.zone_list(),
+        vec![("door".to_string(), config.clone())]
+    );
+    assert_eq!(facade.zone_config("door"), Some(config));
+    assert_eq!(facade.zone_config("nope"), None);
+
+    assert!(facade.zone_delete("door"));
+    assert!(!facade.zone_delete("door"), "idempotent delete");
+    assert!(facade.zone_list().is_empty());
+}
+
+#[test]
+fn a_detection_below_the_zone_threshold_is_not_reported() {
+    let mut facade = Facade::new();
+    facade.zone_save(
+        "door",
+        ZoneConfig::default_for(Zone::point(0.0, 0.0, 4.0), 0.8),
+    );
+
+    let quiet = Detection::motion(Zone::point(0.0, 0.0, 4.0), 0.5);
+    let fired = facade
+        .record_detection("cam", "door", &quiet)
+        .expect("the zone exists");
+    assert!(fired.is_none(), "below threshold: {fired:?}");
+    assert!(facade.motion_events("cam").is_empty());
+}
+
+#[test]
+fn a_detection_in_an_unknown_zone_is_a_typed_error() {
+    let mut facade = Facade::new();
+    let det = Detection::motion(Zone::point(0.0, 0.0, 4.0), 0.9);
+    let err = facade.record_detection("cam", "ghost", &det).unwrap_err();
+    assert!(matches!(err, CameraError::Other(_)), "{err:?}");
+}
+
+#[test]
+fn the_monitor_fires_only_after_min_detections_in_the_window() {
+    let mut facade = Facade::new();
+    let mut config = ZoneConfig::default_for(Zone::point(0.0, 0.0, 4.0), 0.5);
+    config.min_detections = 3;
+    config.window_s = 60;
+    facade.zone_save("door", config);
+
+    let loud = Detection::motion(Zone::point(0.0, 0.0, 4.0), 0.9);
+    assert!(facade
+        .record_detection("cam", "door", &loud)
+        .expect("zone exists")
+        .is_none());
+    assert!(facade
+        .record_detection("cam", "door", &loud)
+        .expect("zone exists")
+        .is_none());
+
+    let fired = facade
+        .record_detection("cam", "door", &loud)
+        .expect("zone exists")
+        .expect("third qualifying detection fires the monitor");
+    assert_eq!(fired.camera_id, "cam");
+    assert_eq!(fired.zone_id, "door");
+    assert!(fired.ts > 0, "stamped on the facade clock");
+    assert!((fired.confidence - 0.9).abs() < f32::EPSILON);
+
+    // The fired event is on the list, and the window cleared: a fresh run is
+    // needed for the next fire.
+    assert_eq!(facade.motion_events("cam").len(), 1);
+    assert!(facade
+        .record_detection("cam", "door", &loud)
+        .expect("zone exists")
+        .is_none());
+}
+
+#[test]
+fn zone_motion_list_events_answers_through_execute() {
+    let mut facade = facade_with("cam");
+    facade.zone_save(
+        "door",
+        ZoneConfig::default_for(Zone::point(0.0, 0.0, 4.0), 0.5),
+    );
+    let loud = Detection::motion(Zone::point(0.0, 0.0, 4.0), 0.9);
+    facade
+        .record_detection("cam", "door", &loud)
+        .expect("zone exists")
+        .expect("min_detections defaults to 1, so this fires");
+
+    let result =
+        block_on(facade.execute("cam", CommandId::ZoneMotionListEvents)).expect("the route exists");
+    assert_eq!(result.camera_id.as_deref(), Some("cam"));
+    match result.result {
+        CommandResultPayload::MotionEvents { events } => {
+            assert_eq!(events.len(), 1);
+            assert_eq!(events[0].zone_id, "door");
+        }
+        other => panic!("expected MotionEvents, got {other:?}"),
+    }
+
+    // An unimplemented zone command stays a typed error.
+    let err = block_on(facade.execute("cam", CommandId::ZoneSave)).unwrap_err();
+    assert_eq!(err, CameraError::NotImplemented);
 }
 
 #[test]
