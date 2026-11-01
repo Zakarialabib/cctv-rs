@@ -6,7 +6,7 @@
 //! Supports both legacy RFC 2617 without quality-of-protection
 //! (`response = MD5(HA1:nonce:HA2)`) and `qop="auth"`
 //! (`response = MD5(HA1:nonce:nc:cnonce:qop:HA2)`), pulling the password from
-//! [`DecryptedCameraAuth`]'s zero-on-drop [`zeroize::Zeroizing<String>`].
+//! [`DecryptedCameraAuth`]'s zero-on-drop `Zeroizing<String>`.
 
 use cctv_core::DecryptedCameraAuth;
 use md5::{Digest as _, Md5};
