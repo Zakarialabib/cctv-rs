@@ -58,6 +58,26 @@ pub enum CameraError {
     Other(String),
 }
 
+/// Core domain error distinct from driver failure taxonomy.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum CoreError {
+    /// Credentials were found embedded in a path where forbidden.
+    #[error("credentials present in path")]
+    CredentialsPresentInPath,
+    /// Operation or parameter error.
+    #[error("{0}")]
+    Other(String),
+}
+
+impl From<CoreError> for CameraError {
+    fn from(e: CoreError) -> Self {
+        match e {
+            CoreError::CredentialsPresentInPath => CameraError::AuthFailed,
+            CoreError::Other(msg) => CameraError::Other(msg),
+        }
+    }
+}
+
 impl From<CameraError> for String {
     fn from(e: CameraError) -> Self {
         e.to_string()

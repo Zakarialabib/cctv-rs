@@ -18,6 +18,7 @@
 use crate::prelude::*;
 
 use async_trait::async_trait;
+#[cfg(feature = "serde-sync")]
 use serde::{Deserialize, Serialize};
 
 use crate::commands::Preset;
@@ -26,8 +27,9 @@ use crate::state::ProbeResult;
 use crate::types::CameraType;
 
 /// Which of a camera's encoded streams to address.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-sync", serde(rename_all = "snake_case"))]
 pub enum StreamQuality {
     /// The full-resolution main stream.
     #[default]
@@ -37,7 +39,8 @@ pub enum StreamQuality {
 }
 
 /// A resolved stream: where to play it and what the device advertised for it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub struct StreamInfo {
     /// The playable URI (normally `rtsp://`).  **May contain credentials** —
     /// log it only through [`StreamInfo::redacted_uri`].
@@ -69,7 +72,8 @@ pub trait FrameSource: Send + Sync {
 }
 
 /// A media file captured from a camera (e.g. via PTP DeviceTriggerCapture).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub struct MediaFile {
     /// Unique file identifier or path on device.
     pub id: String,
@@ -111,8 +115,9 @@ impl Snapshot {
 }
 
 /// A PTZ instruction, in the vendor-neutral vocabulary.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "kind")]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-sync", serde(rename_all = "snake_case", tag = "kind"))]
 pub enum PtzCommand {
     /// Move continuously at a normalised velocity until [`PtzCommand::Stop`].
     ///
@@ -169,7 +174,8 @@ impl PtzCommand {
 /// `driver` selects the driver crate through the facade's registry; every
 /// other field is protocol-agnostic.  Unknown fields in `extra` are kept, so an
 /// application can store its own per-camera settings next to the connection.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub struct CameraConfig {
     /// Stable camera identity chosen by the application.
     pub id: String,
@@ -178,39 +184,39 @@ pub struct CameraConfig {
     /// Host name or IP address of the camera.
     pub host: String,
     /// HTTP / SOAP port; the driver's default when absent.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub port: Option<u16>,
     /// RTSP port; 554 when absent.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub rtsp_port: Option<u16>,
     /// Use HTTPS for the control API.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub https: bool,
     /// Username for the control API and the stream.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub username: Option<String>,
     /// Password for the control API and the stream.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub password: Option<String>,
     /// Video channel (1-based) for multi-channel devices; 1 when absent.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub channel: Option<u32>,
     /// Full control-service URL, overriding `host` / `port` (e.g. an ONVIF
     /// device service `XAddr` from discovery).
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub service_url: Option<String>,
     /// Operator-facing label.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub label: Option<String>,
     /// What the device is.
-    #[serde(default = "default_camera_type")]
+    #[cfg_attr(feature = "serde-sync", serde(default = "default_camera_type"))]
     pub ty: CameraType,
     /// Accept a self-signed / mismatched HTTPS certificate (common on
     /// cameras).  Off by default.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub accept_invalid_certs: bool,
     /// Request timeout in milliseconds; the driver's default when absent.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde-sync", serde(default))]
     pub timeout_ms: Option<u64>,
 }
 
@@ -548,6 +554,7 @@ mod tests {
         assert_eq!(c.password.as_deref(), Some("pw"));
     }
 
+    #[cfg(feature = "serde-sync")]
     #[test]
     fn config_deserializes_with_defaults() {
         let c: CameraConfig =

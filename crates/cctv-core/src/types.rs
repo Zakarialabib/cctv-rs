@@ -15,7 +15,8 @@
 //!   reconciler relies on.
 
 /// The kind of device a camera is, independent of how it is driven.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde-sync", derive(serde::Serialize, serde::Deserialize))]
 pub enum CameraType {
     /// Consumer IP camera.  WiFi / PoE.  Minimal PTZ, typical 2.8mm–4mm lens.
     Consumer,

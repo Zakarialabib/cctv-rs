@@ -17,10 +17,12 @@
 use crate::prelude::*;
 
 use crate::types::CameraType;
+#[cfg(feature = "serde-sync")]
 use serde::{Deserialize, Serialize};
 
 /// One camera, as the fleet believes it to be right now.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub struct CameraState {
     /// Stable identity chosen by the caller (MAC, serial, IP, Ezviz ID).  The
     /// key that joins a `discover` result back to a device the app already
@@ -58,7 +60,8 @@ pub struct CameraState {
 }
 
 /// The camera's desired state, set by the operator or a dashboard rule.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub enum CameraDesired {
     /// Idle: stream on, but nothing scripted.
     Idle,
@@ -73,7 +76,8 @@ pub enum CameraDesired {
 }
 
 /// What the camera is believed to be doing right now.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub enum CameraStateCurrent {
     /// Powered off.
     Off,
@@ -96,7 +100,8 @@ pub enum CameraStateCurrent {
 }
 
 /// Raw trust anchor from a probe.  Used to update confidence.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-sync", derive(Serialize, Deserialize))]
 pub struct ProbeResult {
     /// Vendor name reported by the device.
     pub vendor: String,
