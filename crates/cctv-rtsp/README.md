@@ -13,6 +13,7 @@ Operates purely on byte slices: no network sockets, no runtime dependencies, no 
 - **Message Parsing & Serialization:** Incremental parser for RTSP requests, responses, and `$`-prefixed interleaved binary frames on TCP connections.
 - **SDP Parser:** Extracts media tracks, control URLs (`a=control`), payload types, clock rates, and out-of-band SPS/PPS parameter sets (`sprop-parameter-sets`).
 - **Incremental Streaming Parser:** Returns `RtspError::Incomplete` when receiving partial frames, allowing callers to buffer socket reads cleanly.
+- **Digest Authentication:** challenge parser for `401 WWW-Authenticate: Digest` (RFC 2617 and RFC 7616, `qop="auth"` included) plus `Authorization` header generation, drawing the password from `DecryptedCameraAuth`'s zero-on-drop `Zeroizing<String>`.
 
 ## Usage Example
 

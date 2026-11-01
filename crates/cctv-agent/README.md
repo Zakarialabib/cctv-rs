@@ -23,6 +23,12 @@ Instead of binary on/off states, `cctv-agent` grades failures to avoid unnecessa
 
 Every state transition and remediation decision records an append-only `AuditEntry` containing timestamps, camera handle, remediation grade, and actionable cause.
 
+## Active Remediation (`CommandRelay`)
+
+`Remediation::commands` names the `CommandId`s a grade authorizes — `MarkOffline` → `TestCameraConnection`, `TakeOutOfService` → `CameraSetEnabled`, `Advance(Streaming|Recording)` → `StartCameraStream`, `Advance(Retrying)` → `TestCameraConnection`. `Hold` and non-actionable grades issue nothing, and an authentication failure never commands: only an operator can supply credentials.
+
+`Reconciler::with_command_relay` makes issuance active — commands flow through the sync relay as they are graded, each audited as `issued <CommandId>`. Without a relay the reconciler stays report-only. `cctv-agent` still opens no connection and pulls no runtime.
+
 ## Usage Example
 
 ```rust,no_run

@@ -4,12 +4,20 @@ All notable changes to the `cctv-rs` workspace are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-All seven crates are versioned and released together.
+All eleven crates are versioned and released together.
 
-## [Unreleased]
+## [0.2.0] - 2026-11-01
 
 ### Added
 
+- **Skewed-clock WS-Security & RTSP Digest** (PR #36): `cctv_onvif::auth`
+  computes `<wsu:Created>` and the `#PasswordDigest` from host UTC plus the
+  observed camera-clock offset, so devices with drifted clocks or wrong
+  timezones authenticate; PTZ requests use the same auth. `cctv_rtsp::digest`
+  is a full RTSP Digest state machine — parses `401 WWW-Authenticate: Digest`
+  challenges (RFC 2617 and RFC 7616, `qop="auth"` included) and generates the
+  `Authorization` header, pulling the password from `DecryptedCameraAuth`'s
+  zero-on-drop `Zeroizing<String>` (`zeroize` deduplicated across the graph).
 - **`cctv-detect` wired into the facade** (it was an orphan — nothing depended
   on it): `Facade` gains the zone surface — `zone_save` / `zone_list` /
   `zone_config` / `zone_delete` for `ZoneConfig`, and `record_detection`, which
@@ -223,5 +231,6 @@ All seven crates are versioned and released together.
   `CameraError` taxonomy, the confidence-carrying camera state machine and the
   mock backend with its conformance suite.
 
-[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zakarialabib/cctv-rs/releases/tag/v0.1.0

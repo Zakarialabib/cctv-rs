@@ -11,6 +11,8 @@ Translates ONVIF XML protocols cleanly into the standard `cctv-core` device mode
 ## Features
 
 - **WS-Security Authentication:** Generates XML `UsernameToken` headers with `#PasswordDigest`, nonces, and ISO 8601 UTC timestamps.
+- **Skewed-Clock WS-Security:** the digest computes `<wsu:Created>` and the password digest from host UTC plus the observed camera-clock offset, so devices with drifted clocks or wrong timezones still authenticate; PTZ requests use the same auth.
+- **ONVIF Discovery:** `cctv_onvif::discovery` exposes the `Discoverable` sweep — a WS-Discovery `Probe` delegated to `cctv-discovery`, returning only ONVIF-evidenced cameras (XAddr set from the probe's replies).
 - **Device Management:** `GetDeviceInformation`, `GetCapabilities`, endpoint caching across ONVIF `XAddr` service locations.
 - **Media Management:** Profile listing, RTSP stream URI extraction, and JPEG snapshot URI acquisition.
 - **PTZ Control:** Continuous PTZ movements, absolute positioning, stop commands, and preset management.

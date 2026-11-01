@@ -22,7 +22,9 @@ No C bindings, no vendor SDK bloat, no UI, no database dependencies, and `#![for
 | [`cctv-onvif`](crates/cctv-onvif) | [![v](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif) | [![docs](https://docs.rs/cctv-onvif/badge.svg)](https://docs.rs/cctv-onvif) | ONVIF Device, Media, and PTZ services over SOAP 1.2 with WS-Security `UsernameToken` authentication. |
 | [`cctv-discovery`](crates/cctv-discovery) | [![v](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery) | [![docs](https://docs.rs/cctv-discovery/badge.svg)](https://docs.rs/cctv-discovery) | UDP multicast sweeps using SSDP `M-SEARCH` and WS-Discovery `Probe`, merged into strongly typed device results. |
 | [`cctv-ezviz`](crates/cctv-ezviz) | [![v](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz) | [![docs](https://docs.rs/cctv-ezviz/badge.svg)](https://docs.rs/cctv-ezviz) | Ezviz Open Platform integration, wrapping `ezviz-openapi` into the standard `CameraBackend` trait. |
+| [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | [![docs](https://docs.rs/cctv-stream-uvc/badge.svg)](https://docs.rs/cctv-stream-uvc) | UVC and PTP adapters plus the OS seam: budgeted frame reading, HAL hot-plug events, PTP capture surfaces. |
 | [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | [![docs](https://docs.rs/cctv-agent/badge.svg)](https://docs.rs/cctv-agent) | Deterministic fleet reconciler: compares desired vs observed state, issues graded remediation, maintains audit trail. |
+| [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | [![docs](https://docs.rs/cctv-detect/badge.svg)](https://docs.rs/cctv-detect) | Detection device model — zones, detection reports, and monitor settings. No I/O, no algorithms. |
 | [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | [![docs](https://docs.rs/cctv-rs/badge.svg)](https://docs.rs/cctv-rs) | Public aggregate facade: camera registry, dispatch, network discovery, and fleet reconciliation. |
 
 ## Quick Start
@@ -31,31 +33,31 @@ Add `cctv-rs` to your application:
 
 ```toml
 [dependencies]
-cctv-rs = "0.1.0"
+cctv-rs = "0.2.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
 Initialize the facade, discover LAN cameras, and dispatch typed commands:
 
 ```rust,no_run
-use cctv_rs::Facade;
-use cctv_core::{CameraConfig, CameraHandle, CommandId};
+use cctv_rs::{CameraConfig, CommandId, Facade};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Construct facade with builtin ONVIF and Ezviz drivers
-    let facade = Facade::with_builtin_drivers();
+    // Construct the facade with the builtin ONVIF and Ezviz driver factories
+    let mut facade = Facade::new().with_builtin_drivers();
 
-    // Perform an asynchronous LAN sweep (SSDP + WS-Discovery)
-    let discovered = facade.discover().await?;
+    // LAN sweep — SSDP + WS-Discovery, synchronous
+    let discovered = facade.discover();
     println!("Discovered {} cameras", discovered.len());
 
-    // Register a camera into the fleet
-    let handle = CameraHandle::from("camera-01");
-    let config = CameraConfig::new("camera-01", "192.168.1.64", "onvif");
-    facade.register(handle.clone(), config).await?;
+    // Register a camera: the driver key resolves through the factory registry
+    let config = CameraConfig::new("camera-01", "onvif", "192.168.1.64");
+    let handle = facade.attach(config)?;
 
-    // Dispatch typed commands
-    let result = facade.execute(handle.as_str(), CommandId::GetCameraFrame).await?;
+    // Dispatch any typed command through the universal entry point
+    let result = facade.execute(handle.id(), CommandId::GetCameraFrame).await?;
+    println!("{:?}", result);
 
     Ok(())
 }
