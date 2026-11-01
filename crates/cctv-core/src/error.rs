@@ -53,6 +53,9 @@ pub enum CameraError {
     /// Storage or media is writing or locked (e.g. PTP StoreNotReady).
     #[error("camera media is unavailable")]
     MediaUnavailable,
+    /// Concurrent RTSP session capacity reached on the camera device.
+    #[error("session limit exceeded")]
+    SessionLimitExceeded,
     /// Unknown — the driver surfaced something unclassified.
     #[error("{0}")]
     Other(String),
@@ -85,6 +88,10 @@ mod tests {
         assert_eq!(
             CameraError::NotImplemented.to_string(),
             "command not implemented by this vendor"
+        );
+        assert_eq!(
+            CameraError::SessionLimitExceeded.to_string(),
+            "session limit exceeded"
         );
         assert_eq!(
             CameraError::Other("vendor said no".into()).to_string(),
