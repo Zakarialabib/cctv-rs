@@ -6,8 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use cctv_agent::AuditEntry;
-use cctv_core::{CameraId, MotionEvent};
+use cctv_core::{AuditEntry, CameraId, MotionEvent};
 
 /// Severity rating for an incident chunk.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

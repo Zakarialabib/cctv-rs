@@ -254,7 +254,17 @@ impl Facade {
             }
             fleet.push(state);
         }
-        self.reconciler.reconcile_all(&mut fleet)
+        let remediations = self.reconciler.reconcile_all(&mut fleet);
+
+        // Feed any new audit entries resulting from reconciliation into the RAG ledger
+        let now = clock_ms();
+        for entry in self.reconciler.audit().entries() {
+            if now.saturating_sub(entry.at_ms) <= 60_000 {
+                self.rag.coalescer_mut().ingest_audit(entry, now);
+            }
+        }
+
+        remediations
     }
 
     // -- zones & detections (cctv-detect) ----------------------------------
@@ -366,6 +376,13 @@ impl Facade {
         self.rag.topology().find_handoff_candidates(zone_id)
     }
 
+    /// Autonomous PTZ handoff recommendation for a triggered zone.
+    ///
+    /// Returns the top-ranked candidate with available stream budget and lowest transit time.
+    pub fn recommend_ptz_handoff(&self, zone_id: &str) -> Option<HandoffCandidate> {
+        self.find_handoff_candidates(zone_id).into_iter().next()
+    }
+
     /// Query the RAG engine for synthesized context envelope over incidents, topology, and diagnostics.
     pub fn rag_query(
         &self,
@@ -373,6 +390,11 @@ impl Facade {
         top_k: usize,
     ) -> Result<RagContextEnvelope, RagError> {
         self.rag.query(query_text, top_k)
+    }
+
+    /// Query the RAG engine using default top_k = 5.
+    pub fn query_rag(&self, query_text: &str) -> Result<RagContextEnvelope, RagError> {
+        self.rag_query(query_text, 5)
     }
 
     /// The motion events fired for one camera — the `ZoneMotionListEvents`

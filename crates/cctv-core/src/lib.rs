@@ -102,7 +102,7 @@ pub use commands::{
     Preset, SnapshotRef, StreamHandle,
 };
 pub use error::{CameraError, CoreError};
-pub use events::DomainEvent;
+pub use events::{AuditEntry, DomainEvent};
 pub use imperative::ImperativeCameraCommand;
 pub use lease::{CameraId, LeaseMode, MaintenanceLease};
 pub use provisioning::{

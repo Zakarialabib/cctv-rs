@@ -9,7 +9,6 @@ description = "Temporal incident ledger, spatial topology graph, and diagnostic 
 
 [dependencies]
 cctv-core = { workspace = true, features = ["serde-sync"] }
-cctv-agent = { workspace = true }
 cctv-detect = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
