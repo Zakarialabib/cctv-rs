@@ -4,38 +4,36 @@
 [![docs.rs](https://docs.rs/cctv-rtsp/badge.svg)](https://docs.rs/cctv-rtsp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Pure session codecs for RTSP protocol messaging, SDP (Session Description Protocol) parsing, and interleaved binary stream multiplexing.
+Pure session codecs for RTSP 1.0 messaging, SDP (Session Description Protocol) parsing, and interleaved stream demuxing.
 
-Operates purely on byte slices: no network sockets, no runtime dependencies, no side effects.
+Pure computational layer: decoupled from network sockets, operating strictly on byte buffers.
 
-## Capabilities
+## Primitives
 
-- **Message Parsing & Serialization:** Incremental parser for RTSP requests, responses, and `$`-prefixed interleaved binary frames on TCP connections.
-- **SDP Parser:** Extracts media tracks, control URLs (`a=control`), payload types, clock rates, and out-of-band SPS/PPS parameter sets (`sprop-parameter-sets`).
-- **Incremental Streaming Parser:** Returns `RtspError::Incomplete` when receiving partial frames, allowing callers to buffer socket reads cleanly.
-- **Digest Authentication:** challenge parser for `401 WWW-Authenticate: Digest` (RFC 2617 and RFC 7616, `qop="auth"` included) plus `Authorization` header generation, drawing the password from `DecryptedCameraAuth`'s zero-on-drop `Zeroizing<String>`.
+- **Framing & Codecs**: Incremental parser for RTSP requests, responses, and `$`-prefixed interleaved binary frames.
+- **SDP Extraction**: Parses media tracks, control paths (`a=control`), payload formats, clock rates, and SPS/PPS (`sprop-parameter-sets`).
+- **Digest Authentication**: RFC 2617 & RFC 7616 challenge parser for `401 WWW-Authenticate: Digest` (`qop="auth"` supported) and response generator with `zeroize` secret integration.
+- **Incremental Parsing**: Emits `RtspError::Incomplete` on partial buffers for clean async socket accumulation.
 
-## Usage Example
+## Invariants
+
+- `#![forbid(unsafe_code)]`
+- Pure byte-slice protocol codecs; network I/O remains isolated in client layers.
+
+## Usage
 
 ```rust,no_run
 use cctv_rtsp::{Message, RtspError};
 
-fn parse_stream_buffer(buffer: &[u8]) {
+fn process_chunk(buffer: &[u8]) {
     match Message::parse(buffer) {
         Ok((msg, consumed)) => {
-            println!("Parsed RTSP message consuming {} bytes: {:?}", consumed, msg);
+            println!("Parsed RTSP message (consumed {} bytes): {:?}", consumed, msg);
         }
         Err(RtspError::Incomplete) => {
-            // Wait for additional socket data
+            // Buffer additional incoming socket bytes
         }
-        Err(e) => {
-            eprintln!("RTSP protocol error: {:?}", e);
-        }
+        Err(e) => eprintln!("RTSP protocol error: {:?}", e),
     }
 }
 ```
-
-## Technical Guarantees
-
-- `#![forbid(unsafe_code)]`
-- Pure computational layer: completely decoupled from network I/O.

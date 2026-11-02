@@ -4,34 +4,33 @@
 [![docs.rs](https://docs.rs/cctv-core/badge.svg)](https://docs.rs/cctv-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-The foundational device model for `cctv-rs`. `cctv-core` defines the zero-runtime types, command catalogue, state machine, error taxonomy, and mock backend used across the entire workspace.
+Foundational device model for `cctv-rs`. Pure `alloc`-only abstractions: traits, typed command inventory, state machine, zeroized secrets, error taxonomy, and conformance suite.
 
-Designed for `alloc`-only targets (`#![no_std]` + `extern crate alloc`), `cctv-core` never pulls Tokio, async socket layers, or protocol dependencies into its graph.
+Zero Tokio, zero socket dependencies, zero panics.
 
-## Core Capabilities
+## Primitives
 
-- **`CameraHandle` & `StreamHandle`:** Opaque, lightweight identifiers for cameras and active media streams.
-- **`CommandId` Catalogue:** Enumerable command inventory with strict deterministic ordering (`order()`) and capability checking (`supports()`).
-- **`CommandResult` & `CommandResultPayload`:** Strongly typed result envelopes for all camera operations.
-- **`CameraState` Machine:** `CameraDesired`, `CameraStateCurrent`, and `ProbeResult` data types tracking fleet reconciliation states.
-- **`CameraError` Taxonomy:** Rich, typed error enum eliminating library panics and sentinel error values.
-- **`MockBackend` & Conformance Suite:** Complete mock driver and test suite ensuring all drivers adhere strictly to contract expectations.
+- **Handles & Types**: Opaque `CameraHandle` and `StreamHandle` IDs; coarse-to-fine `CameraType` hardware classification.
+- **Commands**: 56-variant typed `CommandId` catalogue with deterministic `order()` and capability checks via `supports()`.
+- **Backend Trait**: Async `CameraBackend` trait defining uniform driver behavior.
+- **State Machine**: Reconciler states (`CameraDesired`, `CameraStateCurrent`, `ProbeResult`).
+- **Secret Safety**: `DecryptedCameraAuth` wrapping passwords in `zeroize::Zeroizing<String>` with redacted `Debug`.
+- **Quirks Engine**: Declarative TOML hardware/firmware workaround engine (feature `quirks`).
+- **Mock & Conformance**: Thread-safe `MockBackend` and verification suite for driver testing.
 
-## Quirks Engine (Feature `quirks`)
-
-Vendor device and firmware defects are handled declaratively via data tables rather than hardcoded logic.
-
-```rust,no_run
-use cctv_core::quirks::Quirks;
-
-let quirks = Quirks::bundled().expect("bundled TOML quirks parse");
-if let Some(action) = quirks.action_for("vendor_x", Some("MODEL-100"), Some("V1.0.2")) {
-    // Apply firmware-specific fixup
-}
-```
-
-## Technical Guarantees
+## Invariants
 
 - `#![forbid(unsafe_code)]`
-- `alloc`-only compatible (`default-features = false`).
-- Zero async runtime or socket dependencies in the graph.
+- `#![no_std]` + `extern crate alloc` (`--no-default-features`)
+- Serde gated behind optional `serde-sync` feature flag.
+
+## Usage
+
+```rust,no_run
+use cctv_core::{CameraBackend, CameraError, CameraHandle, CommandId, MockBackend};
+
+let mut mock = MockBackend::new("mock-01");
+let handle = CameraHandle::new("mock-01");
+
+assert!(mock.supports(CommandId::GetCameraFrame));
+```

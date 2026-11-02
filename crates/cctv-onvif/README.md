@@ -6,19 +6,23 @@
 
 ONVIF protocol driver implementation for `cctv-rs`. Provides Device, Media, and PTZ services over SOAP 1.2 with WS-Security `UsernameToken` authentication.
 
-Translates ONVIF XML protocols cleanly into the standard `cctv-core` device model.
+Maps ONVIF XML protocols cleanly into the standard `CameraBackend` trait.
 
-## Features
+## Primitives
 
-- **WS-Security Authentication:** Generates XML `UsernameToken` headers with `#PasswordDigest`, nonces, and ISO 8601 UTC timestamps.
-- **Skewed-Clock WS-Security:** the digest computes `<wsu:Created>` and the password digest from host UTC plus the observed camera-clock offset, so devices with drifted clocks or wrong timezones still authenticate; PTZ requests use the same auth.
-- **ONVIF Discovery:** `cctv_onvif::discovery` exposes the `Discoverable` sweep — a WS-Discovery `Probe` delegated to `cctv-discovery`, returning only ONVIF-evidenced cameras (XAddr set from the probe's replies).
-- **Device Management:** `GetDeviceInformation`, `GetCapabilities`, endpoint caching across ONVIF `XAddr` service locations.
-- **Media Management:** Profile listing, RTSP stream URI extraction, and JPEG snapshot URI acquisition.
-- **PTZ Control:** Continuous PTZ movements, absolute positioning, stop commands, and preset management.
-- **Namespace-Agnostic XML Parsing:** Tolerates non-standard vendor XML prefixes (`tds:`, `trt:`, `tptz:`, `SOAP-ENV:`).
+- **WS-Security Auth**: Nonce, ISO 8601 UTC timestamp, and SHA-1 password digest calculation.
+- **Clock-Skew Compensation**: Adjusts `<wsu:Created>` timestamp using observed camera clock offset so authentication succeeds even on drifted devices.
+- **Device Management**: Queries device information, capabilities, and dynamic `XAddr` service endpoints.
+- **Media Profiles**: Resolves RTSP stream URLs and JPEG snapshot endpoints.
+- **PTZ Service**: Continuous movement, absolute positioning, velocity clamping, and preset storage.
+- **Discovery Delegate**: `OnvifDiscovery` delegates sweeps to `cctv-discovery` while filtering for verified ONVIF XAddrs.
 
-## Usage Example
+## Invariants
+
+- `#![forbid(unsafe_code)]`
+- Namespace-prefix-agnostic XML parsing.
+
+## Usage
 
 ```rust,no_run
 use cctv_onvif::{Credentials, OnvifSession};
@@ -28,21 +32,12 @@ use cctv_transport::http::HttpConfig;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = OnvifSession::new(
         "http://192.168.1.64/onvif/device_service",
-        Credentials { username: "admin".into(), password: "password".into() },
+        Credentials::new("admin", "secret123"),
         HttpConfig::default(),
-    )?;
+    );
 
-    let dev_info = session.device_information().await?;
-    println!("Device Model: {}", dev_info.model);
-
-    let profiles = session.profiles().await?;
-    println!("Found {} media profiles", profiles.len());
-
+    let profiles = session.get_profiles().await?;
+    println!("Media profiles: {}", profiles.len());
     Ok(())
 }
 ```
-
-## Technical Guarantees
-
-- `#![forbid(unsafe_code)]`
-- Conformance tested against mock SOAP fixtures.

@@ -1,29 +1,42 @@
-# Rust Package Engineering Standard
+# Rust Workspace Engineering Standard
 
-An authoritative standard for building and maintaining Rust library packages and workspaces within this repository.
-
----
-
-## 1. Repository Layout & Workspace Principles
-
-- **Explicit Workspace Members:** Member crates are listed explicitly in root `Cargo.toml`.
-- **Facade Pattern:** Aggregates child crates behind one public interface without leaking vendor implementation details.
-- **Crate Root Invariants:** Every crate root enforces `#![forbid(unsafe_code)]` and inherits `#![deny(missing_docs)]` via workspace lints.
+Authoritative standards, invariant rules, and CI gates for crates in this workspace.
 
 ---
 
-## 2. Error Contract & Panic Policy
+## 1. Workspace Principles
 
-- **No Library Panics:** `unwrap()`, `expect()`, `panic!()`, `unimplemented!()`, and `todo!()` are forbidden on reachable library paths.
-- **Typed Error Enums:** Every crate provides a `<Crate>Error` enum implemented via `thiserror`.
-- **Explicit Capability Errors:** Unsupported device features return `CameraError::Unsupported` rather than panicking or failing silently.
+- **Explicit Members**: Member crates are listed explicitly in root `Cargo.toml` in dependency and publish order. Wildcard path patterns (`crates/*`) are prohibited.
+- **Facade Seam**: External applications integrate through `cctv-rs`. Internal driver crates never leak vendor-specific structs into application models.
+- **Safety**: `#![forbid(unsafe_code)]` is enforced at the root of every crate.
+- **Documentation**: Missing docs are denied (`missing_docs = "deny"` in workspace lints).
 
 ---
 
-## 3. Dependency & CI Policy
+## 2. Error Contracts & Panic Policy
 
-- **Workspace Dependency Declarations:** External dependencies and versions are declared centrally in `[workspace.dependencies]`.
-- **Verification Gates:**
-  - `cargo check --workspace --all-targets`
-  - `cargo test --workspace`
-  - `cargo clippy --workspace --all-targets -- -D warnings`
+- **No Panics in Libraries**: `unwrap()`, `expect()`, `panic!()`, `unimplemented!()`, and `todo!()` are forbidden in production paths.
+- **Domain Errors**: Each crate defines a typed error enum via `thiserror`.
+- **Capability Handshake**: Unsupported hardware capabilities must return `CameraError::Unsupported` rather than panicking or failing silently.
+
+---
+
+## 3. Security & Dependency Rules
+
+- **Rustls Only**: Native TLS / OpenSSL bindings are rejected. Only pure Rust TLS (`rustls`) is permitted in transport sockets.
+- **Alloc-Only Core**: `cctv-core` must remain free of Tokio and async socket runtimes (`cargo check -p cctv-core --no-default-features`).
+- **Secret Zeroization**: Passwords and keys must be protected in memory using `zeroize::Zeroizing<String>` with redacted `Debug` implementations.
+
+---
+
+## 4. Verification Gates
+
+All checks must pass before pushing or releasing:
+
+```bash
+cargo fmt --all --check
+cargo check --workspace --all-targets
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+```

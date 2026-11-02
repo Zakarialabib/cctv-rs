@@ -1,100 +1,77 @@
 # System Architecture
 
-`cctv-rs` is a **pure-Rust CCTV backend engine**. It handles camera discovery, stream ingestion (RTSP / MJPEG), PTZ movement, AI detection, zone monitoring, snapshot generation, and fleet reconciliation — operating as a **pure library with no UI, no async runtime lock-in, and no database dependencies**.
+`cctv-rs` is a pure-Rust CCTV backend engine for discovering, streaming, controlling, and reconciling camera fleets. It operates purely as a library: no UI, no database dependencies, no async runtime lock-in.
 
-Applications consume `cctv-rs` through a single aggregate facade crate ([`cctv-rs`](../crates/cctv-rs)). Protocols and vendor APIs live in individual **driver crates** behind that facade (`cctv-onvif` for ONVIF SOAP services, `cctv-ezviz` for Ezviz Open Platform).
-
-**Engineering Invariant:** *Nothing panics in library code. Unsupported camera capabilities return explicit typed errors (`CameraError::Unsupported`) — never `unimplemented!()` or `unwrap()`.*
-
----
-
-## 1. Application Use Surface
-
-Everything an application does with cameras, modeled as **in → out** operations:
-
-| Request | Response | Facade Entry Point |
-| --- | --- | --- |
-| Decode live frame | Decoded image snapshot | `get_camera_frame` |
-| Start stream | Active RTSP / stream handle | `start_camera_stream` |
-| PTZ move command | Unit execution status | `ptz_move { pan, tilt, zoom, speed }` |
-| Save / Goto preset | Preset location confirmation | `camera_save_preset` / `camera_goto_preset` |
-| Zone motion detection | Motion alert event | `run_zone_detection`, `zone_motion_start_monitor` |
-| AI object analysis | Bounding boxes & object list | `camera_detect_objects`, `camera_ai_detection_set_enabled` |
-| Configuration update | Persisted config state | `camera_update`, `camera_set_enabled`, `camera_config_set` |
-| Camera drop / reconnection | Reconnection health state | `monitor_camera_health`, `camera_get_reconnection_info` |
-| Disk snapshot capture | Local image file metadata | `camera_save_snapshot` / `camera_get_snapshots` |
-
----
-
-## 2. Crate Topology & Dependency Graph
+Host applications consume `cctv-rs` via the aggregate facade crate ([`cctv-rs`](../crates/cctv-rs)). Protocols, transports, and vendor adapters live behind this facade.
 
 ```text
 cctv-rs (Aggregate Facade)
-├── cctv-core ───────────── serde, thiserror, async-trait (alloc-only)
-├── cctv-transport ──────── serde, tokio-rustls
-├── cctv-rtp ────────────── (zero dependencies)
-├── cctv-rtsp ───────────── base64
-├── cctv-discovery ──────── cctv-core, cctv-transport
-├── cctv-onvif ──────────── cctv-core, cctv-transport (http)
-├── cctv-ezviz ──────────── cctv-core, ezviz-openapi
-└── cctv-agent ──────────── cctv-core
+├── cctv-core ───────────── alloc-only contract (traits, state, errors)
+├── cctv-transport ──────── TLS policy, FrameReader, XML scanner, net sockets
+├── cctv-rtp ────────────── RTP header & H.264/H.265 depacketizer (pure)
+├── cctv-rtsp ───────────── RTSP framing, SDP parser, interleaved demux, Digest
+├── cctv-discovery ──────── SSDP & WS-Discovery sweeps
+├── cctv-onvif ──────────── ONVIF SOAP services (Device/Media/PTZ) + Discovery
+├── cctv-ezviz ──────────── Ezviz Open Platform cloud adapter
+├── cctv-stream-uvc ─────── Local video seam (UVC, PTP, HAL events)
+├── cctv-agent ──────────── Fleet reconciler, StreamMux, SnapshotProxy
+└── cctv-detect ─────────── Detection & zone configuration models
 ```
 
-### Roles & Responsibilities
+---
 
-| Crate | Direct Dependencies | Responsibility |
+## 1. Application Interface Surface
+
+All camera interactions pass through the typed `Facade` interface:
+
+| Intent | Response | Facade Entry Point |
 | --- | --- | --- |
-| `cctv-core` | `serde`, `thiserror`, `async-trait` | Device model: `CameraHandle`, `CommandId`, `CameraState`, `CameraError`, mock backend, and conformance suite. `alloc`-only capable. Zero async runtime dependencies. |
-| `cctv-transport` | `serde` (+ optional `tokio-rustls`) | TLS policy as data, budgeted `FrameReader`, zero-allocation XML scanner, and socket layer (`net` feature). |
-| `cctv-rtp` | *(none)* | RTP header parsing, H.264 / H.265 access-unit depacketization (STAP-A, FU-A, AP, FU). Pure & dependency-free. |
-| `cctv-rtsp` | `base64` | RTSP request/response framing, SDP parsing, and `$`-interleaved RTP stream demuxing. Pure codec. |
-| `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps over UDP multicast. |
-| `cctv-onvif` | `cctv-core`, `cctv-transport` | ONVIF Device / Media / PTZ SOAP builders and parsers with WS-Security `UsernameToken` authentication. |
-| `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | Ezviz Open Platform cloud driver wrapping account, stream, PTZ, and alarm endpoints. |
-| `cctv-agent` | `cctv-core` | Deterministic fleet reconciler: compares desired vs observed state and issues graded remediation actions with an audit trail. |
-| `cctv-rs` | all workspace crates | Public facade: aggregate command registry, driver factory, network discovery, and fleet reconciliation behind one handle. |
+| Decode live frame | Decoded snapshot bytes | `get_camera_frame(handle)` |
+| Start stream | Active stream descriptor | `start_camera_stream(handle)` |
+| Move PTZ | Unit execution status | `ptz_move(handle, cmd)` |
+| Preset operations | Preset confirmation / list | `camera_save_preset`, `camera_goto_preset`, `camera_delete_preset` |
+| Zone motion events | Event list | `execute(handle, CommandId::ZoneMotionListEvents)` |
+| Configure zones | Persisted zone setting | `zone_save(config)`, `zone_list()`, `zone_delete(id)` |
+| Record detection | Evaluation against threshold | `record_detection(handle, detection)` |
+| Reconcile fleet | Graded remediation actions | `reconcile(desired, observed)` |
+| Universal dispatch | Strongly typed payload | `execute(handle, CommandId)` |
 
 ---
 
-## 3. Protocol Matrix
+## 2. Crate Responsibilities
 
-| Capability | Transport | Auth | Driver |
+| Crate | Dependencies | Responsibility |
+| --- | --- | --- |
+| `cctv-core` | `thiserror`, `async-trait` (`serde` optional) | The immutable device model: `CameraHandle`, `CommandId`, `CameraState`, `CameraError`, quirks table, mock backend. `#![no_std]` + `alloc` compatible. |
+| `cctv-transport` | `thiserror` (`tokio-rustls`, `reqwest` optional) | Data-driven TLS policy, time-budgeted `FrameReader`, zero-allocation XML scanner, TCP/TLS socket helpers. |
+| `cctv-rtp` | *(none)* | Pure byte-slice RTP header parsing and H.264/H.265 access-unit reassembly (STAP-A, FU-A, AP, FU). |
+| `cctv-rtsp` | `base64`, `zeroize` | Pure message framing, SDP track extraction, `$`-interleaved frame demuxing, and RFC 2617/7616 Digest auth state machine. |
+| `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP (`M-SEARCH`) and WS-Discovery (`Probe`) UDP multicast sweeps with address and UUID deduplication. |
+| `cctv-onvif` | `cctv-core`, `cctv-transport` | SOAP 1.2 client for ONVIF Device, Media, and PTZ services; skewed-clock WS-Security `UsernameToken` generation; discovery delegation. |
+| `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | Ezviz Open Platform integration; manages auth tokens, channel inventories, stream URLs, and PTZ translation. |
+| `cctv-stream-uvc` | `cctv-core`, `cctv-transport` | Ports & Adapters local video seam: mockable OS platform seam, UVC capture, PTP fetch surfaces, and HAL hot-plug events. |
+| `cctv-agent` | `cctv-core`, `cctv-rtsp` | Deterministic fleet reconciler, graded remediation actions (`Hold`, `MarkOffline`, `TakeOutOfService`), `StreamMux` GOP caching, and `SnapshotProxy`. |
+| `cctv-detect` | *(pure / alloc-only)* | Motion and object detection primitives: `Detection`, `Zone` (`point`, `rectangle`), `ZoneConfig` with clamped normalization. |
+| `cctv-rs` | All workspace crates | Aggregate facade: unified driver factory registry, lifecycle management, zone processing, and discovery entry points. |
+
+---
+
+## 3. Protocol & Transport Matrix
+
+| Channel | Wire Protocol | Auth / Security | Handler Crate |
 | --- | --- | --- | --- |
-| Network Discovery | SSDP `M-SEARCH` (UDP 1900) + WS-Discovery `Probe` (UDP 3702) multicast | Unauthenticated | `cctv-discovery` |
-| RTSP Streaming | TCP / UDP socket via `cctv-transport`; codecs via `cctv-rtsp` & `cctv-rtp` | RTSP Digest / Basic | `cctv-rtsp` / Driver |
-| ONVIF Management | HTTP + SOAP 1.2 via `cctv-transport` | WS-Security `UsernameToken` | `cctv-onvif` |
-| Ezviz Cloud API | HTTPS via `ezviz-openapi` | Account Session Token | `cctv-ezviz` |
-| USB Video Devices | Kernel / OS device API | System permissions | Consumed directly by host application |
+| Discovery | UDP Multicast (`239.255.255.250:1900`, `:3702`) | Unauthenticated | `cctv-discovery` |
+| RTSP Streaming | TCP / UDP RTSP 1.0 + interleaved RTP | HTTP Digest / Basic (RFC 2617 / RFC 7616) | `cctv-rtsp`, `cctv-rtp` |
+| ONVIF Control | HTTP/1.1 SOAP 1.2 XML | WS-Security `UsernameToken` (clock-skew compensated) | `cctv-onvif` |
+| Cloud Services | HTTPS REST JSON | OAuth / Account Access Tokens | `cctv-ezviz` |
+| Local Video | USB / V4L2 / AVFoundation via OS Seam | OS permissions | `cctv-stream-uvc` |
 
 ---
 
-## 4. Event Taxonomy
+## 4. Key Architectural Guarantees
 
-| Event | Publisher | Consumer |
-| --- | --- | --- |
-| `CameraFrameAnalyzed` | Driver / Core | Analytics & bounding box overlays |
-| `MotionDetected` | Driver / Core | Alarm engine & zone monitors |
-| `CameraStreamHealth` | Driver / Core | Application health monitor |
-| `CameraReconnected` / `CameraDropped` | Core | Fleet state manager |
-
----
-
-## 5. Storage Model
-
-`cctv-rs` owns no internal database. State persistence is managed by the host application using distinct namespaces:
-
-| Storage Namespace | Information Held |
-| --- | --- |
-| `camera-config` | Per-camera settings, network parameters, PTZ presets, detection zones |
-| `camera-snapshot` | Image file paths, timestamps, resolution, payload checksums |
-| `camera-events` | Persisted event logs (`MotionDetected`, `CameraFrameAnalyzed`, state drops) |
-
----
-
-## 6. Host Integration Seam
-
-Host applications interface with `cctv-rs` strictly at the facade boundary:
-
-1. **Inbound Commands:** Applications issue typed commands via `Facade::execute(camera_id, CommandId)` or convenience methods (`get_camera_frame`, `ptz_move`).
-2. **Outbound Events:** Drivers emit typed events consumed by application event channels.
-3. **Driver Isolation:** Vendor-specific code and terminology stop at the respective driver crates. The host application interacts exclusively with `cctv-core` types.
+1. **Forbid Unsafe**: Every crate compiles with `#![forbid(unsafe_code)]`. Memory safety is enforced by the compiler.
+2. **Panic-Free Operation**: No `unwrap()`, `expect()`, or panicking macros in library paths. Gaps return `CameraError::Unsupported`.
+3. **Decoupled Runtimes**: `cctv-core` never links Tokio. Host applications choose their own execution environment; drivers bind async runtimes only when network I/O is enabled.
+4. **Zeroized Memory**: Passwords and keys are held in `zeroize::Zeroizing<String>` containers, wiped on drop, and redacted from `Debug` logs.
+5. **Separation of Inference**: `cctv-detect` models zones and results without ML runtime dependencies. Inference models run externally; detections are fed back into the facade.

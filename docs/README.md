@@ -1,23 +1,27 @@
 # Documentation Index
 
-Welcome to the `cctv-rs` documentation suite. This index maps all technical documentation files, architectural decisions, and design standards across the workspace.
+Technical documentation, design decisions, and system specifications for `cctv-rs`.
 
-## Documentation Map
+## Architecture & Design
 
-| Goal | Document | Role |
-| --- | --- | --- |
-| System architecture & crate topology | [architecture.md](architecture.md) | Crate relationships, protocol matrix, event taxonomy, and application integration seam. |
-| Command catalogue (`CommandId`) | [commands.md](commands.md) | Complete list of all 56 typed commands, capabilities, and result payloads. |
-| Camera taxonomy (`CameraType`) | [camera-types.md](camera-types.md) | Fleet device classifications and capability rules. |
-| Release roadmap & milestones | [roadmap.md](roadmap.md) | Phase status, locked design decisions, and acceptance criteria. |
-| Target architecture & delta | [target-architecture.md](target-architecture.md) | Aspirational crate evolution, gap analysis, and architectural decisions. |
-| Work packages & execution plan | [plan-v0.2.md](plan-v0.2.md) | Concrete execution plan across releases v0.2 to v0.4. |
-| Workspace engineering standard | [04-rust-package-standard.md](04-rust-package-standard.md) | House engineering conventions: layout, error contract, CI gates, and release rules. |
+- [System Architecture](architecture.md) — System boundaries, crate topology, protocol matrix, event bus, and storage model.
+- [Target Architecture](target-architecture.md) — Long-term crate evolution roadmap and core architectural decisions.
+- [Engineering Standards](04-rust-package-standard.md) — Rust workspace rules, error taxonomy invariants, and CI gates.
 
-## Core Repository References
+## API & Domain Models
+
+- [Command Catalogue](commands.md) — All 56 typed `CommandId` variants, capability guards, and result payloads.
+- [Camera Taxonomy](camera-types.md) — `CameraType` hardware classification enum and fleet ordering.
+
+## Roadmaps & Plans
+
+- [Release Roadmap](roadmap.md) — Milestone phases, verification gates, and locked architectural decisions.
+- [Execution Plan](plan-v0.2.md) — Work packages (W1–W9) and host application integration phases (A–E).
+
+## Repository Metadata
 
 - [Root README](../README.md)
-- [CONTRIBUTING.md](../CONTRIBUTING.md)
-- [SECURITY.md](../SECURITY.md)
-- [CHANGELOG.md](../CHANGELOG.md)
-- [LICENSE](../LICENSE)
+- [Contributing Guide](../CONTRIBUTING.md)
+- [Security Policy](../SECURITY.md)
+- [Changelog](../CHANGELOG.md)
+- [License](../LICENSE)
