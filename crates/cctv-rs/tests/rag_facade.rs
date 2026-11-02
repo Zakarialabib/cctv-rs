@@ -34,10 +34,31 @@ fn test_facade_rag_query_and_handoff() {
     assert_eq!(candidates[0].camera_id, CameraId::new("cam-ptz"));
     assert_eq!(candidates[0].preset_token, "preset-dock");
 
+    // Recommend PTZ handoff
+    let recommended = facade
+        .recommend_ptz_handoff("loading-dock")
+        .expect("candidate present");
+    assert_eq!(recommended.camera_id, CameraId::new("cam-ptz"));
+
+    // Ingest transport metrics directly into RAG
+    facade.rag_mut().coalescer_mut().ingest_transport_metrics(
+        &CameraId::new("cam-ptz"),
+        30.0,
+        15,
+        0,
+        cctv_rs::clock_ms(),
+    );
+
     // Query RAG context through facade
     let envelope = facade
         .rag_query("Which camera covers loading-dock?", 3)
         .expect("query success");
     assert!(!envelope.chunks.is_empty());
     assert!(envelope.formatted_prompt.contains("cam-ptz"));
+
+    // Query via shorthand query_rag
+    let default_envelope = facade
+        .query_rag("Which camera covers loading-dock?")
+        .expect("query success");
+    assert!(!default_envelope.chunks.is_empty());
 }

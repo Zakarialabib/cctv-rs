@@ -169,7 +169,6 @@ dependencies = [
 name = "cctv-rag"
 version = "0.2.0"
 dependencies = [
- "cctv-agent",
  "cctv-core",
  "cctv-detect",
  "serde",

@@ -4,18 +4,7 @@
 //! is in memory here; the application persists it, because the workspace owns no
 //! database.
 
-/// One recorded remediation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AuditEntry {
-    /// The camera the remediation applied to.
-    pub camera_id: String,
-    /// What the reconciler did, in one line.
-    pub what: String,
-    /// The remediation's severity grade, as recorded.
-    pub grade: u8,
-    /// When it was applied, in Unix **milliseconds**.
-    pub at_ms: u64,
-}
+pub use cctv_core::AuditEntry;
 
 /// Append-only record of every remediation the reconciler applies.
 #[derive(Debug, Default)]
