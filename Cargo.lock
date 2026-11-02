@@ -166,6 +166,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-rag"
+version = "0.2.0"
+dependencies = [
+ "cctv-agent",
+ "cctv-core",
+ "cctv-detect",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "cctv-rs"
 version = "0.2.0"
 dependencies = [
@@ -176,6 +188,7 @@ dependencies = [
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-onvif",
+ "cctv-rag",
  "cctv-stream-uvc",
  "cctv-transport",
  "serde_json",

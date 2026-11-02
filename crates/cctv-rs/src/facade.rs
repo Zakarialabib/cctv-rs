@@ -24,12 +24,13 @@ use std::sync::{Arc, Mutex};
 
 use cctv_agent::{Audit, Reconciler, Remediation};
 use cctv_core::{
-    CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraSnapshot,
-    CameraState, CameraStateCurrent, CommandId, CommandResult, CommandResultPayload, MotionEvent,
-    Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraId,
+    CameraSnapshot, CameraState, CameraStateCurrent, CommandId, CommandResult,
+    CommandResultPayload, MotionEvent, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, ZoneConfig};
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
+use cctv_rag::{HandoffCandidate, KnowledgeBaseIndex, RagContextEnvelope, RagError, SpatialGraph};
 use cctv_transport::reader::FrameReader;
 
 use crate::drivers::{DriverFactory, EZVIZ, ONVIF};
@@ -73,6 +74,8 @@ pub struct Facade {
     events: Vec<MotionEvent>,
     /// Detection timestamps inside each zone's open monitor window.
     pending: BTreeMap<String, Vec<u64>>,
+    /// RAG Knowledge base index (temporal incident ledger, spatial topology, diagnostic playbooks).
+    rag: KnowledgeBaseIndex,
 }
 
 impl Facade {
@@ -86,6 +89,7 @@ impl Facade {
             zones: BTreeMap::new(),
             events: Vec::new(),
             pending: BTreeMap::new(),
+            rag: KnowledgeBaseIndex::new(),
         }
     }
 
@@ -325,7 +329,50 @@ impl Facade {
             confidence: detection.confidence,
         };
         self.events.push(event.clone());
+
+        // Ingest into RAG incident coalescer
+        let cam_id = CameraId::new(camera_id);
+        self.rag
+            .coalescer_mut()
+            .ingest_motion(&cam_id, &event, clock_ms());
+
         Ok(Some(event))
+    }
+
+    // -- RAG & spatial topology --------------------------------------------
+
+    /// Access the RAG knowledge base index immutably.
+    pub fn rag(&self) -> &KnowledgeBaseIndex {
+        &self.rag
+    }
+
+    /// Access the RAG knowledge base index mutably.
+    pub fn rag_mut(&mut self) -> &mut KnowledgeBaseIndex {
+        &mut self.rag
+    }
+
+    /// Access the spatial topology graph immutably.
+    pub fn spatial_graph(&self) -> &SpatialGraph {
+        self.rag.topology()
+    }
+
+    /// Access the spatial topology graph mutably.
+    pub fn spatial_graph_mut(&mut self) -> &mut SpatialGraph {
+        self.rag.topology_mut()
+    }
+
+    /// Autonomous PTZ handoff candidate lookup for a triggered zone.
+    pub fn find_handoff_candidates(&self, zone_id: &str) -> Vec<HandoffCandidate> {
+        self.rag.topology().find_handoff_candidates(zone_id)
+    }
+
+    /// Query the RAG engine for synthesized context envelope over incidents, topology, and diagnostics.
+    pub fn rag_query(
+        &self,
+        query_text: &str,
+        top_k: usize,
+    ) -> Result<RagContextEnvelope, RagError> {
+        self.rag.query(query_text, top_k)
     }
 
     /// The motion events fired for one camera — the `ZoneMotionListEvents`

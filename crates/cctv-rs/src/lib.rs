@@ -23,12 +23,19 @@ pub use facade::{clock_ms, Facade};
 
 pub use cctv_agent::{Action, Audit, AuditEntry, CommandRelay, Grade, Reconciler, Remediation};
 pub use cctv_core::{
-    CameraConfig, CameraError, CameraHandle, CameraState, CameraStateCurrent, CameraType,
+    CameraConfig, CameraError, CameraHandle, CameraId, CameraState, CameraStateCurrent, CameraType,
     CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource, MediaFile, Preset,
     PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
 pub use cctv_discovery::DiscoveredCamera;
+pub use cctv_rag::{
+    AdjacentToEdge, Bm25Index, CameraKind, CameraNode, CoversEdge, DiagnosticPlaybook,
+    EmbeddingProvider, HandoffCandidate, IncidentChunk, IncidentCoalescer, IncidentSeverity,
+    IncidentTelemetry, KnowledgeBaseConfig, KnowledgeBaseIndex, KnowledgeChunk, PlaybookRegistry,
+    PresetNode, PtzReachesEdge, RagContextEnvelope, RagError, ScoredResult, SearchDocument,
+    SpatialGraph, ZoneKind, ZoneNode,
+};
 pub use cctv_stream_uvc::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
 };

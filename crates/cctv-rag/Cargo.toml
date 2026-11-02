@@ -1,0 +1,19 @@
+[package]
+name = "cctv-rag"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Temporal incident ledger, spatial topology graph, and diagnostic playbooks for cctv-rs"
+
+[dependencies]
+cctv-core = { workspace = true, features = ["serde-sync"] }
+cctv-agent = { workspace = true }
+cctv-detect = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
