@@ -4,32 +4,29 @@
 [![docs.rs](https://docs.rs/cctv-ezviz/badge.svg)](https://docs.rs/cctv-ezviz)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Ezviz Open Platform cloud driver for `cctv-rs`. Wraps the `ezviz-openapi` client into `cctv-core` device model abstractions.
+Ezviz Open Platform cloud driver for `cctv-rs`. Wraps the `ezviz-openapi` client into standard `CameraBackend` abstractions.
 
-Converts Ezviz API endpoints into the uniform `CameraBackend` trait interface.
+## Primitives
 
-## Capabilities
+- **Session Tokens**: Handles app key / secret authentication and regional token lifecycle.
+- **Inventory Mapping**: Enumerates cloud-bound cameras, channels, and online connectivity state.
+- **Stream URL Resolution**: Dynamically fetches temporary RTSP / HLS playback stream URLs.
+- **PTZ & Presets**: Translates uniform PTZ directions, velocities, and preset calls to Ezviz cloud actions.
+- **Fail-Closed Capabilities**: Unimplemented cloud functions fail closed with explicit `CameraError::Unsupported`.
 
-- **Account Authentication & Session Tokens:** Dynamic token acquisition and region endpoint redirection.
-- **Device & Channel Inventory:** Discovers account cameras, channels, and online connectivity state.
-- **Stream URL Resolution:** Resolves dynamic RTSP / HLS playback stream URLs on demand.
-- **PTZ & Presets:** Maps continuous PTZ direction and speed commands to platform actions; supports preset saving, goto, and deletion.
-- **Typed Platform Gaps:** Explicitly exposes platform limitations (e.g. out-of-band capture) as typed `CameraError::Unsupported` variants.
+## Invariants
 
-## Usage Example
+- `#![forbid(unsafe_code)]`
+- Implements `CameraBackend` without leaking platform-specific types.
+
+## Usage
 
 ```rust,no_run
 use cctv_ezviz::Driver;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let driver = Driver::new("app_key", "app_secret", "https://open.ezvizlife.com");
-    // Connect and query device list
+    let _driver = Driver::new("app_key", "app_secret", "https://open.ezvizlife.com");
     Ok(())
 }
 ```
-
-## Technical Guarantees
-
-- `#![forbid(unsafe_code)]`
-- Tested against canned HTTP fixtures with simulated region redirection.

@@ -5,31 +5,31 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/Zakarialabib/cctv-rs/ci.yml?branch=main)](https://github.com/Zakarialabib/cctv-rs/actions)
 
-A modular, zero-panic, pure-Rust CCTV backend engine. Discover, stream, control, and reconcile IP camera fleets across ONVIF, Ezviz, RTSP, and custom protocols behind a single typed facade.
+Modular, zero-panic, pure-Rust CCTV backend engine. Discover, stream, control, and reconcile IP camera fleets across ONVIF, Ezviz, RTSP, and local video sources behind a single typed facade.
 
-No C bindings, no vendor SDK bloat, no UI, no database dependencies, and `#![forbid(unsafe_code)]` across every crate.
+No C bindings, no vendor SDK bloat, no UI, no database dependencies, and `#![forbid(unsafe_code)]` everywhere.
 
-## The Architecture
+## Workspace Crates
 
-`cctv-rs` breaks camera handling into decoupled, single-responsibility driver crates unified by a zero-runtime core contract (`cctv-core`).
+Eleven single-responsibility crates in publish order:
 
-| Crate | Crates.io | Docs.rs | Description |
-| --- | --- | --- | --- |
-| [`cctv-core`](crates/cctv-core) | [![v](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core) | [![docs](https://docs.rs/cctv-core/badge.svg)](https://docs.rs/cctv-core) | `alloc`-only device model: typed commands, error taxonomy, state machine & mock suite. Zero Tokio, zero async runtime. |
-| [`cctv-transport`](crates/cctv-transport) | [![v](https://img.shields.io/crates/v/cctv-transport.svg)](https://crates.io/crates/cctv-transport) | [![docs](https://docs.rs/cctv-transport/badge.svg)](https://docs.rs/cctv-transport) | Time-budgeted `FrameReader`, zero-allocation XML scanner, and pure TCP/TLS socket abstractions (rustls only). |
-| [`cctv-rtp`](crates/cctv-rtp) | [![v](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp) | [![docs](https://docs.rs/cctv-rtp/badge.svg)](https://docs.rs/cctv-rtp) | Zero-dependency RTP header parsing and H.264/H.265 access-unit depacketization (STAP-A, FU-A, AP, FU). |
-| [`cctv-rtsp`](crates/cctv-rtsp) | [![v](https://img.shields.io/crates/v/cctv-rtsp.svg)](https://crates.io/crates/cctv-rtsp) | [![docs](https://docs.rs/cctv-rtsp/badge.svg)](https://docs.rs/cctv-rtsp) | Pure session codecs: RTSP request/response framing, SDP parsing, and `$`-interleaved RTP stream demuxing. |
-| [`cctv-onvif`](crates/cctv-onvif) | [![v](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif) | [![docs](https://docs.rs/cctv-onvif/badge.svg)](https://docs.rs/cctv-onvif) | ONVIF Device, Media, and PTZ services over SOAP 1.2 with WS-Security `UsernameToken` authentication. |
-| [`cctv-discovery`](crates/cctv-discovery) | [![v](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery) | [![docs](https://docs.rs/cctv-discovery/badge.svg)](https://docs.rs/cctv-discovery) | UDP multicast sweeps using SSDP `M-SEARCH` and WS-Discovery `Probe`, merged into strongly typed device results. |
-| [`cctv-ezviz`](crates/cctv-ezviz) | [![v](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz) | [![docs](https://docs.rs/cctv-ezviz/badge.svg)](https://docs.rs/cctv-ezviz) | Ezviz Open Platform integration, wrapping `ezviz-openapi` into the standard `CameraBackend` trait. |
-| [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | [![docs](https://docs.rs/cctv-stream-uvc/badge.svg)](https://docs.rs/cctv-stream-uvc) | UVC and PTP adapters plus the OS seam: budgeted frame reading, HAL hot-plug events, PTP capture surfaces. |
-| [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | [![docs](https://docs.rs/cctv-agent/badge.svg)](https://docs.rs/cctv-agent) | Deterministic fleet reconciler: compares desired vs observed state, issues graded remediation, maintains audit trail. |
-| [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | [![docs](https://docs.rs/cctv-detect/badge.svg)](https://docs.rs/cctv-detect) | Detection device model — zones, detection reports, and monitor settings. No I/O, no algorithms. |
-| [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | [![docs](https://docs.rs/cctv-rs/badge.svg)](https://docs.rs/cctv-rs) | Public aggregate facade: camera registry, dispatch, network discovery, and fleet reconciliation. |
+| Crate | Crates.io | Description |
+| --- | --- | --- |
+| [`cctv-core`](crates/cctv-core) | [![v](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core) | `alloc`-only device model: typed commands, error taxonomy, state machine & mock suite. Zero Tokio, zero async runtime. |
+| [`cctv-transport`](crates/cctv-transport) | [![v](https://img.shields.io/crates/v/cctv-transport.svg)](https://crates.io/crates/cctv-transport) | Budgeted `FrameReader`, zero-alloc XML scanner, pure TCP/TLS socket abstractions (`rustls` only). |
+| [`cctv-rtp`](crates/cctv-rtp) | [![v](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp) | Zero-dependency RTP header parsing & H.264/H.265 access-unit depacketization (STAP-A, FU-A, AP, FU). |
+| [`cctv-rtsp`](crates/cctv-rtsp) | [![v](https://img.shields.io/crates/v/cctv-rtsp.svg)](https://crates.io/crates/cctv-rtsp) | Pure session codecs: RTSP request/response framing, SDP parsing, interleaved RTP demuxing, Digest auth. |
+| [`cctv-discovery`](crates/cctv-discovery) | [![v](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery) | UDP multicast sweeps (SSDP `M-SEARCH` + WS-Discovery `Probe`) with deterministic deduplication. |
+| [`cctv-onvif`](crates/cctv-onvif) | [![v](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif) | ONVIF Device, Media, and PTZ services over SOAP 1.2 with skewed-clock WS-Security `UsernameToken`. |
+| [`cctv-ezviz`](crates/cctv-ezviz) | [![v](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz) | Ezviz Open Platform integration wrapping `ezviz-openapi` into the standard `CameraBackend` trait. |
+| [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | Ports & Adapters local video seam: UVC adapter, budgeted frame reading, PTP capture, HAL hot-plug events. |
+| [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | Deterministic fleet reconciler with graded remediation, audit trail, GOP-cached `StreamMux`, `SnapshotProxy`. |
+| [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | Pure detection device model: zones, detection reports, monitor settings. No I/O, no heavy ML deps. |
+| [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | Unified aggregate facade: driver registry, universal dispatch, discovery sweeps, zone management. |
 
 ## Quick Start
 
-Add `cctv-rs` to your application:
+Add `cctv-rs` to `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -37,50 +37,61 @@ cctv-rs = "0.2.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-Initialize the facade, discover LAN cameras, and dispatch typed commands:
+Spin up the facade, discover LAN hardware, and dispatch commands:
 
 ```rust,no_run
 use cctv_rs::{CameraConfig, CommandId, Facade};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Construct the facade with the builtin ONVIF and Ezviz driver factories
+    // Facade initialized with builtin ONVIF + Ezviz driver factories
     let mut facade = Facade::new().with_builtin_drivers();
 
-    // LAN sweep — SSDP + WS-Discovery, synchronous
+    // Synchronous LAN sweep (SSDP + WS-Discovery)
     let discovered = facade.discover();
     println!("Discovered {} cameras", discovered.len());
 
-    // Register a camera: the driver key resolves through the factory registry
+    // Register camera configuration
     let config = CameraConfig::new("camera-01", "onvif", "192.168.1.64");
     let handle = facade.attach(config)?;
 
-    // Dispatch any typed command through the universal entry point
-    let result = facade.execute(handle.id(), CommandId::GetCameraFrame).await?;
-    println!("{:?}", result);
+    // Dispatch typed command through the universal entry point
+    let frame = facade.execute(handle.id(), CommandId::GetCameraFrame).await?;
+    println!("Frame fetched: {:?}", frame);
 
     Ok(())
 }
 ```
 
-## Technical Core Principles
+## Engineering Invariants
 
-1. **Zero Unsafe Code:** `#![forbid(unsafe_code)]` is enforced at the root of every crate in this workspace. Memory safety and slice bounds checking are guaranteed by Rust.
-2. **Deterministic Errors Over Panics:** Library operations never call `unwrap()`, `expect()`, or `panic!()`. Unsupported camera capabilities yield explicit, typed `CameraError::Unsupported` variants.
-3. **`no_std` / `alloc`-only Core Contract:** `cctv-core` stays dependency-lean (`serde`, `thiserror`, `async-trait`) and never pulls Tokio or network sockets into its graph.
-4. **Data-Driven TLS Policy:** TLS parameters (pinned certs, minimum TLS version, ALPN preferences) are modeled as plain data, allowing runtime configuration adjustments without re-compilation.
+- **`#![forbid(unsafe_code)]`**: Enforced on every crate root. Zero pointer arithmetic, zero undefined behavior risk.
+- **Zero Panics**: Library code never calls `unwrap()`, `expect()`, `panic!()`, or `todo!()`. Missing features return explicit `CameraError::Unsupported`.
+- **`alloc`-Only Core**: `cctv-core` builds with `#![no_std]` + `alloc`. No Tokio, no sockets, no background threads in the contract.
+- **Data-Driven TLS**: TLS configuration (`Policy`) is pure data — pinned certs, ciphers, and ALPN rules without recompilation.
+- **Zeroized Secrets**: In-memory camera passwords are wiped on drop via `zeroize::Zeroizing<String>` with redacted `Debug`.
 
-## Verification & Testing
+## Verification
 
 ```bash
-# Check compilation across all crates
+cargo fmt --all --check
 cargo check --workspace --all-targets
-
-# Run unit, integration, and doctests
 cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
+
+## Documentation
+
+- [Documentation Index](docs/README.md)
+- [System Architecture](docs/architecture.md)
+- [Command Catalogue](docs/commands.md)
+- [Camera Taxonomy](docs/camera-types.md)
+- [Engineering Standards](docs/04-rust-package-standard.md)
+- [Release Roadmap](docs/roadmap.md)
+- [Execution Plan](docs/plan-v0.2.md)
 
 ## License & Security
 
-- **License:** MIT — See [LICENSE](LICENSE) for details.
-- **Security:** Private vulnerability disclosures — See [SECURITY.md](SECURITY.md).
+- **License:** MIT ([LICENSE](LICENSE))
+- **Security:** Vulnerability disclosure process ([SECURITY.md](SECURITY.md))

@@ -4,17 +4,23 @@
 [![docs.rs](https://docs.rs/cctv-discovery/badge.svg)](https://docs.rs/cctv-discovery)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Zero-configuration IP camera discovery for `cctv-rs` via UDP multicast sweeps (SSDP `M-SEARCH` and WS-Discovery `Probe`).
+Stateless, zero-configuration IP camera discovery over UDP multicast sweeps.
 
-Read-only, stateless network discovery surface returning strongly typed `DiscoveredCamera` structures.
+Executes dual SSDP `M-SEARCH` and WS-Discovery `Probe` sweeps, deduplicating devices by endpoint and hardware identity.
 
-## Discovery Protocols
+## Primitives
 
-- **SSDP (Simple Service Discovery Protocol):** UDP multicast search over `239.255.255.250:1900`.
-- **WS-Discovery (Web Services Dynamic Discovery):** SOAP `Probe` envelopes over UDP multicast `239.255.255.250:3702`.
-- **Deduplication & Merging:** Merges responses from both protocol sweeps, deduplicating devices by network identity and address.
+- **SSDP**: Multicast sweeps targeting `239.255.255.250:1900` for UPnP / RTSP camera profiles.
+- **WS-Discovery**: SOAP `Probe` datagrams over `239.255.255.250:3702` for ONVIF camera endpoints.
+- **Deduplication Engine**: Merges multi-protocol responses into deterministic `DiscoveredCamera` records.
+- **Clock Probe**: Measures camera-to-host clock skew from network probe datagrams.
 
-## Usage Example
+## Invariants
+
+- `#![forbid(unsafe_code)]`
+- Read-only network discovery surface; introduces no device state.
+
+## Usage
 
 ```rust,no_run
 use cctv_discovery::Probe;
@@ -25,14 +31,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cameras = probe.scan().await?;
 
     for cam in cameras {
-        println!("Discovered IP Camera: {:?} at Endpoint: {}", cam.identity, cam.endpoint);
+        println!("Found: {:?} at {}", cam.identity, cam.endpoint);
     }
-
     Ok(())
 }
 ```
-
-## Technical Guarantees
-
-- `#![forbid(unsafe_code)]`
-- Network errors return empty discovery sweeps rather than panicking or fabricating devices.

@@ -1,21 +1,23 @@
 # Command Catalogue
 
-`CommandId` defines *what* an IP camera is asked to do. Driver crates implement *how* the operation is performed over the wire. The facade and reconciler address operations by enum values — eliminating string-based command dispatch.
+`CommandId` defines *what* a camera is asked to do. Drivers implement *how* over the wire. The facade and reconciler dispatch commands using enum variants rather than string identifiers.
 
-Source code reference: [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands.rs).
-
-## Key Invariants
-
-1. **Deterministic Execution Order (`CommandId::order`):** Fixes a stable coarse-to-fine sweep sequence for fleet reconciliation.
-2. **Typed Capability Guard (`CommandId::supports`):** Queries whether a camera driver supports an operation. Unsupported commands return `CameraError::Unsupported` rather than panicking.
-
-`CommandId` defines **56 variants** organized into distinct domain groups.
+Defined in [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands.rs).
 
 ---
 
-## Catalogue Breakdown
+## Core Invariants
 
-| Group | Count | Enum Variants |
+1. **Deterministic Order (`CommandId::order`)**: Provides a stable execution sequence for fleet reconciliation sweeps.
+2. **Capability Guard (`CommandId::supports`)**: Queries if a driver backend supports the requested operation. Unsupported calls fail with `CameraError::Unsupported` rather than panicking.
+
+`CommandId` defines **56 variants** organized across domain groups.
+
+---
+
+## Command Groups
+
+| Domain Group | Count | Commands |
 | --- | --- | --- |
 | Discovery | 3 | `Discover`, `DiscoverByRange`, `ListUsbCameras` |
 | Live Source | 4 | `LiveSourceList`, `LiveSourceDelete`, `LiveSourceSave`, `LiveSourceGet` |
@@ -36,24 +38,24 @@ Source code reference: [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/
 
 ## Command Result Payloads (`CommandResultPayload`)
 
-Every `CommandId` maps directly to a typed `CommandResultPayload` variant:
+Results wrap typed data inside the `CommandResultPayload` enum:
 
-| Result Payload | Carried Data |
+| Variant | Encapsulated Data |
 | --- | --- |
-| `Frame` | Decoded frame metadata: `width`, `height`, byte count |
-| `Stream` | Active stream info: `handle`, stream URI / details |
-| `Stats` | Operational state: `online` |
-| `AllStats` | Snapshot inventory: `Vec<CameraSnapshot>` |
-| `Test` | Connection diagnostic result: `passed`, detail message |
-| `Presets` | Configured camera presets: `Vec<Preset>` |
-| `Settings` | Serialized setting value structure |
+| `Frame` | Decoded frame metadata (`width`, `height`, byte count) |
+| `Stream` | Active stream info (`StreamInfo`) |
+| `Stats` | Operational online status (`online: bool`) |
+| `AllStats` | Snapshot collection (`Vec<CameraSnapshot>`) |
+| `Test` | Diagnostic outcome (`passed: bool`, message) |
+| `Presets` | Configured camera presets (`Vec<Preset>`) |
+| `Settings` | Serialized settings structure |
 | `Config` | Typed camera configuration struct (`CameraConfig`) |
-| `Snapshot` | Captured file path, image width & height |
-| `Snapshots` | Snapshot index: `Vec<SnapshotRef>` |
-| `MotionEvents` | Detected motion log: `Vec<MotionEvent>` |
-| `Reconfiguration` | Reconnection information payload |
-| `Composite` | Composite stream active state |
-| `AvailableModels` | AI models list: `Vec<String>` |
-| `AiStatus` | AI status: `enabled`, active `model` |
-| `Health` | Health check payload: `healthy`, status message |
+| `Snapshot` | Snapshot reference details (path, dimensions) |
+| `Snapshots` | Snapshot index list (`Vec<SnapshotRef>`) |
+| `MotionEvents` | Timestamped motion detections (`Vec<MotionEvent>`) |
+| `Reconfiguration` | Reconnection status structure |
+| `Composite` | Composite stream state |
+| `AvailableModels` | AI models inventory (`Vec<String>`) |
+| `AiStatus` | AI status state (`enabled`, active `model`) |
+| `Health` | Health check payload (`healthy`, message) |
 | `Empty` | Unit acknowledgement |

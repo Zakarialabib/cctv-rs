@@ -4,22 +4,25 @@
 [![docs.rs](https://docs.rs/cctv-stream-uvc/badge.svg)](https://docs.rs/cctv-stream-uvc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-UVC and PTP adapters plus the OS seam for `cctv-rs`. The Ports & Adapters layer for local video: frame acquisition behind a platform seam, domain-driven backpressure, PTP "Capture & Fetch" surfaces, and HAL hot-plug event sources.
+Local video capture and OS abstraction layer for `cctv-rs`. Implements a Ports & Adapters architecture isolating host OS device capture from library logic.
 
-## Capabilities
+## Primitives
 
-- **UVC streaming (`uvc`):** `UvcAdapter` behind the `OsPlatform` / `OsError` seam — frame acquisition isolated from the OS so the adapter is testable without hardware.
-- **Backpressure (`backpressure`):** `BudgetedFrameReader` — domain-driven, budgeted reading that yields `FrameItem`s instead of flooding the consumer.
-- **PTP (`ptp`):** `PtpAdapter` / `PtpStatus` — the "Capture & Fetch" surfaces for synchronised capture.
-- **HAL events (`hal`):** `HalEventSource` — hot-plug event sources so device arrival and removal are observed, not polled.
+- **OS Platform Seam (`uvc`)**: `UvcAdapter` operating against an `OsPlatform` / `OsError` boundary, enabling full test coverage without attached physical hardware.
+- **Budgeted Reader (`backpressure`)**: `BudgetedFrameReader` providing domain-driven backpressure that buffers `FrameItem` units cleanly.
+- **PTP Capture (`ptp`)**: `PtpAdapter` / `PtpStatus` primitives providing synchronized capture-and-fetch workflows.
+- **Hot-Plug Notifications (`hal`)**: `HalEventSource` abstractions delivering proactive peripheral arrival and removal events without polling loops.
 
-All four modules are re-exported from the `cctv-rs` facade.
-
-## Technical Guarantees
+## Invariants
 
 - `#![forbid(unsafe_code)]`
-- No network sockets of its own — the seam is the boundary; wiring belongs to the caller.
+- Zero internal socket connections; platform boundary belongs to caller.
 
-## License
+## Usage
 
-MIT
+```rust,no_run
+use cctv_stream_uvc::backpressure::BudgetedFrameReader;
+
+let mut reader = BudgetedFrameReader::new(10);
+assert_eq!(reader.len(), 0);
+```

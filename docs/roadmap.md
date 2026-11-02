@@ -1,52 +1,37 @@
 # Release Roadmap
 
-System development status, phase gates, locked design decisions, and future milestones.
+System development status, release phases, and locked architectural decisions.
 
 ---
 
-## Development Phases
+## Phase Overview
 
-| Phase | Deliverable | Verification Gate | Status |
+| Phase | Milestone Scope | Verification Criteria | Status |
 | --- | --- | --- | --- |
-| 1 | `cctv-core`: `alloc`-only device model, error taxonomy, state machine, mock backend, conformance suite. | `cargo check -p cctv-core --no-default-features` clean, zero Tokio dependencies. | Completed |
-| 2 | `cctv-transport` (TLS policy, budgeted frame reader), `cctv-discovery` (SSDP/WS-Discovery sweeps), `cctv-rtp` (zero-dep H.264/H.265 depacketizer), `cctv-rtsp` (RTSP framing & SDP). | Workspace unit tests passing; RTP & RTSP codecs verified against sample byte vectors. | Completed |
-| 3 | `cctv-onvif`: ONVIF driver — Device, Media, and PTZ SOAP builders/parsers with WS-Security `UsernameToken`. | Conformance test suite 7/7 passing against mock SOAP server fixture. | Completed |
-| 4 | `cctv-ezviz`: Ezviz Open Platform integration — token management, stream resolution, PTZ, alarms. | Driver unit tests passing against mock HTTP fixture server. | Completed |
-| 5 | `cctv-rs`: Aggregate facade — driver registry, command dispatch, network discovery sweeps. | `cargo check -p cctv-rs` clean; facade integration tests passing. | Completed |
-| 6 | `cctv-agent`: Fleet reconciler — desired state comparison, graded remediation actions, audit logging. | Reconciler unit tests passing. | Completed |
-| 7 | Application Integration: Replace legacy camera adapters in host applications with `cctv-rs`. | End-to-end integration verification in host application. | In Progress |
-
-### Open Items
-
-- **Host integration (Phase 7 / plan-v0.2 Phases A–E):** **Phase A done
-  (2026-11-01)** — `Simple-Signage` carries a git-pinned `cctv-rs`
-  dependency and manages `Facade::new().with_builtin_drivers()` as Tauri
-  state (SignageMaster PRs #722 + #723; owner chose the facade path over
-  the adoption matrix's reject row, which now records the override).
-  Phases **B–E pending** (discovery + stream URI migration → stream readers
-  → PTZ/presets/snapshots → legacy removal). The RTSP socket loop (`W3`)
-  prerequisite remains met.
-- **plan-v0.2 W4 + W5 complete (2026-11-01):** ONVIF `Discoverable` delegate
-  and the agent's active remediation loop (a `CommandRelay` issues the
-  commands a remediation authorizes). Milestone 0.3.0 still needs **W6**
-  (vendor drivers); 0.4.0 needs W7–W9.
-- **0.2.0 released (2026-11-01):** all eleven crates on crates.io — including
-  the four that had never shipped (`cctv-rtp`, `cctv-rtsp`, `cctv-stream-uvc`,
-  `cctv-detect`), each verified against the registry and by an
-  outside-workspace `cargo add cctv-rs@0.2.0` build. The release also fixed
-  `publish.sh`'s second-release awaiting-dependency matcher. Consumers can
-  pin `cctv-rs = "0.2.0"` instead of a git rev.
-- **`cctv-detect` wired (2026-11-01):** the facade owns the zone surface
-  (`zone_save`/`record_detection`/`motion_events`, `ZoneMotionListEvents` via
-  `execute`); the crate is in the publish order with its README.  What remains
-  is the *application* side: feeding detections from the frame pipeline.
+| 1 | `cctv-core`: alloc-only device model, error taxonomy, state machine, mock backend. | `cargo check -p cctv-core --no-default-features` clean, zero Tokio dependencies. | Completed |
+| 2 | `cctv-transport`, `cctv-discovery`, `cctv-rtp`, `cctv-rtsp`: pure codecs, TLS policy, frame reading. | Workspace unit tests pass; RTP/RTSP codecs verified against RFC test vectors. | Completed |
+| 3 | `cctv-onvif`: SOAP builders/parsers, skewed-clock WS-Security `UsernameToken`. | Conformance tests pass against mock SOAP server fixtures. | Completed |
+| 4 | `cctv-ezviz`: Ezviz Open Platform cloud integration, token manager, PTZ mapping. | Unit tests pass against mock HTTP server fixture. | Completed |
+| 5 | `cctv-stream-uvc`: Local video Ports & Adapters seam, UVC, PTP, HAL hot-plug. | Unit tests pass across platform mocks. | Completed |
+| 6 | `cctv-agent`: Fleet reconciler with graded remediation, `StreamMux`, `SnapshotProxy`. | Reconciler and stream multiplexer test suites pass. | Completed |
+| 7 | `cctv-detect` & `cctv-rs`: Detection device model, facade registry, universal dispatch. | Full workspace tests and facade integration suite pass. | Completed |
+| 8 | Host Application Integration: Production deployment in edge video management clients. | Integration verification in edge host application. | In Progress |
 
 ---
 
-## Locked Architectural Decisions
+## Current Status (v0.2.0 Shipped)
 
-1. **Standalone Workspace:** `cctv-rs` is an independent, pure-Rust workspace published to crates.io.
-2. **Explicit Member Layout:** Workspace crates are explicitly enumerated in `Cargo.toml` to guarantee release order and build reproducibility.
-3. **Protocol Decoupling:** Every protocol lives in its own driver crate (`cctv-onvif`, `cctv-ezviz`). Drivers do not leak vendor-specific types or logic into `cctv-core` or `cctv-rs`.
-4. **ONVIF Trait Abstraction:** ONVIF is treated as a protocol, not a single vendor. `cctv-onvif` provides shared SOAP parsing and WS-Security helpers usable across all ONVIF-compliant hardware.
-5. **Publish Scope:** `cctv-core` defines the immutable device model contract; `cctv-rs` publishes as the aggregate facade.
+- **0.2.0 Released**: All 11 crates published to crates.io (`cctv-core`, `cctv-transport`, `cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`, `cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rs`).
+- **Active Remediation**: `CommandRelay` issues authorized `CommandId`s during reconciliation sweeps.
+- **`StreamMux` & `SnapshotProxy`**: GOP-cached sub-stream multiplexer and throttled snapshot proxy operational in `cctv-agent`.
+- **Zone & Detection Surface**: `Facade` provides complete zone configuration and detection event evaluation via `cctv-detect`.
+
+---
+
+## Locked Decisions
+
+1. **Pure-Rust Workspace**: No C-FFI, no vendor binary blobs. All 11 crates published under MIT license.
+2. **Explicit Manifest**: Workspace members are explicitly declared in `Cargo.toml` in dependency publish order.
+3. **Decoupled Drivers**: Protocols reside in standalone crates. Drivers do not pollute `cctv-core` with vendor concepts.
+4. **Alloc-Only Contract**: `cctv-core` has zero runtime or socket dependencies.
+5. **No Native TLS**: Network transport relies strictly on `rustls` for deterministic cross-platform behavior.
