@@ -167,10 +167,8 @@ impl KnowledgeBaseIndex {
         let bm25 = Bm25Index::build(&docs);
 
         let query_embedding = if let Some(provider) = &self.embedding_provider {
-            match provider.embed(query_text) {
-                Ok(emb) => Some(emb),
-                Err(e) => return Err(e),
-            }
+            let emb = provider.embed(query_text)?;
+            Some(emb)
         } else {
             None
         };
