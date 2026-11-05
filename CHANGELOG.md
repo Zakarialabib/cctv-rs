@@ -4,7 +4,35 @@ All notable changes to the `cctv-rs` workspace are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-All eleven crates are versioned and released together.
+All twelve crates are versioned and released together.
+
+## [Unreleased]
+
+### Added
+
+- `cctv-core`'s bundled quirks table ships **three sourced rows** instead of
+  none — Hikvision's ONVIF-disabled default from firmware V5.5.0, Ezviz's
+  disabled local service / image encryption, and the Sony SRG-360 series' absent
+  RTSP interleaved TCP bit stream. Each row names its source in `note`; a row
+  without one does not ship.
+- `xtask`, the workspace task runner: `cargo xtask publish` (the ordered
+  crates.io release) and `cargo xtask hw-test` (a LAN camera sweep through the
+  facade). The `xtask` alias lives in `.cargo/config.toml`.
+- `crates/cctv-rag/README.md` and its `readme` / `keywords` / `categories`
+  manifest keys, so `cargo package` cannot fail on a declared-but-missing
+  README the way it would have.
+
+### Changed
+
+- **The workspace is licensed under Apache-2.0**, replacing MIT: the manifest
+  `license`, `LICENSE`, the root and per-crate README badges, and the docs.
+- `rust-toolchain.toml` pins the `stable` channel (with `rustfmt` and `clippy`)
+  instead of a fixed compiler, so the pin cannot hide an MSRV regression in the
+  `1.89` promise.
+- `cctv-rag` joins the release plumbing it was missing from:
+  `scripts/publish.sh`'s ORDER (after `cctv-detect`, before the facade), CI's
+  per-crate build job, the README crate table, and the crate counts in the docs
+  and workflows.
 
 ## [0.2.0] - 2026-11-01
 
@@ -186,7 +214,7 @@ All eleven crates are versioned and released together.
   `CameraError` taxonomy — an unreachable camera is retried, an authentication
   failure is reconfigured, a camera the fleet no longer has is disabled, and an
   unknown failure is only notified. `Audit` is a real append-only store.
-- `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
+- `LICENSE` (Apache-2.0), `SECURITY.md`, `CONTRIBUTING.md` and the cargo-deny policy that
   the publication path requires.
 - Per-crate `README.md` files and publish metadata (`keywords`, `categories`,
   path dependencies carrying a `version`).
@@ -202,7 +230,7 @@ All eleven crates are versioned and released together.
   already taken on crates.io by an unrelated project. In-tree consumers use
   `cctv_rs` where they used `cctv`.
 - `scripts/publish.sh` handles the crates.io new-crate rate limit (a burst of 5,
-  then 1 every 10 minutes — a first release is eight new crates), refuses to
+  then 1 every 10 minutes — a first release is twelve new crates), refuses to
   start unless `ezviz-openapi` is already published, and hands the token to cargo
   through `CARGO_REGISTRY_TOKEN` instead of `--token` so it never appears in the
   process list.
