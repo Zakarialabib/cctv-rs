@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc)
 [![docs.rs](https://docs.rs/cctv-stream-uvc/badge.svg)](https://docs.rs/cctv-stream-uvc)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Local video capture and OS abstraction layer for `cctv-rs`. Implements a Ports & Adapters architecture isolating host OS device capture from library logic.
 

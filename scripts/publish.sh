@@ -21,8 +21,8 @@
 #     after its dependency was uploaded, while the index catches up. That is a
 #     retry, not an error.
 #   * crates.io rate-limits *new* crates to a burst of 5 per account and then 1
-#     every 10 minutes. A first release of this workspace is seven new crates
-#     (eight with `ezviz-openapi`), so the tail of the order waits. The registry's
+#     every 10 minutes. A first release of this workspace is twelve new crates
+#     (thirteen with `ezviz-openapi`), so the tail of the order waits. The registry's
 #     error names the time to retry; this script waits and retries rather than
 #     failing a release half way through.
 #
@@ -48,6 +48,7 @@ ORDER=(
     cctv-stream-uvc  # -> cctv-core
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
+    cctv-rag         # -> cctv-core, cctv-detect
     cctv-rs          # facade: depends on all of the above; `cctv` itself is taken
 )
 
@@ -163,7 +164,7 @@ if [ "$MODE" = "--publish" ]; then
             echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-ezviz depends on it." >&2
             echo "       Publish it from its own repository first:" >&2
             echo "         cd ../ezviz-openapi-rs && cargo publish" >&2
-            echo "       (a first release of this workspace is 7 new crates; crates.io" >&2
+            echo "       (a first release of this workspace is 12 new crates; crates.io" >&2
             echo "        allows a burst of 5, so plan for the rate limit either way)" >&2
             exit 1
             ;;

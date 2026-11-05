@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery)
 [![docs.rs](https://docs.rs/cctv-discovery/badge.svg)](https://docs.rs/cctv-discovery)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Stateless, zero-configuration IP camera discovery over UDP multicast sweeps.
 

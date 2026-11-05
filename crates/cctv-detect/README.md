@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect)
 [![docs.rs](https://docs.rs/cctv-detect/badge.svg)](https://docs.rs/cctv-detect)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Lightweight device model for motion and AI detection within `cctv-rs`.
 

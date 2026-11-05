@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent)
 [![docs.rs](https://docs.rs/cctv-agent/badge.svg)](https://docs.rs/cctv-agent)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Deterministic fleet reconciliation engine, sub-stream multiplexer, and snapshot cache for `cctv-rs`.
 

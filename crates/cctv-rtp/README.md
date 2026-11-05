@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp)
 [![docs.rs](https://docs.rs/cctv-rtp/badge.svg)](https://docs.rs/cctv-rtp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Zero-dependency RTP header parsing and H.264 / H.265 video access-unit depacketization into contiguous NAL units.
 

@@ -30,8 +30,27 @@
 #                                      #   retry_substream | point_user_at_settings
 #   note = "…"                         # the source for the claim
 #
-# The table is empty on purpose. No camera defect in this workspace has a source
-# yet: every row would be a guess, and rule 2 says a guess does not ship. The
-# loader, the vocabulary and the precedence rules are implemented and tested in
-# `crates/cctv-core/src/quirks.rs`; rows land here as they are confirmed against
-# a real device.
+# Every row below names its source in `note`; a row without one does not ship.
+# The loader, the vocabulary and the precedence rules live in
+# `crates/cctv-core/src/quirks.rs`, and a test asserts that every action string
+# here decodes to a known variant rather than falling through to `Other`.
+
+[[quirk]]
+vendor = "hikvision"
+firmware_prefix = "V5.5"
+issue = "onvif_disabled_by_default"
+action = "point_user_at_settings"
+note = "Hikvision disables ONVIF by default from firmware V5.5.0 onward — builds below V5.5.0 ship it enabled, and the prefix here covers the documented V5.5.x line. The operator enables it under Configuration > Network > Advanced Settings > Integration Protocol. Source: Hikvision, 'How to Enable ONVIF Protocol on IP Camera'."
+
+[[quirk]]
+vendor = "ezviz"
+issue = "local_service_disabled_by_default"
+action = "point_user_at_settings"
+note = "An Ezviz camera encrypts its stream and serves no RTSP/ONVIF until the operator enables it in the app (LAN Live View > camera > Settings > Local Service Settings > Enable RTSP) and turns Image Encryption off; the RTSP password is the 6-character verification code on the camera label. Source: Ezviz app 'Local Service Settings', Ezviz support."
+
+[[quirk]]
+vendor = "sony"
+model_prefix = "SRG-360"
+issue = "rtsp_tcp_bit_stream_unsupported"
+action = "rtsp_udp_only"
+note = "Sony SRG-360 series: the RTSP interleaved 'TCP bit stream (video)' is not supported; only the RTP/UDP unicast and multicast bit streams are. Streaming over TCP therefore fails on these cameras. Source: Sony, 'RTSP Streaming with RTP/RTCP for 360 series Remote Camera'."

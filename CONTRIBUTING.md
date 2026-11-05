@@ -93,7 +93,7 @@ driver, a new fixture in the conformance suite, a new field on a struct that is
 days, because remedy mapping lives in downstream retry code. Add a variant, add its
 default result, add the conformance case — in the same PR.
 
-All seven crates are versioned together and published together by
+All twelve crates are versioned together and published together by
 [`scripts/publish.sh`](scripts/publish.sh). A partial release is worse than a late
 one.
 
@@ -110,7 +110,8 @@ CRATES_IO_TOKEN=... ./scripts/publish.sh --publish
 **Order, and why it matters.** `ezviz-openapi` is published from its own
 repository and must be on crates.io *before* `cctv-ezviz`: `cargo publish` strips
 the `git` key from a `{ git, version }` dependency and resolves the version from
-the registry, so an unpublished `ezviz-openapi` fails the sequence at crate 5.
+the registry, so an unpublished `ezviz-openapi` fails the sequence at
+`cctv-ezviz`.
 The script checks for it and refuses to start otherwise.
 
 ```bash
@@ -119,7 +120,7 @@ cd ../cctv-rs && CRATES_IO_TOKEN=... ./scripts/publish.sh --publish
 ```
 
 **Rate limit.** crates.io allows a burst of **5 new crates** per account, then
-**1 every 10 minutes**. A first release is eight new crates, so the tail of the
+**1 every 10 minutes**. A first release is twelve new crates, so the tail of the
 order waits; the script detects the rate-limit response and waits it out rather
 than failing a half-finished release. Budget about half an hour for a first
 release.

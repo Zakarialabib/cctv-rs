@@ -1,0 +1,18 @@
+[package]
+name = "xtask"
+description = "Workspace automation for cctv-rs: `cargo xtask publish` and `cargo xtask hw-test`."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+# One dependency tree, two jobs: publishing needs nothing but `cargo`, while
+# `hw-test` sweeps the LAN through the facade. No async runtime is needed — a
+# discovery sweep is synchronous UDP with a bounded collection window.
+cctv-rs = { path = "../crates/cctv-rs" }
+
+[lints]
+workspace = true

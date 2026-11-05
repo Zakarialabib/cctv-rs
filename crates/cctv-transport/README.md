@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-transport.svg)](https://crates.io/crates/cctv-transport)
 [![docs.rs](https://docs.rs/cctv-transport/badge.svg)](https://docs.rs/cctv-transport)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Transport foundation for `cctv-rs`: data-driven TLS policy, time-budgeted frame reading, zero-allocation XML scanning, and pure async sockets.
 

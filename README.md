@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs)
 [![docs.rs](https://docs.rs/cctv-rs/badge.svg)](https://docs.rs/cctv-rs)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/Zakarialabib/cctv-rs/ci.yml?branch=main)](https://github.com/Zakarialabib/cctv-rs/actions)
 
 Modular, zero-panic, pure-Rust CCTV backend engine. Discover, stream, control, and reconcile IP camera fleets across ONVIF, Ezviz, RTSP, and local video sources behind a single typed facade.
@@ -11,7 +11,7 @@ No C bindings, no vendor SDK bloat, no UI, no database dependencies, and `#![for
 
 ## Workspace Crates
 
-Eleven single-responsibility crates in publish order:
+Twelve single-responsibility crates in publish order:
 
 | Crate | Crates.io | Description |
 | --- | --- | --- |
@@ -25,6 +25,7 @@ Eleven single-responsibility crates in publish order:
 | [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | Ports & Adapters local video seam: UVC adapter, budgeted frame reading, PTP capture, HAL hot-plug events. |
 | [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | Deterministic fleet reconciler with graded remediation, audit trail, GOP-cached `StreamMux`, `SnapshotProxy`. |
 | [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | Pure detection device model: zones, detection reports, monitor settings. No I/O, no heavy ML deps. |
+| [`cctv-rag`](crates/cctv-rag) | [![v](https://img.shields.io/crates/v/cctv-rag.svg)](https://crates.io/crates/cctv-rag) | Deterministic RAG: temporal incident ledger, spatial topology graph, BM25 retriever, and diagnostic playbooks. No async runtime, no external database. |
 | [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | Unified aggregate facade: driver registry, universal dispatch, discovery sweeps, zone management. |
 
 ## Quick Start
@@ -93,5 +94,5 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
 ## License & Security
 
-- **License:** MIT ([LICENSE](LICENSE))
+- **License:** Apache-2.0 ([LICENSE](LICENSE))
 - **Security:** Vulnerability disclosure process ([SECURITY.md](SECURITY.md))

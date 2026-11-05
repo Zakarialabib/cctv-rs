@@ -2,7 +2,9 @@
 resolver = "2"
 # Listed explicitly, in publish order: a glob that stops matching (`crates/*`)
 # fails the whole build with a confusing `failed to read` error, and this list is
-# also the release order used by `scripts/publish.sh`.
+# also the release order used by `cargo xtask publish`.
+# `xtask` trails the list and is never published (`publish = false`): it is the
+# workspace task runner, not a library.
 members = [
     "crates/cctv-core",
     "crates/cctv-transport",
@@ -16,13 +18,14 @@ members = [
     "crates/cctv-detect",
     "crates/cctv-rag",
     "crates/cctv-rs",
+    "xtask",
 ]
 
 [workspace.package]
 version = "0.2.0"
 edition = "2021"
 rust-version = "1.89"
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/Zakarialabib/cctv-rs"
 
 [workspace.dependencies]

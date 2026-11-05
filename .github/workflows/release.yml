@@ -19,11 +19,11 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
 
-      # LICENSE is required because the workspace declares MIT.
+      # LICENSE is required because the workspace declares Apache-2.0.
       - name: Verify LICENSE file exists
         run: test -f LICENSE || (echo "LICENSE file missing — cargo publish requires it" && exit 1)
 
-      # Seven crates must be published in dependency order; a single root-level
+      # Twelve crates must be published in dependency order; a single root-level
       # `cargo publish` cannot do that (path deps are stripped at publish time).
       # The order itself lives in `scripts/publish.sh`.
       - name: Dry run the ordered release

@@ -21,7 +21,7 @@ System development status, release phases, and locked architectural decisions.
 
 ## Current Status (v0.2.0 Shipped)
 
-- **0.2.0 Released**: All 11 crates published to crates.io (`cctv-core`, `cctv-transport`, `cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`, `cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rs`).
+- **0.2.0 Released**: 11 of the 12 workspace crates are published to crates.io (`cctv-core`, `cctv-transport`, `cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`, `cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rs`); `cctv-rag` joins the ordered release at the next publish run.
 - **Active Remediation**: `CommandRelay` issues authorized `CommandId`s during reconciliation sweeps.
 - **`StreamMux` & `SnapshotProxy`**: GOP-cached sub-stream multiplexer and throttled snapshot proxy operational in `cctv-agent`.
 - **Zone & Detection Surface**: `Facade` provides complete zone configuration and detection event evaluation via `cctv-detect`.
@@ -30,7 +30,7 @@ System development status, release phases, and locked architectural decisions.
 
 ## Locked Decisions
 
-1. **Pure-Rust Workspace**: No C-FFI, no vendor binary blobs. All 11 crates published under MIT license.
+1. **Pure-Rust Workspace**: No C-FFI, no vendor binary blobs. All 12 crates are licensed under Apache-2.0.
 2. **Explicit Manifest**: Workspace members are explicitly declared in `Cargo.toml` in dependency publish order.
 3. **Decoupled Drivers**: Protocols reside in standalone crates. Drivers do not pollute `cctv-core` with vendor concepts.
 4. **Alloc-Only Contract**: `cctv-core` has zero runtime or socket dependencies.
