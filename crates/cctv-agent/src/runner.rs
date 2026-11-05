@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cctv_core::CameraError;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, Mutex};
-use tokio::time::sleep;
+use tokio::time::{sleep, Instant};
 
 use cctv_core::CameraId;
 
@@ -126,7 +126,7 @@ impl AgentRunner {
             let sleep_fut = async {
                 match next_deadline {
                     Some(deadline) => {
-                        let now = std::time::Instant::now();
+                        let now = Instant::now();
                         if deadline > now {
                             sleep(deadline - now).await;
                         }
@@ -200,7 +200,10 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    // Virtual time: `start_paused` freezes the clock and advances it only when
+    // every task is idle, so the watchdog fires at its deadline instead of
+    // whenever the test machine gets around to scheduling the runner.
+    #[tokio::test(start_paused = true)]
     async fn deadline_expiration_dispatches_ptz_stop_and_logs_audit() {
         let dispatcher = Arc::new(MockDispatcher::new());
         let audit = Arc::new(InMemoryJsonlAuditLog::new());
@@ -221,7 +224,8 @@ mod tests {
             .await
             .unwrap();
 
-        // Allow deadline to elapse
+        // Allow the 20ms deadline to elapse.  Time is virtual, so this advances
+        // to the watchdog's own timer rather than sleeping for real.
         tokio::time::sleep(Duration::from_millis(60)).await;
 
         let stops = dispatcher.stops.lock().await.clone();
@@ -237,7 +241,7 @@ mod tests {
         runner_handle.await.unwrap();
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn renewal_prevents_watchdog_trip() {
         let dispatcher = Arc::new(MockDispatcher::new());
         let audit = Arc::new(InMemoryJsonlAuditLog::new());
@@ -257,7 +261,8 @@ mod tests {
             .await
             .unwrap();
 
-        // Renew at 25ms with 100ms TTL
+        // Renew at 25ms — inside the 50ms TTL, which is the whole point: the
+        // renewal has to land before the original deadline regardless of load.
         tokio::time::sleep(Duration::from_millis(25)).await;
         tx.send(RunnerCommand::Pulse(PtzPulse::new(cam.clone(), 100)))
             .await

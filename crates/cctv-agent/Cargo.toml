@@ -23,7 +23,10 @@ tokio = { workspace = true, features = ["sync", "rt", "time", "macros", "net"] }
 
 [dev-dependencies]
 cctv-transport = { workspace = true, features = ["http", "net", "fixture"] }
-tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros", "time", "rt"] }
+# `test-util` supplies the paused clock the runner tests drive virtual time with,
+# so a watchdog deadline is asserted on the timer it actually fired from rather
+# than on how many milliseconds the test machine happened to be busy for.
+tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros", "time", "rt", "test-util"] }
 
 [lints]
 workspace = true
