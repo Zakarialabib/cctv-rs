@@ -6,6 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Temporal incident ledger, spatial topology graph, and diagnostic playbooks for cctv-rs"
+readme = "README.md"
+keywords = ["cctv", "rag", "retrieval", "bm25", "knowledge-base"]
+categories = ["multimedia::video", "os"]
 
 [dependencies]
 cctv-core = { workspace = true, features = ["serde-sync"] }
