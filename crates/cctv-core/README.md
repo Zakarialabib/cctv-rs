@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core)
 [![docs.rs](https://docs.rs/cctv-core/badge.svg)](https://docs.rs/cctv-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Foundational device model for `cctv-rs`. Pure `alloc`-only abstractions: traits, typed command inventory, state machine, zeroized secrets, error taxonomy, and conformance suite.
 

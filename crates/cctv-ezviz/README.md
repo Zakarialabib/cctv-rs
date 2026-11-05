@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz)
 [![docs.rs](https://docs.rs/cctv-ezviz/badge.svg)](https://docs.rs/cctv-ezviz)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Ezviz Open Platform cloud driver for `cctv-rs`. Wraps the `ezviz-openapi` client into standard `CameraBackend` abstractions.
 
