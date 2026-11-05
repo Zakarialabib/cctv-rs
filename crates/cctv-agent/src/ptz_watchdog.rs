@@ -3,9 +3,16 @@
 //! Tracks active `PtzPulse` deadlines (`Instant::now() + Duration::from_millis(ttl_ms)`).
 //! If a deadline expires without a renewal `PtzPulse` or explicit `PtzStop`,
 //! the watchdog marks the camera as expired so that emergency PTZ stop can be dispatched.
+//!
+//! Deadlines are read from [`tokio::time::Instant`], the same clock the runner
+//! sleeps on.  `std::time::Instant` would keep running while a paused test
+//! advances virtual time, so a deadline armed on the wall clock could never be
+//! observed to expire deterministically.
 
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use tokio::time::Instant;
 
 use cctv_core::{CameraId, ImperativeCameraCommand};
 use cctv_onvif::{build_continuous_move, build_stop};
