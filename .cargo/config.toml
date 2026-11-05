@@ -1,0 +1,4 @@
+# `cargo xtask <task>` for this workspace. `publish` runs the ordered crates.io
+# release and `hw-test` sweeps the LAN for cameras; both are defined in `xtask/`.
+[alias]
+xtask = "run -p xtask --"

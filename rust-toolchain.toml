@@ -1,0 +1,8 @@
+[toolchain]
+# `stable`, not a pinned minor: the workspace promises an MSRV (`rust-version`
+# in the root manifest, built by CI's `msrv` job), and pinning a *newer* channel
+# here would silently override that promise on every developer's machine — the
+# pin wins over the MSRV, so code that needs 1.95 would still build locally and
+# then fail the 1.89 job.
+channel = "stable"
+components = ["rustfmt", "clippy"]
