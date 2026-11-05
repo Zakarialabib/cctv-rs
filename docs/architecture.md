@@ -15,7 +15,8 @@ cctv-rs (Aggregate Facade)
 ├── cctv-ezviz ──────────── Ezviz Open Platform cloud adapter
 ├── cctv-stream-uvc ─────── Local video seam (UVC, PTP, HAL events)
 ├── cctv-agent ──────────── Fleet reconciler, StreamMux, SnapshotProxy
-└── cctv-detect ─────────── Detection & zone configuration models
+├── cctv-detect ─────────── Detection & zone configuration models
+└── cctv-rag ────────────── Incident ledger, spatial topology, BM25 RAG retrieval
 ```
 
 ---
@@ -52,6 +53,7 @@ All camera interactions pass through the typed `Facade` interface:
 | `cctv-stream-uvc` | `cctv-core`, `cctv-transport` | Ports & Adapters local video seam: mockable OS platform seam, UVC capture, PTP fetch surfaces, and HAL hot-plug events. |
 | `cctv-agent` | `cctv-core`, `cctv-rtsp` | Deterministic fleet reconciler, graded remediation actions (`Hold`, `MarkOffline`, `TakeOutOfService`), `StreamMux` GOP caching, and `SnapshotProxy`. |
 | `cctv-detect` | *(pure / alloc-only)* | Motion and object detection primitives: `Detection`, `Zone` (`point`, `rectangle`), `ZoneConfig` with clamped normalization. |
+| `cctv-rag` | `cctv-core`, `cctv-detect` | Deterministic retrieval layer: temporal incident ledger, spatial topology graph, BM25 index, and diagnostic playbooks, exposed as one `KnowledgeBaseIndex`. |
 | `cctv-rs` | All workspace crates | Aggregate facade: unified driver factory registry, lifecycle management, zone processing, and discovery entry points. |
 
 ---

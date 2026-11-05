@@ -18,6 +18,7 @@ Aspirational crate evolution, boundaries, and architectural invariants for the `
 | `cctv-stream-uvc` | Ports & Adapters local video seam (UVC/PTP/HAL). | Isolated behind platform abstraction for hardware-free testability. |
 | `cctv-agent` | Deterministic fleet state reconciler, `StreamMux`, `SnapshotProxy`. | Command issuance via `CommandRelay` and NALU broadcast caching. |
 | `cctv-detect` | Motion & AI detection domain model. | Alloc-only; free of ML frameworks and I/O. |
+| `cctv-rag` | Deterministic retrieval: incident ledger, spatial topology graph, BM25 index, playbook registry. | Runtime-free; bounded in-memory index, no external vector database. |
 | `cctv-rs` | Public aggregate facade with dynamic driver factory registry (`Arc<dyn CameraBackend>`). | Single unified interface for host applications. |
 
 ---
