@@ -30,6 +30,7 @@ pub mod fixture;
 pub mod http;
 #[cfg(feature = "net")]
 pub mod net;
+pub mod pacing;
 pub mod policy;
 pub mod reader;
 pub mod xml;
