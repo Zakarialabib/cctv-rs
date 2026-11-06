@@ -36,6 +36,8 @@ pub enum Capability {
     CameraContinuous,
     /// 4K resolution (3840x2160 or higher) support (`camera.4k`).
     Camera4k,
+    /// Permission to control display power via DDC/CI (`display.power.write`).
+    DisplayPowerWrite,
 }
 
 impl Capability {
@@ -53,6 +55,7 @@ impl Capability {
             Self::LightTorch => "light.torch",
             Self::CameraContinuous => "camera.continuous",
             Self::Camera4k => "camera.4k",
+            Self::DisplayPowerWrite => "display.power.write",
         }
     }
 
@@ -69,6 +72,7 @@ impl Capability {
         Capability::LightTorch,
         Capability::CameraContinuous,
         Capability::Camera4k,
+        Capability::DisplayPowerWrite,
     ];
 }
 
@@ -106,6 +110,7 @@ impl FromStr for Capability {
             "light.torch" => Ok(Self::LightTorch),
             "camera.continuous" => Ok(Self::CameraContinuous),
             "camera.4k" => Ok(Self::Camera4k),
+            "display.power.write" => Ok(Self::DisplayPowerWrite),
             other => Err(ParseCapabilityError(other.to_string())),
         }
     }

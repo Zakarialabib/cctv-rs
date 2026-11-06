@@ -10,6 +10,10 @@ readme = "README.md"
 keywords = ["cctv", "camera", "facade", "ptz", "signage"]
 categories = ["multimedia", "hardware-support"]
 
+[features]
+default = []
+ddc = ["cctv-stream-uvc/ddc", "cctv-agent/ddc"]
+
 [dependencies]
 cctv-core.workspace = true
 cctv-rtp.workspace = true
