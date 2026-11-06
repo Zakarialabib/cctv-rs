@@ -36,6 +36,7 @@ pub use cctv_rag::{
     PresetNode, PtzReachesEdge, RagContextEnvelope, RagError, ScoredResult, SearchDocument,
     SpatialGraph, ZoneKind, ZoneNode,
 };
+pub use cctv_rtp::{MediaDescriptor, MediaProbe, TranscodePlan};
 pub use cctv_stream_uvc::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
 };
