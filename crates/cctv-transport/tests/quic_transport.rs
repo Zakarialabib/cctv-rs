@@ -216,3 +216,79 @@ async fn quic_network_change_invocations_succeed() {
     // Simulates roaming from Wi-Fi to cellular (mobile / desktop interface switch).
     endpoint.network_change().await;
 }
+
+#[tokio::test]
+async fn quic_pacing_aware_keyframe_request_round_trip() {
+    use cctv_transport::pacing::{
+        KeyframeRequestReason, KeyframeRequester, KeyframeRequesterConfig, PacingSender, PacketType,
+    };
+
+    let options = QuicOptions {
+        alpns: vec![b"cctv/keyframe/1".to_vec()],
+        ..QuicOptions::default()
+    };
+
+    let server_ep = QuicEndpoint::bind(&options).await.expect("server binds");
+    let client_ep = QuicEndpoint::bind(&options).await.expect("client binds");
+    let server_addr = server_ep.addr();
+
+    // Server represents the camera receiving keyframe requests on the control channel
+    let server_task = tokio::spawn(async move {
+        let conn = server_ep.accept().await.unwrap().unwrap();
+        let (kind, mut stream) = conn.accept_channel().await.unwrap();
+        assert_eq!(kind, ChannelKind::Control);
+
+        let mut magic = [0u8; 4];
+        stream.read_exact(&mut magic).await.unwrap();
+        assert_eq!(&magic, b"KEYF");
+
+        let mut seq_bytes = [0u8; 8];
+        stream.read_exact(&mut seq_bytes).await.unwrap();
+        let seq = u64::from_be_bytes(seq_bytes);
+        assert_eq!(seq, 1);
+
+        let mut reason_byte = [0u8; 1];
+        stream.read_exact(&mut reason_byte).await.unwrap();
+        assert_eq!(reason_byte[0], 2); // CongestionDrop tag
+
+        // Camera acknowledges keyframe request and confirms IDR generation
+        stream.write_all(b"IDR_OK").await.unwrap();
+        stream.flush().await.unwrap();
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    });
+
+    let client_conn = client_ep
+        .connect(server_addr, b"cctv/keyframe/1", Duration::from_secs(5))
+        .await
+        .unwrap();
+
+    let mut ctrl_stream = client_conn
+        .open_channel(ChannelKind::Control)
+        .await
+        .unwrap();
+
+    // Client has a PacingSender that encounters congestion
+    let mut sender = PacingSender::new(1);
+    let mut requester = KeyframeRequester::new(KeyframeRequesterConfig::default());
+
+    let now = 1_000;
+    sender.enqueue_video(PacketType::DeltaFrame, vec![0; 500], true, now);
+    // Overflow queue to trigger drop
+    sender.enqueue_video(PacketType::DeltaFrame, vec![0; 500], true, now + 33);
+
+    let maybe_req = requester.poll_request(&mut sender, now + 33);
+    assert!(maybe_req.is_some());
+    let req = maybe_req.unwrap();
+    assert_eq!(req.reason, KeyframeRequestReason::CongestionDrop);
+
+    // Send control message over the QUIC control stream
+    ctrl_stream.write_all(&req.payload).await.unwrap();
+    ctrl_stream.flush().await.unwrap();
+
+    let mut ack = [0u8; 6];
+    ctrl_stream.read_exact(&mut ack).await.unwrap();
+    assert_eq!(&ack, b"IDR_OK");
+
+    server_task.await.unwrap();
+}
