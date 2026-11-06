@@ -232,6 +232,7 @@ dependencies = [
  "cctv-onvif",
  "cctv-rtp",
  "cctv-rtsp",
+ "cctv-stream-uvc",
  "cctv-transport",
  "futures-core",
  "serde",

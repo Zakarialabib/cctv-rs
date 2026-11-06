@@ -45,3 +45,11 @@ pub use cctv_rtp::{MediaDescriptor, MediaProbe, TranscodePlan};
 pub use cctv_stream_uvc::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
 };
+
+#[cfg(feature = "ddc")]
+pub use cctv_agent::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
+#[cfg(feature = "ddc")]
+pub use cctv_stream_uvc::{
+    DdcController, DdcError, DisplayProfile, I2cBus, InputSource, LinuxI2cBus, MockI2cBus,
+    PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
+};

@@ -18,6 +18,8 @@
 #![forbid(unsafe_code)]
 
 pub mod audit;
+#[cfg(feature = "ddc")]
+pub mod display_policy;
 pub mod events;
 pub mod ptz_watchdog;
 pub mod reconcile;
@@ -32,6 +34,8 @@ pub use cctv_core::{
     CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth,
     ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet,
 };
+#[cfg(feature = "ddc")]
+pub use display_policy::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
 pub use events::{DetectionEvent, EventSubscriptionService, MotionEventStream, SignageCommand};
 pub use ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
 pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};
