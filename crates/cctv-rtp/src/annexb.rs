@@ -221,7 +221,7 @@ pub fn parse_h264_sps(sps_nal: &[u8]) -> Option<StreamParameters> {
                     for _ in 0..size {
                         if next != 0 {
                             let delta = reader.read_se()?;
-                            next = (last + delta + 256) % 256;
+                            next = (last.saturating_add(delta).saturating_add(256)).rem_euclid(256);
                         }
                         last = if next != 0 { next } else { last };
                     }
