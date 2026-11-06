@@ -30,6 +30,10 @@ pub use cctv_core::{
 };
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
 pub use cctv_discovery::DiscoveredCamera;
+pub use cctv_pair::{
+    CeremonyConfig, CeremonyRole, CeremonyState, LockoutManager, PairingCeremony, PairingError,
+    PairingMessage, PairingMethod, PairingQrPayload, TrustStore, TrustedPeer, PAIRING_ALPN,
+};
 pub use cctv_rag::{
     AdjacentToEdge, Bm25Index, CameraKind, CameraNode, CoversEdge, DiagnosticPlaybook,
     EmbeddingProvider, HandoffCandidate, IncidentChunk, IncidentCoalescer, IncidentSeverity,

@@ -1,0 +1,26 @@
+[package]
+name = "cctv-pair"
+description = "Device pairing ceremony, QR/ADB flows, and trust store for cctv-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "pairing", "trust-store", "qr", "adb"]
+categories = ["cryptography", "network-programming"]
+
+[dependencies]
+cctv-core = { workspace = true, features = ["serde-sync"] }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+zeroize = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "io-util"] }
+
+[lints]
+workspace = true

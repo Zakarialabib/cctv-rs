@@ -296,6 +296,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-pair"
+version = "0.2.0"
+dependencies = [
+ "base64 0.23.1",
+ "cctv-core",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tokio",
+ "zeroize",
+]
+
+[[package]]
 name = "cctv-rag"
 version = "0.2.0"
 dependencies = [
@@ -317,6 +331,7 @@ dependencies = [
  "cctv-discovery",
  "cctv-ezviz",
  "cctv-onvif",
+ "cctv-pair",
  "cctv-rag",
  "cctv-rtp",
  "cctv-stream-uvc",
