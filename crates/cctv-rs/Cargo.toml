@@ -19,6 +19,7 @@ cctv-discovery.workspace = true
 cctv-detect.workspace = true
 cctv-rag.workspace = true
 cctv-pair.workspace = true
+cctv-sync.workspace = true
 cctv-ezviz.workspace = true
 cctv-onvif.workspace = true
 cctv-stream-uvc.workspace = true
