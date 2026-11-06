@@ -52,4 +52,6 @@ pub use cctv_agent::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
 pub use cctv_stream_uvc::{
     DdcController, DdcError, DisplayProfile, I2cBus, InputSource, LinuxI2cBus, MockI2cBus,
     PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
+pub use cctv_sync::{
+    LwwRegister, OrSet, SyncCameraRecord, SyncDeviceRegistry, SyncPeerRecord, SyncTrustStore, Tag,
 };

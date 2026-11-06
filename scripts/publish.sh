@@ -50,6 +50,7 @@ ORDER=(
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect
     cctv-pair        # -> cctv-core
+    cctv-sync        # -> cctv-core, cctv-pair
     cctv-rs          # facade: depends on all of the above; `cctv` itself is taken
 )
 

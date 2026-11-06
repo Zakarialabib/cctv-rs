@@ -1,0 +1,21 @@
+[package]
+name = "cctv-sync"
+description = "Cross-device state convergence and CRDT state-sync for trust store and device registry."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["cctv", "crdt", "state-sync", "trust", "registry"]
+categories = ["data-structures", "network-programming"]
+
+[dependencies]
+cctv-core.workspace = true
+cctv-pair.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

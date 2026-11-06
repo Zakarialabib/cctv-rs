@@ -23,8 +23,12 @@
 
 #![forbid(unsafe_code)]
 
+pub mod quantize;
 pub mod zone;
 
+pub use quantize::{
+    cluster_wsmeans, Argb, Lab, QuantizerCelebi, QuantizerWu, WeightedPoint, MAX_IMAGE_DIMENSION,
+};
 pub use zone::{Region, RegionKind, Zone, ZoneConfig};
 
 /// One detection fired by a camera in a zone.

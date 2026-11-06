@@ -72,6 +72,7 @@ pub mod backend;
 pub mod caps;
 pub mod commands;
 pub mod conformance;
+pub mod doctor;
 pub mod error;
 pub mod events;
 pub mod imperative;
@@ -104,6 +105,12 @@ pub use caps::{
 pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,
+};
+pub use doctor::{
+    auto_fix, doctor, doctor_with_checks, standard_checks, AutoFixPolicy, Check, CheckKind,
+    CheckResult, CheckStatus, ClockResyncFix, ClockSkewCheck, ConfirmCallback, DigestCheck,
+    DoctorContext, Fix, FixKind, FixOutcome, ForceTcpFix, IgmpCheck, IgmpJoinFix, MtuCheck,
+    MulticastCheck, PinSelfSignedFix, RtspPathCheck, SsdpCheck, TlsPinCheck, PER_CHECK_TIMEOUT,
 };
 pub use error::{CameraError, CoreError};
 pub use events::{AuditEntry, DomainEvent};
