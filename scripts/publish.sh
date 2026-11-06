@@ -49,6 +49,7 @@ ORDER=(
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect
+    cctv-pair        # -> cctv-core
     cctv-rs          # facade: depends on all of the above; `cctv` itself is taken
 )
 
