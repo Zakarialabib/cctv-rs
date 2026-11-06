@@ -37,6 +37,7 @@ const SOAP_CONTENT_TYPE: &str = "application/soap+xml";
 ///
 /// Cheap to share: every method takes `&self`, and the only mutable state is the
 /// cached service table behind a `Mutex` that is never held across an `await`.
+#[derive(Debug)]
 pub struct OnvifSession {
     http: HttpClient,
     credentials: Credentials,
@@ -139,6 +140,58 @@ impl OnvifSession {
             .await?
             .ptz
             .ok_or(OnvifError::MissingService("PTZ"))
+    }
+
+    /// The Events service URL, or [`OnvifError::MissingService`].
+    pub async fn events_url(&self) -> Result<String, OnvifError> {
+        self.services()
+            .await?
+            .events
+            .ok_or(OnvifError::MissingService("Events"))
+    }
+
+    /// `CreatePullPointSubscription` against the events service.
+    pub async fn create_pull_point_subscription(
+        &self,
+        initial_termination_time: Option<std::time::Duration>,
+        topic_filter: Option<&str>,
+    ) -> Result<crate::events::SubscriptionReference, OnvifError> {
+        let events_url = self.events_url().await?;
+        let body = crate::events::build_create_pull_point_subscription(
+            initial_termination_time,
+            topic_filter,
+        );
+        let reply = self.call(&events_url, &body).await?;
+        crate::events::parse_create_pull_point_subscription(&reply)
+    }
+
+    /// `PullMessages` against the subscription's pull-point URL.
+    pub async fn pull_messages(
+        &self,
+        pull_point_url: &str,
+        timeout: std::time::Duration,
+        message_limit: u32,
+    ) -> Result<Vec<crate::events::OnvifEvent>, OnvifError> {
+        let body = crate::events::build_pull_messages(timeout, message_limit);
+        let reply = self.call(pull_point_url, &body).await?;
+        crate::events::parse_pull_messages(&reply)
+    }
+
+    /// `Renew` subscription against the subscription's pull-point URL.
+    pub async fn renew_subscription(
+        &self,
+        pull_point_url: &str,
+        termination_time: std::time::Duration,
+    ) -> Result<crate::events::RenewResponse, OnvifError> {
+        let body = crate::events::build_renew(termination_time);
+        let reply = self.call(pull_point_url, &body).await?;
+        crate::events::parse_renew(&reply)
+    }
+
+    /// `Unsubscribe` against the subscription's pull-point URL.
+    pub async fn unsubscribe(&self, pull_point_url: &str) -> Result<(), OnvifError> {
+        let body = crate::events::build_unsubscribe();
+        self.call(pull_point_url, body).await.map(|_| ())
     }
 
     /// `GetProfiles`.

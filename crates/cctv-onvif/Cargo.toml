@@ -14,6 +14,7 @@ categories = ["api-bindings", "multimedia::video"]
 # `CameraBackend` is an `async-trait` trait; the impl must be annotated too.
 async-trait.workspace = true
 cctv-core.workspace = true
+tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 # The `Datagram` seam, the WS-Discovery envelope/parser and the identity
 # converter the [`discovery`] module delegates its sweep to.
 cctv-discovery.workspace = true

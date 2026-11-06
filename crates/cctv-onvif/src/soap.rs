@@ -20,6 +20,10 @@ pub const DEVICE_NS: &str = "http://www.onvif.org/ver10/device/wsdl";
 pub const MEDIA_NS: &str = "http://www.onvif.org/ver10/media/wsdl";
 /// PTZ service namespace (`tptz:`).
 pub const PTZ_NS: &str = "http://www.onvif.org/ver20/ptz/wsdl";
+/// Event service namespace (`tev:`).
+pub const EVENTS_NS: &str = "http://www.onvif.org/ver10/events/wsdl";
+/// WS-BaseNotification namespace (`wsnt:`).
+pub const WSNT_NS: &str = "http://docs.oasis-open.org/wsn/b-2";
 
 const WSSE_NS: &str =
     "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
@@ -82,7 +86,7 @@ pub fn envelope(header: Option<&str>, body: &str) -> String {
         .unwrap_or_default();
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
-<s:Envelope xmlns:s="{SOAP_ENV_NS}" xmlns:tt="{SCHEMA_NS}" xmlns:tds="{DEVICE_NS}" xmlns:trt="{MEDIA_NS}" xmlns:tptz="{PTZ_NS}">{header}<s:Body>{body}</s:Body></s:Envelope>"#
+<s:Envelope xmlns:s="{SOAP_ENV_NS}" xmlns:tt="{SCHEMA_NS}" xmlns:tds="{DEVICE_NS}" xmlns:trt="{MEDIA_NS}" xmlns:tptz="{PTZ_NS}" xmlns:tev="{EVENTS_NS}" xmlns:wsnt="{WSNT_NS}">{header}<s:Body>{body}</s:Body></s:Envelope>"#
     )
 }
 

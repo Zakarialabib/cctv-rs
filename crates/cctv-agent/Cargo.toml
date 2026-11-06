@@ -12,6 +12,7 @@ categories = ["hardware-support", "development-tools"]
 
 [dependencies]
 async-trait.workspace = true
+futures-core = "0.3"
 cctv-core = { workspace = true, features = ["serde-sync"] }
 cctv-onvif.workspace = true
 cctv-rtp.workspace = true
