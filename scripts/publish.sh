@@ -225,6 +225,7 @@ for crate in "${ORDER[@]}"; do
         # present only at the OLD version while the new one is not indexed yet.
         # Dry run = expected; real publish = index lag.
         if printf '%s' "$output" | grep -q 'no matching package named `\(cctv\|ezviz-openapi\)' \
+            || printf '%s' "$output" | grep -q 'failed to select a version for `\(cctv\|ezviz-openapi\)' \
             || printf '%s' "$output" | grep -q 'failed to select a version for the requirement `\(cctv\|ezviz-openapi\)'; then
             if [ "$MODE" = "--dry-run" ]; then
                 echo "warning: $crate not fully verified — a workspace dependency is not on" \

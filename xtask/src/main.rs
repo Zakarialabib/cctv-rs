@@ -281,6 +281,7 @@ fn publish(args: &[String]) -> Result<(), String> {
 fn missing_workspace_dependency(stderr: &str) -> bool {
     ["`cctv-", "`ezviz-openapi"].iter().any(|name| {
         stderr.contains(&format!("no matching package named {name}"))
+            || stderr.contains(&format!("failed to select a version for {name}"))
             || stderr.contains(&format!(
                 "failed to select a version for the requirement {name}"
             ))
