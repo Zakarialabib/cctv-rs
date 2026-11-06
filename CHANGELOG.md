@@ -10,29 +10,39 @@ All twelve crates are versioned and released together.
 
 ### Added
 
-- `cctv-core`'s bundled quirks table ships **three sourced rows** instead of
-  none — Hikvision's ONVIF-disabled default from firmware V5.5.0, Ezviz's
-  disabled local service / image encryption, and the Sony SRG-360 series' absent
-  RTSP interleaved TCP bit stream. Each row names its source in `note`; a row
-  without one does not ship.
-- `xtask`, the workspace task runner: `cargo xtask publish` (the ordered
-  crates.io release) and `cargo xtask hw-test` (a LAN camera sweep through the
-  facade). The `xtask` alias lives in `.cargo/config.toml`.
-- `crates/cctv-rag/README.md` and its `readme` / `keywords` / `categories`
-  manifest keys, so `cargo package` cannot fail on a declared-but-missing
-  README the way it would have.
+- **`cctv-pair` crate** (new): device pairing ceremony and trust store —
+  `Ceremony` orchestrates the AKE handshake, `TrustStore` persists trusted
+  device keys, `Uri` parses camera URIs with auth, and `zbase32` encoding for
+  human-comparable fingerprints. Integration tests cover the full ceremony flow.
+- **QUIC transport** (`cctv-transport`): QUIC-based transport via `iroh` —
+  `QuicEndpoint` provides encrypted, multiplexed streams for camera feeds with
+  automatic connection management and migration.
+- **Annex-B elementary-stream probe** (`cctv-rtp`): `AnnexBProbe` extracts
+  NAL units from RTP payloads, building `MediaDescriptor` with codec profile,
+  level, and SPS/PPS/VPS parsing. Validates H.264/H.265 bitstream structure
+  without full decode.
+- **Sender pacing & drop-to-keyframe** (`cctv-transport`): `Pacer` controls
+  RTP packet emission timing with token-bucket pacing; `DropToKeyframe` policy
+  flushes the GOP on congestion, forcing a clean IDR resume.
+- **Capability matrix & hello.update** (`cctv-core`): `CapabilityMatrix`
+  advertises supported features (PTZ, presets, analytics) in the ONVIF hello
+  handshake; `hello.update` handles capability changes at runtime.
+- `cctv-core`'s bundled quirks table ships **three sourced rows** — Hikvision's
+  ONVIF-disabled default (V5.5.0), Ezviz's disabled local service / image
+  encryption, and Sony SRG-360's absent RTSP interleaved TCP bit stream.
+- `xtask`, the workspace task runner: `cargo xtask publish` and `cargo xtask hw-test`.
 
 ### Changed
 
-- **The workspace is licensed under Apache-2.0**, replacing MIT: the manifest
-  `license`, `LICENSE`, the root and per-crate README badges, and the docs.
-- `rust-toolchain.toml` pins the `stable` channel (with `rustfmt` and `clippy`)
-  instead of a fixed compiler, so the pin cannot hide an MSRV regression in the
-  `1.89` promise.
-- `cctv-rag` joins the release plumbing it was missing from:
-  `scripts/publish.sh`'s ORDER (after `cctv-detect`, before the facade), CI's
-  per-crate build job, the README crate table, and the crate counts in the docs
-  and workflows.
+- **The workspace is licensed under Apache-2.0**, replacing MIT.
+- `rust-toolchain.toml` pins the `stable` channel instead of a fixed compiler.
+- `cctv-rag` joins the release plumbing.
+
+### Fixed
+
+- **PTZ watchdog virtual clock** (`cctv-agent`): the watchdog now drives from
+  the tokio clock, not wall-clock time, so tests and skewed-clock cameras
+  behave identically.
 
 ## [0.2.0] - 2026-11-01
 
