@@ -144,6 +144,24 @@ jobs:
       # `rust-version` is a promise; this job is the only thing that checks it.
       - run: cargo check --workspace --all-targets
 
+  fuzz:
+    name: fuzz (Annex-B parser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked || true
+      - name: Build fuzz targets
+        run: |
+          cd crates/cctv-rtp
+          cargo +nightly fuzz build
+      - name: Run Annex-B probe fuzzing
+        run: |
+          cd crates/cctv-rtp
+          cargo +nightly fuzz run annexb_probe -- -max_total_time=30
+
   deny:
     name: cargo-deny
     runs-on: ubuntu-latest

@@ -221,7 +221,7 @@ pub fn parse_h264_sps(sps_nal: &[u8]) -> Option<StreamParameters> {
                     for _ in 0..size {
                         if next != 0 {
                             let delta = reader.read_se()?;
-                            next = (last + delta + 256) % 256;
+                            next = (last.saturating_add(delta).saturating_add(256)).rem_euclid(256);
                         }
                         last = if next != 0 { next } else { last };
                     }
@@ -269,19 +269,24 @@ pub fn parse_h264_sps(sps_nal: &[u8]) -> Option<StreamParameters> {
         (0, 0, 0, 0)
     };
 
-    let raw_width = (pic_width_in_mbs_minus1 + 1) * 16;
-    let raw_height =
-        (pic_height_in_map_units_minus1 + 1) * 16 * (2 - u32::from(frame_mbs_only_flag));
+    let raw_width = (pic_width_in_mbs_minus1.saturating_add(1)).saturating_mul(16);
+    let mult_y = 2 - u32::from(frame_mbs_only_flag);
+    let raw_height = (pic_height_in_map_units_minus1.saturating_add(1))
+        .saturating_mul(16)
+        .saturating_mul(mult_y);
 
-    let crop_unit_x = if chroma_format_idc == 0 { 1 } else { 2 };
-    let crop_unit_y = if chroma_format_idc == 0 {
-        2 - u32::from(frame_mbs_only_flag)
+    let crop_unit_x: u32 = if chroma_format_idc == 0 { 1 } else { 2 };
+    let crop_unit_y: u32 = if chroma_format_idc == 0 {
+        mult_y
     } else {
-        2 * (2 - u32::from(frame_mbs_only_flag))
+        2 * mult_y
     };
 
-    let width = raw_width.saturating_sub(crop_unit_x * (crop_left + crop_right));
-    let height = raw_height.saturating_sub(crop_unit_y * (crop_top + crop_bottom));
+    let crop_x_total = crop_unit_x.saturating_mul(crop_left.saturating_add(crop_right));
+    let crop_y_total = crop_unit_y.saturating_mul(crop_top.saturating_add(crop_bottom));
+
+    let width = raw_width.saturating_sub(crop_x_total);
+    let height = raw_height.saturating_sub(crop_y_total);
 
     Some(StreamParameters {
         codec: VideoCodec::H264,
@@ -369,10 +374,13 @@ pub fn parse_h265_sps(sps_nal: &[u8]) -> Option<StreamParameters> {
         _ => (1u32, 1u32), // monochrome or unknown
     };
 
-    let width = pic_width_in_luma_samples
-        .saturating_sub(sub_width_c * (conf_win_left_offset + conf_win_right_offset));
-    let height = pic_height_in_luma_samples
-        .saturating_sub(sub_height_c * (conf_win_top_offset + conf_win_bottom_offset));
+    let conf_x =
+        sub_width_c.saturating_mul(conf_win_left_offset.saturating_add(conf_win_right_offset));
+    let conf_y =
+        sub_height_c.saturating_mul(conf_win_top_offset.saturating_add(conf_win_bottom_offset));
+
+    let width = pic_width_in_luma_samples.saturating_sub(conf_x);
+    let height = pic_height_in_luma_samples.saturating_sub(conf_y);
 
     Some(StreamParameters {
         codec: VideoCodec::H265,

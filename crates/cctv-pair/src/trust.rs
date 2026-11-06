@@ -45,10 +45,13 @@ impl fmt::Debug for TrustedPeer {
     }
 }
 
-/// In-memory / persistable trust store holding trusted peers.
+/// In-memory / persistable trust store holding trusted peers and pairing nonce counter persistence.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TrustStore {
     peers: HashMap<String, TrustedPeer>,
+    /// Persisted last seen strictly monotonic nonce counter per device identifier.
+    #[serde(default)]
+    nonce_counters: HashMap<String, u64>,
 }
 
 impl TrustStore {
@@ -56,6 +59,7 @@ impl TrustStore {
     pub fn new() -> Self {
         Self {
             peers: HashMap::new(),
+            nonce_counters: HashMap::new(),
         }
     }
 
@@ -92,6 +96,30 @@ impl TrustStore {
     /// Iterate over trusted peers.
     pub fn iter(&self) -> impl Iterator<Item = &TrustedPeer> {
         self.peers.values()
+    }
+
+    /// Get the highest recorded nonce counter for a device ID.
+    pub fn get_nonce_counter(&self, device_id: &str) -> u64 {
+        self.nonce_counters.get(device_id).copied().unwrap_or(0)
+    }
+
+    /// Validates and records a strictly monotonic nonce counter for a device.
+    ///
+    /// Returns `true` if the counter is strictly greater than the recorded counter,
+    /// updating the persisted counter; returns `false` if replayed or non-monotonic.
+    pub fn check_and_advance_nonce(&mut self, device_id: &str, counter: u64) -> bool {
+        let current = self.get_nonce_counter(device_id);
+        if counter > current {
+            self.nonce_counters.insert(device_id.to_string(), counter);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Sets the persisted nonce counter for a device ID directly.
+    pub fn set_nonce_counter(&mut self, device_id: &str, counter: u64) {
+        self.nonce_counters.insert(device_id.to_string(), counter);
     }
 }
 
@@ -187,6 +215,17 @@ mod tests {
         assert_eq!(store.len(), 1);
         assert!(store.contains("dev-1"));
         assert_eq!(store.get("dev-1").unwrap().name, "Living Room Camera");
+
+        // Nonce counter persistence test
+        assert_eq!(store.get_nonce_counter("dev-1"), 0);
+        assert!(store.check_and_advance_nonce("dev-1", 10));
+        assert_eq!(store.get_nonce_counter("dev-1"), 10);
+        // Non-monotonic or duplicate counter is rejected
+        assert!(!store.check_and_advance_nonce("dev-1", 10));
+        assert!(!store.check_and_advance_nonce("dev-1", 9));
+        // Strictly monotonic counter advances
+        assert!(store.check_and_advance_nonce("dev-1", 11));
+        assert_eq!(store.get_nonce_counter("dev-1"), 11);
 
         let removed = store.remove("dev-1");
         assert!(removed.is_some());

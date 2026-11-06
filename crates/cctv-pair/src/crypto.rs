@@ -66,12 +66,18 @@ pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 }
 
 /// Computes QR / Session pairing proof:
-/// `HMAC-SHA256(S, "cctv-pair-v0" ‖ client_id ‖ host_id)`
-pub fn compute_pairing_proof(secret: &[u8], client_id: &str, host_id: &str) -> [u8; 32] {
-    let mut msg = Vec::with_capacity(12 + client_id.len() + host_id.len());
+/// `HMAC-SHA256(S, "cctv-pair-v0" ‖ client_id ‖ host_id ‖ nonce_counter_be_bytes)`
+pub fn compute_pairing_proof(
+    secret: &[u8],
+    client_id: &str,
+    host_id: &str,
+    nonce_counter: u64,
+) -> [u8; 32] {
+    let mut msg = Vec::with_capacity(12 + client_id.len() + host_id.len() + 8);
     msg.extend_from_slice(b"cctv-pair-v0");
     msg.extend_from_slice(client_id.as_bytes());
     msg.extend_from_slice(host_id.as_bytes());
+    msg.extend_from_slice(&nonce_counter.to_be_bytes());
     hmac_sha256(secret, &msg)
 }
 
@@ -80,9 +86,10 @@ pub fn verify_pairing_proof(
     secret: &[u8],
     client_id: &str,
     host_id: &str,
+    nonce_counter: u64,
     expected_proof: &[u8; 32],
 ) -> bool {
-    let actual_proof = compute_pairing_proof(secret, client_id, host_id);
+    let actual_proof = compute_pairing_proof(secret, client_id, host_id, nonce_counter);
     constant_time_eq(&actual_proof, expected_proof)
 }
 
@@ -137,19 +144,38 @@ mod tests {
         let secret = b"super-secret-key-123";
         let client_id = "client-dev-1";
         let host_id = "host-hub-9";
+        let nonce_counter = 1u64;
 
-        let proof = compute_pairing_proof(secret, client_id, host_id);
-        assert!(verify_pairing_proof(secret, client_id, host_id, &proof));
+        let proof = compute_pairing_proof(secret, client_id, host_id, nonce_counter);
+        assert!(verify_pairing_proof(
+            secret,
+            client_id,
+            host_id,
+            nonce_counter,
+            &proof
+        ));
 
         let mut bad_proof = proof;
         bad_proof[0] ^= 1;
         assert!(!verify_pairing_proof(
-            secret, client_id, host_id, &bad_proof
+            secret,
+            client_id,
+            host_id,
+            nonce_counter,
+            &bad_proof
         ));
         assert!(!verify_pairing_proof(
             b"wrong-secret",
             client_id,
             host_id,
+            nonce_counter,
+            &proof
+        ));
+        assert!(!verify_pairing_proof(
+            secret,
+            client_id,
+            host_id,
+            nonce_counter + 1,
             &proof
         ));
     }
