@@ -18,6 +18,7 @@
 #![forbid(unsafe_code)]
 
 pub mod audit;
+pub mod events;
 pub mod ptz_watchdog;
 pub mod reconcile;
 pub mod remedy;
@@ -31,6 +32,7 @@ pub use cctv_core::{
     CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth,
     ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet,
 };
+pub use events::{DetectionEvent, EventSubscriptionService, MotionEventStream, SignageCommand};
 pub use ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
 pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};
 pub use remedy::{ClockHealing, ClockSyncDevice, RemedyStep, MAX_CLOCK_OFFSET_MS};

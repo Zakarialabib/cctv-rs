@@ -49,9 +49,11 @@ pub struct Services {
     pub media: Option<String>,
     /// PTZ service `XAddr`; `None` for a fixed camera.
     pub ptz: Option<String>,
+    /// Events service `XAddr`.
+    pub events: Option<String>,
 }
 
-/// Parse a `GetCapabilitiesResponse`: the `XAddr` inside `Media` and `PTZ`.
+/// Parse a `GetCapabilitiesResponse`: the `XAddr` inside `Media`, `PTZ`, and `Events`.
 pub fn parse_capabilities(body: &str) -> Result<Services, OnvifError> {
     let caps = xml::element_body(body, "Capabilities")
         .ok_or_else(|| OnvifError::Parse("no Capabilities in the reply".into()))?;
@@ -63,6 +65,7 @@ pub fn parse_capabilities(body: &str) -> Result<Services, OnvifError> {
     Ok(Services {
         media: xaddr("Media"),
         ptz: xaddr("PTZ"),
+        events: xaddr("Events"),
     })
 }
 

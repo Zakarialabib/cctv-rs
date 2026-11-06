@@ -28,6 +28,7 @@ pub mod backend;
 pub mod device;
 pub mod discovery;
 pub mod error;
+pub mod events;
 pub mod media;
 pub mod ptz;
 pub mod session;
@@ -36,6 +37,13 @@ pub mod soap;
 pub use backend::OnvifCameraBackend;
 pub use discovery::{Discoverable, OnvifDiscovery};
 pub use error::OnvifError;
+pub use events::{
+    build_create_pull_point_subscription, build_pull_messages, build_renew, build_unsubscribe,
+    format_iso_duration, parse_create_pull_point_subscription, parse_iso_duration,
+    parse_pull_messages, parse_renew, subscribe_events, EventSubscription, OnvifEvent,
+    PullPointConfig, RenewResponse, SubscriptionReference, EVENTS_NS, TOPIC_NS, WSA_NS, WSE_NS,
+    WSNT_NS,
+};
 pub use ptz::{
     build_absolute_move, build_continuous_move, build_get_presets, build_goto_preset,
     build_remove_preset, build_set_preset, build_set_system_date_and_time_soap, build_stop,
