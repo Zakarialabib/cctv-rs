@@ -12,6 +12,7 @@ categories = ["multimedia", "hardware-support"]
 
 [dependencies]
 cctv-core.workspace = true
+cctv-rtp.workspace = true
 cctv-agent.workspace = true
 cctv-discovery.workspace = true
 # Zone / detection device model behind the facade's zone surface.

@@ -188,6 +188,7 @@ dependencies = [
  "cctv-ezviz",
  "cctv-onvif",
  "cctv-rag",
+ "cctv-rtp",
  "cctv-stream-uvc",
  "cctv-transport",
  "serde_json",
