@@ -73,7 +73,10 @@ impl core::fmt::Display for ConformanceReport {
 }
 
 fn unsupported(e: &CameraError) -> bool {
-    matches!(e, CameraError::NotImplemented | CameraError::PtzDisabled)
+    matches!(
+        e,
+        CameraError::NotImplemented | CameraError::PtzDisabled | CameraError::Unsupported(_)
+    )
 }
 
 /// Run every check against `backend`.

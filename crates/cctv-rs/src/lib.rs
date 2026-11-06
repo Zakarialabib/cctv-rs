@@ -23,7 +23,8 @@ pub use facade::{clock_ms, Facade};
 
 pub use cctv_agent::{Action, Audit, AuditEntry, CommandRelay, Grade, Reconciler, Remediation};
 pub use cctv_core::{
-    CameraConfig, CameraError, CameraHandle, CameraId, CameraState, CameraStateCurrent, CameraType,
+    BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle, CameraId,
+    CameraState, CameraStateCurrent, CameraType, Capability, CapabilitySet, CapabilityView,
     CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource, MediaFile, Preset,
     PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };

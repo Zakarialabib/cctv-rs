@@ -175,6 +175,16 @@ impl crate::backend::CameraBackend for MockCamera {
         "mock"
     }
 
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        crate::caps::CapabilitySet::from_slice(&[
+            crate::caps::Capability::StreamH264,
+            crate::caps::Capability::StreamH265,
+            crate::caps::Capability::PtzMove,
+            crate::caps::Capability::PtzPresets,
+            crate::caps::Capability::CameraContinuous,
+        ])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, crate::CameraError> {
         {
             Ok(ProbeResult {

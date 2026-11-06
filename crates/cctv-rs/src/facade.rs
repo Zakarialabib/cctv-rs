@@ -25,8 +25,9 @@ use std::sync::{Arc, Mutex};
 use cctv_agent::{Audit, Reconciler, Remediation};
 use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraId,
-    CameraSnapshot, CameraState, CameraStateCurrent, CommandId, CommandResult,
-    CommandResultPayload, MotionEvent, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    CameraSnapshot, CameraState, CameraStateCurrent, Capability, CapabilitySet, CapabilityView,
+    CommandId, CommandResult, CommandResultPayload, MotionEvent, Preset, PtzCommand, Snapshot,
+    StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, ZoneConfig};
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
@@ -76,6 +77,8 @@ pub struct Facade {
     pending: BTreeMap<String, Vec<u64>>,
     /// RAG Knowledge base index (temporal incident ledger, spatial topology, diagnostic playbooks).
     rag: KnowledgeBaseIndex,
+    /// Latest peer capabilities announced via hello.update handshake.
+    peer_caps: CapabilitySet,
 }
 
 impl Facade {
@@ -90,6 +93,7 @@ impl Facade {
             events: Vec::new(),
             pending: BTreeMap::new(),
             rag: KnowledgeBaseIndex::new(),
+            peer_caps: CapabilitySet::ALL,
         }
     }
 
@@ -200,6 +204,46 @@ impl Facade {
             .get(id)
             .map(|registered| &registered.backend)
             .ok_or(CameraError::NoCamera)
+    }
+
+    // -- capabilities & hello.update ---------------------------------------
+
+    /// Update peer capabilities from a `hello.update` event and compute
+    /// the updated capability view for a camera.
+    pub fn hello_update(
+        &mut self,
+        id: &str,
+        peer_caps: CapabilitySet,
+    ) -> Result<CapabilityView, CameraError> {
+        self.peer_caps = peer_caps;
+        self.supported(id, peer_caps)
+    }
+
+    /// Compute the capability view for a camera against a peer's capability set.
+    ///
+    /// Intersects the backend's declared capabilities with the peer's capabilities.
+    pub fn supported(
+        &self,
+        id: &str,
+        peer_caps: CapabilitySet,
+    ) -> Result<CapabilityView, CameraError> {
+        let backend = self.backend(id)?;
+        Ok(CapabilityView::compute(backend.capabilities(), peer_caps))
+    }
+
+    /// Compute the capability view for a camera using the latest peer capabilities.
+    pub fn capability_view(&self, id: &str) -> Result<CapabilityView, CameraError> {
+        self.supported(id, self.peer_caps)
+    }
+
+    /// Current peer capabilities negotiated on this facade.
+    pub fn peer_capabilities(&self) -> CapabilitySet {
+        self.peer_caps
+    }
+
+    /// Set peer capabilities negotiated on this facade.
+    pub fn set_peer_capabilities(&mut self, peer_caps: CapabilitySet) {
+        self.peer_caps = peer_caps;
     }
 
     // -- discovery ---------------------------------------------------------
@@ -423,7 +467,25 @@ impl Facade {
         id: &str,
         quality: StreamQuality,
     ) -> Result<StreamInfo, CameraError> {
+        let view = self.capability_view(id)?;
+        if !view.is_supported(Capability::CameraContinuous) {
+            return Err(CameraError::Unsupported(Capability::CameraContinuous));
+        }
         self.backend(id)?.stream(quality).await
+    }
+
+    /// Request a stream using a specific codec format, validating against negotiated peer capabilities first.
+    pub async fn start_stream_with_codec(
+        &self,
+        id: &str,
+        quality: StreamQuality,
+        codec: Capability,
+    ) -> Result<StreamInfo, CameraError> {
+        let view = self.capability_view(id)?;
+        if !view.is_supported(codec) {
+            return Err(CameraError::Unsupported(codec));
+        }
+        self.start_camera_stream(id, quality).await
     }
 
     /// `device_trigger_capture`: trigger a hardware capture returning a [`cctv_core::MediaFile`].
@@ -436,11 +498,19 @@ impl Facade {
 
     /// `ptz_move`: move the camera, in the device-model vocabulary.
     pub async fn ptz_move(&self, id: &str, command: PtzCommand) -> Result<(), CameraError> {
+        let view = self.capability_view(id)?;
+        if !view.can_ptz_move() {
+            return Err(CameraError::Unsupported(Capability::PtzMove));
+        }
         self.backend(id)?.ptz(command).await
     }
 
     /// `camera_get_presets`: the presets stored on the device.
     pub async fn camera_get_presets(&self, id: &str) -> Result<Vec<Preset>, CameraError> {
+        let view = self.capability_view(id)?;
+        if !view.can_ptz_presets() {
+            return Err(CameraError::Unsupported(Capability::PtzPresets));
+        }
         self.backend(id)?.presets().await
     }
 

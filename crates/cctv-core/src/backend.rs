@@ -305,6 +305,11 @@ pub trait CameraBackend: Send + Sync {
     /// Registry key of the driver serving this camera (for diagnostics only).
     fn driver(&self) -> &'static str;
 
+    /// Capabilities supported by this backend.
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        crate::caps::CapabilitySet::EMPTY
+    }
+
     /// Read the device identity: vendor, model, firmware, MAC, PTZ support.
     async fn probe(&self) -> Result<ProbeResult, CameraError>;
 

@@ -110,6 +110,14 @@ impl CameraBackend for UvcAdapter {
         "uvc"
     }
 
+    fn capabilities(&self) -> cctv_core::CapabilitySet {
+        cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH264,
+            cctv_core::Capability::CameraContinuous,
+            cctv_core::Capability::AudioIn,
+        ])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         if self.busy {
             return Err(CameraError::DeviceBusy);

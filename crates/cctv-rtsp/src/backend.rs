@@ -833,6 +833,15 @@ impl CameraBackend for RtspCameraBackend {
         DRIVER_KEY
     }
 
+    fn capabilities(&self) -> cctv_core::CapabilitySet {
+        cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH264,
+            cctv_core::Capability::StreamH265,
+            cctv_core::Capability::CameraContinuous,
+            cctv_core::Capability::AudioIn,
+        ])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         let mut session = self.session();
         let described = session.describe().await?;

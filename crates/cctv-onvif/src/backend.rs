@@ -83,6 +83,18 @@ impl CameraBackend for OnvifCameraBackend {
         "onvif"
     }
 
+    fn capabilities(&self) -> cctv_core::CapabilitySet {
+        cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH264,
+            cctv_core::Capability::StreamH265,
+            cctv_core::Capability::PtzMove,
+            cctv_core::Capability::PtzPresets,
+            cctv_core::Capability::CameraContinuous,
+            cctv_core::Capability::AudioIn,
+            cctv_core::Capability::AudioOut,
+        ])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         {
             let info = self
