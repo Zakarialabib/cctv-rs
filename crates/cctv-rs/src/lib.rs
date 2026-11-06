@@ -45,3 +45,6 @@ pub use cctv_rtp::{MediaDescriptor, MediaProbe, TranscodePlan};
 pub use cctv_stream_uvc::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
 };
+pub use cctv_sync::{
+    LwwRegister, OrSet, SyncCameraRecord, SyncDeviceRegistry, SyncPeerRecord, SyncTrustStore, Tag,
+};

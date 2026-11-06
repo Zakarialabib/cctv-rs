@@ -12,6 +12,11 @@ categories = ["multimedia::video", "os"]
 
 [dependencies]
 cctv-core.workspace = true
+rayon = { workspace = true, optional = true }
+
+[features]
+default = ["parallel"]
+parallel = ["dep:rayon"]
 
 [lints]
 workspace = true
