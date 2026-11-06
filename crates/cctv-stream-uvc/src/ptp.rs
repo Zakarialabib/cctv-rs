@@ -50,6 +50,10 @@ impl CameraBackend for PtpAdapter {
         "ptp"
     }
 
+    fn capabilities(&self) -> cctv_core::CapabilitySet {
+        cctv_core::CapabilitySet::from_slice(&[cctv_core::Capability::Camera4k])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         match self.status {
             PtpStatus::DeviceBusy => Err(CameraError::DeviceBusy),

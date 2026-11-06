@@ -56,6 +56,9 @@ pub enum CameraError {
     /// Concurrent RTSP session capacity reached on the camera device.
     #[error("session limit exceeded")]
     SessionLimitExceeded,
+    /// The requested operation requires a capability not supported by this camera or peer negotiation.
+    #[error("unsupported capability: {0}")]
+    Unsupported(crate::caps::Capability),
     /// Unknown — the driver surfaced something unclassified.
     #[error("{0}")]
     Other(String),

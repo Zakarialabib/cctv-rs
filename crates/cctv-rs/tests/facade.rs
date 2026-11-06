@@ -117,6 +117,79 @@ fn a_command_on_an_unknown_camera_is_a_typed_error() {
 }
 
 #[test]
+fn capability_matrix_and_hello_update_gating() {
+    let mut facade = facade_with("cam");
+
+    // Check default peer capability has full view on mock
+    let view = facade.capability_view("cam").expect("capability view");
+    assert!(view.is_supported(cctv_core::Capability::StreamH264));
+    assert!(view.is_supported(cctv_core::Capability::StreamH265));
+    assert!(view.can_ptz_move());
+    assert!(view.can_ptz_presets());
+
+    // Peer updates capabilities: only stream.h264
+    let mut peer = cctv_core::CapabilitySet::new();
+    peer.insert(cctv_core::Capability::StreamH264);
+
+    let updated_view = facade.hello_update("cam", peer).expect("hello update");
+    assert!(updated_view.is_supported(cctv_core::Capability::StreamH264));
+    assert!(!updated_view.is_supported(cctv_core::Capability::StreamH265));
+    assert!(!updated_view.can_ptz_move());
+    assert!(!updated_view.can_ptz_presets());
+
+    // UI reads view: no button rendered unless intersection has required set
+    assert!(
+        updated_view.allows_action(cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH264
+        ]))
+    );
+    assert!(
+        !updated_view.allows_action(cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::PtzMove
+        ]))
+    );
+    assert!(
+        !updated_view.allows_action(cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH265
+        ]))
+    );
+
+    // Pre-network rejection: peer with only stream.h264 returns Unsupported(stream.h265) before network call
+    let err_h265 = block_on(facade.start_stream_with_codec(
+        "cam",
+        StreamQuality::Main,
+        cctv_core::Capability::StreamH265,
+    ))
+    .unwrap_err();
+    assert_eq!(
+        err_h265,
+        CameraError::Unsupported(cctv_core::Capability::StreamH265)
+    );
+
+    // PTZ move should fail with Unsupported(ptz.move)
+    let err_ptz = block_on(facade.ptz_move("cam", PtzCommand::Stop)).unwrap_err();
+    assert_eq!(
+        err_ptz,
+        CameraError::Unsupported(cctv_core::Capability::PtzMove)
+    );
+
+    // Declarative backend registry lists each backend's set declaratively
+    let onvif_caps = cctv_core::BackendCapabilityRegistry::onvif();
+    assert!(onvif_caps.contains(cctv_core::Capability::PtzMove));
+    assert!(onvif_caps.contains(cctv_core::Capability::PtzPresets));
+    assert!(onvif_caps.contains(cctv_core::Capability::AudioIn));
+
+    let ezviz_caps = cctv_core::BackendCapabilityRegistry::ezviz();
+    assert!(ezviz_caps.contains(cctv_core::Capability::DetectMotion));
+    assert!(ezviz_caps.contains(cctv_core::Capability::LightTorch));
+    assert!(!ezviz_caps.contains(cctv_core::Capability::PtzPresets));
+
+    let ptp_caps = cctv_core::BackendCapabilityRegistry::ptp();
+    assert!(ptp_caps.contains(cctv_core::Capability::Camera4k));
+    assert!(!ptp_caps.contains(cctv_core::Capability::CameraContinuous));
+}
+
+#[test]
 fn camera_config_get_redacts_the_password() {
     let mut facade = Facade::new();
     facade.register(

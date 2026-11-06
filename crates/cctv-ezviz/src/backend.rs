@@ -82,6 +82,17 @@ impl CameraBackend for EzvizCameraBackend {
         "ezviz"
     }
 
+    fn capabilities(&self) -> cctv_core::CapabilitySet {
+        cctv_core::CapabilitySet::from_slice(&[
+            cctv_core::Capability::StreamH264,
+            cctv_core::Capability::StreamH265,
+            cctv_core::Capability::PtzMove,
+            cctv_core::Capability::CameraContinuous,
+            cctv_core::Capability::DetectMotion,
+            cctv_core::Capability::LightTorch,
+        ])
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         {
             let detail = self

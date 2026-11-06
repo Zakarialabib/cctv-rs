@@ -362,7 +362,7 @@ fn grade_error(camera_id: &str, error: &CameraError) -> Remediation {
             "the device refused the command",
         ),
         // A capability the camera simply does not have is not a fault.
-        CameraError::PtzDisabled | CameraError::NotImplemented => (
+        CameraError::PtzDisabled | CameraError::NotImplemented | CameraError::Unsupported(_) => (
             Grade::Observe,
             Action::Hold,
             "capability not present on this camera",
