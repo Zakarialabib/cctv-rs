@@ -20,7 +20,7 @@ pub use adb::{
 
 pub use ceremony::{
     from_hex, to_hex, CeremonyConfig, CeremonyRole, CeremonyState, PairingCeremony, PairingError,
-    PairingMessage, PairingMethod, PAIRING_ALPN,
+    PairingMessage, PairingMethod, CURRENT_PROTOCOL_VERSION, PAIRING_ALPN,
 };
 
 pub use crypto::{

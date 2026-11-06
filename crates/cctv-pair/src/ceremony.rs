@@ -81,26 +81,41 @@ pub enum CeremonyState {
     Failed(PairingError),
 }
 
+/// Protocol version constants to prevent downgrade attacks.
+pub const CURRENT_PROTOCOL_VERSION: u32 = 1;
+
 /// Pairing wire messages exchanged over the pairing transport.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", content = "payload")]
 pub enum PairingMessage {
-    /// QR flow: Client connects and sends its identity and HMAC proof.
+    /// QR flow: Client connects and sends its identity and HMAC proof with monotonic counter.
     QrClientHello {
+        /// Protocol version (enforced against downgrade attacks).
+        #[serde(default = "default_protocol_version")]
+        version: u32,
         /// Client device identifier.
         client_id: String,
         /// Client friendly name.
         client_name: String,
+        /// Strictly monotonically increasing nonce counter.
+        #[serde(default)]
+        nonce_counter: u64,
         /// Hex-encoded HMAC-SHA256 proof.
         proof_hex: String,
     },
     /// QR flow: Host verifies client proof and replies with host identity.
     QrHostResponse {
+        /// Protocol version (enforced against downgrade attacks).
+        #[serde(default = "default_protocol_version")]
+        version: u32,
         /// Host device identifier.
         host_id: String,
         /// Host friendly name.
         host_name: String,
-        /// Optional reciprocal proof: HMAC-SHA256(S, "cctv-pair-v0" ‖ host_id ‖ client_id).
+        /// Monotonically increasing nonce counter matching or advancing the challenge.
+        #[serde(default)]
+        nonce_counter: u64,
+        /// Optional reciprocal proof: HMAC-SHA256(S, "cctv-pair-v0" ‖ host_id ‖ client_id ‖ nonce_counter).
         proof_hex: String,
     },
     /// SAS flow: Initiator commits `c = SHA256(nA)`.
@@ -147,6 +162,10 @@ pub enum PairingError {
     Timeout,
     /// Forged or invalid HMAC proof received.
     ForgedProof,
+    /// Nonce counter was not strictly monotonically increasing (replay attack detected).
+    ReplayDetected(u64, u64),
+    /// Protocol downgrade attack detected or unsupported version.
+    DowngradeDetected(u32),
     /// Commitment mismatch (nonce did not hash to committed value).
     CommitmentMismatch,
     /// Numeric compare (SAS) code was rejected or mismatched by user.
@@ -166,6 +185,15 @@ impl fmt::Display for PairingError {
         match self {
             Self::Timeout => write!(f, "pairing ceremony timed out after 5 minutes"),
             Self::ForgedProof => write!(f, "forged or invalid pairing proof"),
+            Self::ReplayDetected(received, expected_min) => {
+                write!(
+                    f,
+                    "replay attack detected: nonce counter {received} <= expected {expected_min}"
+                )
+            }
+            Self::DowngradeDetected(v) => {
+                write!(f, "protocol downgrade attack detected: version {v}")
+            }
             Self::CommitmentMismatch => write!(f, "cryptographic commitment mismatch"),
             Self::SasMismatch => write!(f, "numeric compare SAS code rejected by user"),
             Self::NonZeroCloseCode(code, msg) => {
@@ -180,9 +208,15 @@ impl fmt::Display for PairingError {
 
 impl std::error::Error for PairingError {}
 
+fn default_protocol_version() -> u32 {
+    CURRENT_PROTOCOL_VERSION
+}
+
 /// Configuration for running a pairing ceremony.
 #[derive(Clone)]
 pub struct CeremonyConfig {
+    /// Protocol version.
+    pub version: u32,
     /// Local device identifier.
     pub local_id: String,
     /// Local friendly name.
@@ -195,6 +229,10 @@ pub struct CeremonyConfig {
     pub secret: Option<Zeroizing<Vec<u8>>>,
     /// Remote peer identifier (if known in advance, e.g. from QR URI).
     pub expected_remote_id: Option<String>,
+    /// Outbound nonce counter to attach.
+    pub initial_nonce_counter: u64,
+    /// Minimum expected incoming nonce counter (must be strictly monotonically increasing).
+    pub min_expected_nonce: u64,
     /// Maximum ceremony duration (default 5 minutes).
     pub timeout: Duration,
 }
@@ -208,14 +246,30 @@ impl CeremonyConfig {
         secret: Vec<u8>,
     ) -> Self {
         Self {
+            version: CURRENT_PROTOCOL_VERSION,
             local_id: client_id.into(),
             local_name: client_name.into(),
             role: CeremonyRole::Initiator,
             method: PairingMethod::QrCode,
             secret: Some(Zeroizing::new(secret)),
             expected_remote_id: Some(host_id.into()),
+            initial_nonce_counter: 1,
+            min_expected_nonce: 0,
             timeout: CEREMONY_TIMEOUT,
         }
+    }
+
+    /// Create a QR ceremony config for initiator with a custom initial nonce counter.
+    pub fn qr_initiator_with_nonce(
+        client_id: impl Into<String>,
+        client_name: impl Into<String>,
+        host_id: impl Into<String>,
+        secret: Vec<u8>,
+        initial_nonce: u64,
+    ) -> Self {
+        let mut cfg = Self::qr_initiator(client_id, client_name, host_id, secret);
+        cfg.initial_nonce_counter = initial_nonce;
+        cfg
     }
 
     /// Create a QR ceremony config for responder (host displaying QR).
@@ -225,14 +279,29 @@ impl CeremonyConfig {
         secret: Vec<u8>,
     ) -> Self {
         Self {
+            version: CURRENT_PROTOCOL_VERSION,
             local_id: host_id.into(),
             local_name: host_name.into(),
             role: CeremonyRole::Responder,
             method: PairingMethod::QrCode,
             secret: Some(Zeroizing::new(secret)),
             expected_remote_id: None,
+            initial_nonce_counter: 1,
+            min_expected_nonce: 0,
             timeout: CEREMONY_TIMEOUT,
         }
+    }
+
+    /// Create a QR ceremony config for responder with a persisted minimum nonce threshold.
+    pub fn qr_responder_with_persisted_nonce(
+        host_id: impl Into<String>,
+        host_name: impl Into<String>,
+        secret: Vec<u8>,
+        min_expected_nonce: u64,
+    ) -> Self {
+        let mut cfg = Self::qr_responder(host_id, host_name, secret);
+        cfg.min_expected_nonce = min_expected_nonce;
+        cfg
     }
 
     /// Create a Numeric Compare ceremony config.
@@ -242,12 +311,15 @@ impl CeremonyConfig {
         role: CeremonyRole,
     ) -> Self {
         Self {
+            version: CURRENT_PROTOCOL_VERSION,
             local_id: local_id.into(),
             local_name: local_name.into(),
             role,
             method: PairingMethod::NumericCompare,
             secret: None,
             expected_remote_id: None,
+            initial_nonce_counter: 1,
+            min_expected_nonce: 0,
             timeout: CEREMONY_TIMEOUT,
         }
     }
@@ -258,6 +330,10 @@ pub struct PairingCeremony {
     config: CeremonyConfig,
     state: CeremonyState,
     started_at_ms: u64,
+
+    // Monotonic nonce counter state
+    local_nonce_counter: u64,
+    last_verified_remote_nonce: u64,
 
     // Internal context
     remote_id: Option<String>,
@@ -272,10 +348,14 @@ impl PairingCeremony {
     /// Start a new pairing ceremony.
     pub fn new(config: CeremonyConfig, start_time_ms: u64) -> Self {
         let state = CeremonyState::Idle;
+        let local_nonce_counter = config.initial_nonce_counter;
+        let last_verified_remote_nonce = config.min_expected_nonce;
         Self {
             config,
             state,
             started_at_ms: start_time_ms,
+            local_nonce_counter,
+            last_verified_remote_nonce,
             remote_id: None,
             remote_name: None,
             local_nonce: None,
@@ -288,6 +368,16 @@ impl PairingCeremony {
     /// Current ceremony state.
     pub fn state(&self) -> &CeremonyState {
         &self.state
+    }
+
+    /// Current local nonce counter value.
+    pub fn local_nonce_counter(&self) -> u64 {
+        self.local_nonce_counter
+    }
+
+    /// Last verified remote nonce counter.
+    pub fn last_verified_remote_nonce(&self) -> u64 {
+        self.last_verified_remote_nonce
     }
 
     /// Check if ceremony has expired based on current timestamp.
@@ -330,13 +420,16 @@ impl PairingCeremony {
                     .as_deref()
                     .ok_or_else(|| PairingError::Aborted("missing expected host id".into()))?;
 
-                let proof = compute_pairing_proof(secret, &self.config.local_id, host_id);
+                let nonce = self.local_nonce_counter;
+                let proof = compute_pairing_proof(secret, &self.config.local_id, host_id, nonce);
                 self.state = CeremonyState::QrAwaitingHostResponse;
                 self.remote_id = Some(host_id.to_string());
 
                 Ok(Some(PairingMessage::QrClientHello {
+                    version: self.config.version,
                     client_id: self.config.local_id.clone(),
                     client_name: self.config.local_name.clone(),
+                    nonce_counter: nonce,
                     proof_hex: to_hex(&proof),
                 }))
             }
@@ -376,13 +469,28 @@ impl PairingCeremony {
             (
                 CeremonyState::Idle,
                 PairingMessage::QrClientHello {
+                    version,
                     client_id,
                     client_name,
+                    nonce_counter,
                     proof_hex,
                 },
             ) => {
                 if self.config.role != CeremonyRole::Responder {
                     return self.fail(PairingError::UnexpectedMessage("not responder".into()));
+                }
+
+                // Enforce version check against downgrade attack
+                if version < self.config.version {
+                    return self.fail(PairingError::DowngradeDetected(version));
+                }
+
+                // Enforce strictly monotonically increasing nonce counter against replay attack
+                if nonce_counter <= self.last_verified_remote_nonce {
+                    return self.fail(PairingError::ReplayDetected(
+                        nonce_counter,
+                        self.last_verified_remote_nonce,
+                    ));
                 }
 
                 let secret = self
@@ -398,23 +506,33 @@ impl PairingCeremony {
                 let mut proof_arr = [0u8; 32];
                 proof_arr.copy_from_slice(&proof_bytes);
 
-                // Verify: HMAC-SHA256(S, "cctv-pair-v0" ‖ client_id ‖ host_id)
-                let valid =
-                    verify_pairing_proof(secret, &client_id, &self.config.local_id, &proof_arr);
+                // Verify: HMAC-SHA256(S, "cctv-pair-v0" ‖ client_id ‖ host_id ‖ nonce_counter)
+                let valid = verify_pairing_proof(
+                    secret,
+                    &client_id,
+                    &self.config.local_id,
+                    nonce_counter,
+                    &proof_arr,
+                );
                 if !valid {
                     return self.fail(PairingError::ForgedProof);
                 }
 
                 self.remote_id = Some(client_id.clone());
                 self.remote_name = Some(client_name);
+                self.last_verified_remote_nonce = nonce_counter;
 
-                // Reciprocal host proof
-                let host_proof = compute_pairing_proof(secret, &self.config.local_id, &client_id);
+                // Reciprocal host proof increments counter or echoes challenge
+                let host_nonce = nonce_counter;
+                let host_proof =
+                    compute_pairing_proof(secret, &self.config.local_id, &client_id, host_nonce);
                 self.state = CeremonyState::QrAwaitingDoneAck;
 
                 Ok(Some(PairingMessage::QrHostResponse {
+                    version: self.config.version,
                     host_id: self.config.local_id.clone(),
                     host_name: self.config.local_name.clone(),
+                    nonce_counter: host_nonce,
                     proof_hex: to_hex(&host_proof),
                 }))
             }
@@ -423,15 +541,30 @@ impl PairingCeremony {
             (
                 CeremonyState::QrAwaitingHostResponse,
                 PairingMessage::QrHostResponse {
+                    version,
                     host_id,
                     host_name,
+                    nonce_counter,
                     proof_hex,
                 },
             ) => {
+                // Enforce version check against downgrade attack
+                if version < self.config.version {
+                    return self.fail(PairingError::DowngradeDetected(version));
+                }
+
                 if let Some(ref exp_host) = self.config.expected_remote_id {
                     if exp_host != &host_id {
                         return self.fail(PairingError::ForgedProof);
                     }
+                }
+
+                // Verify responder's nonce matches the initiator's challenge counter
+                if nonce_counter != self.local_nonce_counter {
+                    return self.fail(PairingError::ReplayDetected(
+                        nonce_counter,
+                        self.local_nonce_counter,
+                    ));
                 }
 
                 let secret = self
@@ -448,14 +581,20 @@ impl PairingCeremony {
                 proof_arr.copy_from_slice(&proof_bytes);
 
                 // Verify reciprocal host proof
-                let valid =
-                    verify_pairing_proof(secret, &host_id, &self.config.local_id, &proof_arr);
+                let valid = verify_pairing_proof(
+                    secret,
+                    &host_id,
+                    &self.config.local_id,
+                    nonce_counter,
+                    &proof_arr,
+                );
                 if !valid {
                     return self.fail(PairingError::ForgedProof);
                 }
 
                 self.remote_id = Some(host_id);
                 self.remote_name = Some(host_name);
+                self.last_verified_remote_nonce = nonce_counter;
                 self.state = CeremonyState::AwaitingClose;
 
                 // Send pair.done ack
@@ -650,10 +789,14 @@ impl PairingCeremony {
     }
 
     /// Finalize and store trust in TrustStore IF AND ONLY IF close code was 0 and state is Success.
+    /// Also persists the updated monotonic nonce counter in TrustStore to prevent replay.
     pub fn commit_trust(&self, store: &mut TrustStore) -> Result<TrustedPeer, PairingError> {
         match &self.state {
             CeremonyState::Success(peer) => {
                 store.insert(peer.clone());
+                if self.last_verified_remote_nonce > 0 {
+                    store.set_nonce_counter(&peer.device_id, self.last_verified_remote_nonce);
+                }
                 Ok(peer.clone())
             }
             CeremonyState::Failed(e) => Err(e.clone()),
@@ -763,6 +906,97 @@ mod tests {
         let client_hello = client.start_initiation(None).unwrap().unwrap();
         let err = host.handle_message(client_hello, 1005, None).unwrap_err();
         assert_eq!(err, PairingError::ForgedProof);
+    }
+
+    #[test]
+    fn test_qr_flow_replay_and_downgrade_rejected() {
+        let secret = b"shared-pairing-secret".to_vec();
+        let client_id = "client-replay";
+        let host_id = "host-replay";
+
+        // Setup host with persisted nonce counter = 10
+        let host_cfg = CeremonyConfig::qr_responder_with_persisted_nonce(
+            host_id,
+            "Edge Hub",
+            secret.clone(),
+            10,
+        );
+        let mut host = PairingCeremony::new(host_cfg, 1000);
+
+        // Attempt 1: Client tries replaying old nonce_counter = 5 (<= 10)
+        let client_cfg_old = CeremonyConfig::qr_initiator_with_nonce(
+            client_id,
+            "Client App",
+            host_id,
+            secret.clone(),
+            5,
+        );
+        let mut client_old = PairingCeremony::new(client_cfg_old, 1000);
+        let replayed_hello = client_old.start_initiation(None).unwrap().unwrap();
+        let err = host
+            .handle_message(replayed_hello.clone(), 1005, None)
+            .unwrap_err();
+        assert_eq!(err, PairingError::ReplayDetected(5, 10));
+
+        // Attempt 2: Attacker attempts protocol downgrade attack (version 0 < CURRENT_PROTOCOL_VERSION)
+        let downgrade_hello = PairingMessage::QrClientHello {
+            version: 0,
+            client_id: client_id.to_string(),
+            client_name: "Downgrade Attacker".to_string(),
+            nonce_counter: 15,
+            proof_hex: to_hex(&compute_pairing_proof(&secret, client_id, host_id, 15)),
+        };
+        let mut host2 = PairingCeremony::new(
+            CeremonyConfig::qr_responder_with_persisted_nonce(
+                host_id,
+                "Edge Hub",
+                secret.clone(),
+                10,
+            ),
+            1000,
+        );
+        let downgrade_err = host2
+            .handle_message(downgrade_hello, 1005, None)
+            .unwrap_err();
+        assert_eq!(downgrade_err, PairingError::DowngradeDetected(0));
+
+        // Attempt 3: Valid monotonic nonce = 11 (> 10) succeeds on fresh host
+        let mut host3 = PairingCeremony::new(
+            CeremonyConfig::qr_responder_with_persisted_nonce(
+                host_id,
+                "Edge Hub",
+                secret.clone(),
+                10,
+            ),
+            1000,
+        );
+        let client_cfg_valid = CeremonyConfig::qr_initiator_with_nonce(
+            client_id,
+            "Client App",
+            host_id,
+            secret.clone(),
+            11,
+        );
+        let mut client_valid = PairingCeremony::new(client_cfg_valid, 1000);
+        let valid_hello = client_valid.start_initiation(None).unwrap().unwrap();
+        let host_resp = host3
+            .handle_message(valid_hello, 1005, None)
+            .unwrap()
+            .expect("host resp");
+
+        let client_ack = client_valid
+            .handle_message(host_resp, 1010, None)
+            .unwrap()
+            .expect("done ack");
+        let close_resp = host3
+            .handle_message(client_ack, 1015, None)
+            .unwrap()
+            .expect("close");
+        client_valid.handle_message(close_resp, 1020, None).unwrap();
+
+        let mut store = TrustStore::new();
+        host3.commit_trust(&mut store).unwrap();
+        assert_eq!(store.get_nonce_counter(client_id), 11);
     }
 
     #[test]

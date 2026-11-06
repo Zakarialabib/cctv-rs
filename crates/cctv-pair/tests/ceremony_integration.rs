@@ -72,11 +72,49 @@ fn test_qr_flow_happy_path_with_trust_store() {
 
     // Verify state & trust storage: only store trust on code 0
     let mut client_store = TrustStore::new();
+    let mut host_store = TrustStore::new();
     let peer = client
         .commit_trust(&mut client_store)
         .expect("stored trust");
+    host.commit_trust(&mut host_store)
+        .expect("stored trust host");
     assert_eq!(peer.device_id, host_id);
     assert_eq!(client_store.len(), 1);
+    assert_eq!(host_store.len(), 1);
+    assert_eq!(host_store.get_nonce_counter(client_id), 1);
+}
+
+#[test]
+fn test_qr_replay_attack_rejected() {
+    let secret = b"super-strong-ephemeral-secret-32b!".to_vec();
+    let client_id = "client-replay-id";
+    let host_id = "host-replay-id";
+
+    let mut host_store = TrustStore::new();
+    host_store.set_nonce_counter(client_id, 42);
+
+    let host_cfg = CeremonyConfig::qr_responder_with_persisted_nonce(
+        host_id,
+        "Host Camera Hub",
+        secret.clone(),
+        host_store.get_nonce_counter(client_id),
+    );
+    let mut host = PairingCeremony::new(host_cfg, 1000);
+
+    // Attacker intercepts and replays ClientHello with counter 42 (or less)
+    let replayed_client_hello = PairingMessage::QrClientHello {
+        version: CURRENT_PROTOCOL_VERSION,
+        client_id: client_id.to_string(),
+        client_name: "Replayed Client".to_string(),
+        nonce_counter: 42,
+        proof_hex: to_hex(&compute_pairing_proof(&secret, client_id, host_id, 42)),
+    };
+
+    let err = host
+        .handle_message(replayed_client_hello, 1050, None)
+        .unwrap_err();
+    assert_eq!(err, PairingError::ReplayDetected(42, 42));
+    assert!(host.commit_trust(&mut host_store).is_err());
 }
 
 #[test]
