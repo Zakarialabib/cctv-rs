@@ -376,6 +376,7 @@ dependencies = [
  "base64 0.23.1",
  "iroh",
  "md-5",
+ "noq-proto",
  "rcgen",
  "reqwest",
  "rustls",

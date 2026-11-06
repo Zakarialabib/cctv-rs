@@ -23,7 +23,7 @@ fixture = ["dep:tokio"]
 net = ["dep:tokio", "dep:tokio-rustls", "dep:rustls", "dep:rustls-pki-types"]
 # QUIC transport via iroh: NAT traversal, control+video multiplexing on one connection,
 # and connection migration. Pure rustls (aws-lc-rs), zero OpenSSL/native-tls.
-quic = ["net", "dep:iroh"]
+quic = ["net", "dep:iroh", "dep:noq-proto"]
 
 [dependencies]
 # Policy is data: pinned certs, minimum TLS version, ALPN preference.
@@ -42,6 +42,7 @@ tokio-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 iroh = { version = "1.4.1", default-features = false, features = ["tls-aws-lc-rs"], optional = true }
+noq-proto = { version = "1.4.0", default-features = false, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util"] }

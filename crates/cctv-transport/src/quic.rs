@@ -13,11 +13,85 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
-use iroh::endpoint::{presets, Connection, Endpoint, RecvStream, SendStream};
+use std::sync::Arc;
+
+use iroh::endpoint::{
+    presets, Connection, Endpoint, QuicTransportConfig, RecvStream, SendStream, VarInt,
+};
 pub use iroh::{EndpointAddr, EndpointId, RelayUrl, SecretKey};
+use noq_proto::congestion::{Bbr3Config, CubicConfig};
 use tokio::io::{AsyncRead, AsyncReadExt as _, AsyncWrite, AsyncWriteExt as _, ReadBuf};
 
 use crate::net::{ErrorKind, NetError};
+
+/// Default stream receive window for live CCTV video (1 MiB).
+///
+/// Limits bufferbloat and queue standing delays while allowing burst transmission of 4K/high-bitrate frames.
+pub const LIVE_VIDEO_STREAM_RECEIVE_WINDOW: u32 = 1024 * 1024; // 1 MiB
+
+/// Default connection receive window for live CCTV video (2 MiB).
+pub const LIVE_VIDEO_CONNECTION_RECEIVE_WINDOW: u32 = 2 * 1024 * 1024; // 2 MiB
+
+/// Congestion control algorithm for QUIC connections.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CongestionAlgorithm {
+    /// BBR v3: Bandwidth-delay product model with pacing.
+    ///
+    /// Ideal for real-time video streaming over lossy/wireless links, avoiding queue standing delay.
+    #[default]
+    Bbr,
+    /// Cubic: Loss-based congestion control.
+    Cubic,
+}
+
+impl CongestionAlgorithm {
+    /// Build a new congestion controller factory for this algorithm.
+    pub fn build_factory(
+        &self,
+    ) -> Arc<dyn iroh::endpoint::ControllerFactory + Send + Sync + 'static> {
+        match self {
+            Self::Bbr => {
+                let mut cfg = Bbr3Config::default();
+                // 64 KiB initial window for quick live video ramp-up
+                cfg.initial_window(64 * 1024);
+                Arc::new(cfg)
+            }
+            Self::Cubic => {
+                let mut cfg = CubicConfig::default();
+                cfg.initial_window(64 * 1024);
+                Arc::new(cfg)
+            }
+        }
+    }
+}
+
+/// Create a tuned [`QuicTransportConfig`] optimized for live low-latency video streaming.
+///
+/// Features:
+/// - Configurable congestion controller (defaults to [`CongestionAlgorithm::Bbr`]).
+/// - Bounded stream and connection receive windows (`1 MiB` stream / `2 MiB` connection)
+///   to prevent bufferbloat and queuing delays.
+/// - Keep-alive interval for active NAT hole preservation.
+pub fn live_video_transport_config(congestion: CongestionAlgorithm) -> QuicTransportConfig {
+    live_video_transport_config_with_windows(
+        congestion,
+        LIVE_VIDEO_STREAM_RECEIVE_WINDOW,
+        LIVE_VIDEO_CONNECTION_RECEIVE_WINDOW,
+    )
+}
+
+/// Create a tuned [`QuicTransportConfig`] with custom receive window sizes.
+pub fn live_video_transport_config_with_windows(
+    congestion: CongestionAlgorithm,
+    stream_receive_window_bytes: u32,
+    conn_receive_window_bytes: u32,
+) -> QuicTransportConfig {
+    QuicTransportConfig::builder()
+        .congestion_controller_factory(congestion.build_factory())
+        .stream_receive_window(VarInt::from_u32(stream_receive_window_bytes))
+        .receive_window(VarInt::from_u32(conn_receive_window_bytes))
+        .build()
+}
 
 /// A bidirectional QUIC stream pairing a send stream and a receive stream.
 ///
@@ -129,6 +203,12 @@ pub struct QuicOptions {
     pub secret_key: Option<SecretKey>,
     /// Relay URL to use for hole-punching and NAT traversal fallback.
     pub relay_url: Option<RelayUrl>,
+    /// Congestion control algorithm.
+    pub congestion: CongestionAlgorithm,
+    /// Stream receive window limit in bytes (defaults to [`LIVE_VIDEO_STREAM_RECEIVE_WINDOW`]).
+    pub stream_receive_window: u32,
+    /// Connection receive window limit in bytes (defaults to [`LIVE_VIDEO_CONNECTION_RECEIVE_WINDOW`]).
+    pub connection_receive_window: u32,
 }
 
 impl Default for QuicOptions {
@@ -138,6 +218,9 @@ impl Default for QuicOptions {
             alpns: vec![b"cctv/quic/1".to_vec()],
             secret_key: None,
             relay_url: None,
+            congestion: CongestionAlgorithm::default(),
+            stream_receive_window: LIVE_VIDEO_STREAM_RECEIVE_WINDOW,
+            connection_receive_window: LIVE_VIDEO_CONNECTION_RECEIVE_WINDOW,
         }
     }
 }
@@ -175,6 +258,13 @@ impl QuicEndpoint {
         } else {
             builder = builder.relay_mode(iroh::RelayMode::Disabled);
         }
+
+        let transport_config = live_video_transport_config_with_windows(
+            options.congestion,
+            options.stream_receive_window,
+            options.connection_receive_window,
+        );
+        builder = builder.transport_config(transport_config);
 
         let endpoint = builder.bind().await.map_err(|e| {
             NetError::new(

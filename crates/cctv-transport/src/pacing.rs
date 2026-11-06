@@ -306,6 +306,19 @@ impl PacingSender {
         requested
     }
 
+    /// Check if sender is currently starved and waiting for a keyframe.
+    ///
+    /// Returns `true` if sender is either discarding delta frames until the next keyframe
+    /// or if there are no pending packets to send while in an active drop-to-keyframe state.
+    pub fn is_starved_for_keyframe(&self) -> bool {
+        self.discarding_until_keyframe || self.keyframe_requested
+    }
+
+    /// Whether there are pending packets ready to send in the queue.
+    pub fn has_pending_packets(&self) -> bool {
+        !self.pending_packets.is_empty()
+    }
+
     /// Notify sender that the receiver suffered a decode failure.
     ///
     /// Triggers immediate drop-to-keyframe state and requests an IDR keyframe from encoder.
@@ -465,6 +478,220 @@ impl UnpacedReverseStreamReader {
 impl Default for UnpacedReverseStreamReader {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Reason a keyframe request was triggered by [`KeyframeRequester`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyframeRequestReason {
+    /// Sender is starved of keyframes or stalled waiting for fresh IDR sequence.
+    SenderStarved,
+    /// Congestion drop occurred in `PacingSender`.
+    CongestionDrop,
+    /// Receiver reported decode error or frame corruption.
+    DecodeFailure,
+    /// Periodic resynchronization or manual request.
+    Manual,
+}
+
+/// Configuration options for [`KeyframeRequester`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyframeRequesterConfig {
+    /// Minimum interval between keyframe requests to avoid flooding the camera (milliseconds).
+    pub min_request_interval_ms: u64,
+    /// Threshold duration of sender starvation before triggering a recovery keyframe request (milliseconds).
+    pub starvation_threshold_ms: u64,
+}
+
+impl Default for KeyframeRequesterConfig {
+    fn default() -> Self {
+        Self {
+            // Rate-limit: at most one request every 300 ms (approx ~3 fps keyframe bursts max)
+            min_request_interval_ms: 300,
+            // Sender idle / starved for 150 ms triggers active request
+            starvation_threshold_ms: 150,
+        }
+    }
+}
+
+/// Control message sent to the camera / encoder requesting an IDR keyframe.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyframeControlMessage {
+    /// Monotonically increasing request sequence number.
+    pub request_seq: u64,
+    /// Timestamp of request in milliseconds.
+    pub timestamp_ms: u64,
+    /// Trigger reason.
+    pub reason: KeyframeRequestReason,
+    /// Wire-format control bytes suitable for transmission over RTSP/ONVIF or QUIC control channel.
+    pub payload: Vec<u8>,
+}
+
+/// Telemetry stats for [`KeyframeRequester`].
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct KeyframeRequesterStats {
+    /// Total keyframe requests dispatched.
+    pub total_requests: u64,
+    /// Requests triggered by sender starvation.
+    pub starvation_requests: u64,
+    /// Requests triggered by congestion drop.
+    pub congestion_drop_requests: u64,
+    /// Requests triggered by receiver decode failure.
+    pub decode_failure_requests: u64,
+    /// Requests suppressed by rate-limit cooldown.
+    pub suppressed_by_cooldown: u64,
+}
+
+/// Keyframe requester that monitors sender starvation and actively dispatches
+/// control messages to the camera or upstream encoder.
+///
+/// In live CCTV, passive drop-to-keyframe without active encoder signaling can leave
+/// the receiver frozen until the camera's natural GOP interval (which can be 2-5 seconds).
+/// `KeyframeRequester` bridges this gap by proactively requesting an immediate IDR frame
+/// as soon as starvation or congestion occurs, while rate-limiting requests to protect
+/// the camera's processing capacity.
+#[derive(Debug)]
+pub struct KeyframeRequester {
+    config: KeyframeRequesterConfig,
+    next_request_seq: u64,
+    last_request_ms: u64,
+    starvation_start_ms: Option<u64>,
+    stats: KeyframeRequesterStats,
+}
+
+impl KeyframeRequester {
+    /// Create a new `KeyframeRequester` with the specified configuration.
+    pub fn new(config: KeyframeRequesterConfig) -> Self {
+        Self {
+            config,
+            next_request_seq: 1,
+            last_request_ms: 0,
+            starvation_start_ms: None,
+            stats: KeyframeRequesterStats::default(),
+        }
+    }
+
+    /// Check the `PacingSender` state and determine if an active keyframe request should be issued.
+    ///
+    /// Evaluates:
+    /// 1. Explicit keyframe requests triggered by drop-to-keyframe transitions.
+    /// 2. Sustained sender starvation (waiting for keyframe or empty pipeline exceeding threshold).
+    pub fn poll_request(
+        &mut self,
+        sender: &mut PacingSender,
+        now_ms: u64,
+    ) -> Option<KeyframeControlMessage> {
+        let explicit_request = sender.take_keyframe_request();
+        let is_discarding = sender.stats().discarding_until_keyframe;
+        let starved = is_discarding
+            || (!sender.has_pending_packets()
+                && sender.stats().sent_packets > 0
+                && sender.queued_frames() == 0);
+
+        if starved {
+            if self.starvation_start_ms.is_none() {
+                self.starvation_start_ms = Some(now_ms);
+            }
+        } else {
+            self.starvation_start_ms = None;
+        }
+
+        let is_starved_long_enough = match self.starvation_start_ms {
+            Some(start) => now_ms.saturating_sub(start) >= self.config.starvation_threshold_ms,
+            None => false,
+        };
+
+        if explicit_request {
+            return self.try_dispatch_request(KeyframeRequestReason::CongestionDrop, now_ms);
+        }
+
+        if is_starved_long_enough {
+            return self.try_dispatch_request(KeyframeRequestReason::SenderStarved, now_ms);
+        }
+
+        // If the sender is currently discarding until keyframe and an active enqueue attempt was dropped,
+        // we can also register it with cooldown
+        if is_discarding {
+            return self.try_dispatch_request(KeyframeRequestReason::CongestionDrop, now_ms);
+        }
+
+        None
+    }
+
+    /// Notify that the receiver suffered a decode error and trigger immediate request.
+    pub fn on_decode_failure(&mut self, now_ms: u64) -> Option<KeyframeControlMessage> {
+        self.try_dispatch_request(KeyframeRequestReason::DecodeFailure, now_ms)
+    }
+
+    /// Explicitly request a keyframe (e.g. on client connect or manual refresh).
+    pub fn request_keyframe(&mut self, now_ms: u64) -> Option<KeyframeControlMessage> {
+        self.try_dispatch_request(KeyframeRequestReason::Manual, now_ms)
+    }
+
+    /// Attempt to dispatch a request, enforcing the minimum request cooldown interval.
+    fn try_dispatch_request(
+        &mut self,
+        reason: KeyframeRequestReason,
+        now_ms: u64,
+    ) -> Option<KeyframeControlMessage> {
+        if self.last_request_ms > 0
+            && now_ms.saturating_sub(self.last_request_ms) < self.config.min_request_interval_ms
+        {
+            self.stats.suppressed_by_cooldown += 1;
+            return None;
+        }
+
+        self.last_request_ms = now_ms;
+        // Reset starvation tracking after issuing request
+        self.starvation_start_ms = None;
+
+        let seq = self.next_request_seq;
+        self.next_request_seq += 1;
+
+        self.stats.total_requests += 1;
+        match reason {
+            KeyframeRequestReason::SenderStarved => self.stats.starvation_requests += 1,
+            KeyframeRequestReason::CongestionDrop => self.stats.congestion_drop_requests += 1,
+            KeyframeRequestReason::DecodeFailure => self.stats.decode_failure_requests += 1,
+            KeyframeRequestReason::Manual => {}
+        }
+
+        // Wire payload format: 4-byte Magic "KEYF" | 8-byte Seq | 1-byte Reason Tag
+        let mut payload = Vec::with_capacity(13);
+        payload.extend_from_slice(b"KEYF");
+        payload.extend_from_slice(&seq.to_be_bytes());
+        let reason_byte = match reason {
+            KeyframeRequestReason::SenderStarved => 1,
+            KeyframeRequestReason::CongestionDrop => 2,
+            KeyframeRequestReason::DecodeFailure => 3,
+            KeyframeRequestReason::Manual => 4,
+        };
+        payload.push(reason_byte);
+
+        Some(KeyframeControlMessage {
+            request_seq: seq,
+            timestamp_ms: now_ms,
+            reason,
+            payload,
+        })
+    }
+
+    /// Telemetry statistics.
+    pub fn stats(&self) -> KeyframeRequesterStats {
+        self.stats.clone()
+    }
+
+    /// Reset requester state and counters.
+    pub fn reset(&mut self) {
+        self.last_request_ms = 0;
+        self.starvation_start_ms = None;
+        self.stats = KeyframeRequesterStats::default();
+    }
+}
+
+impl Default for KeyframeRequester {
+    fn default() -> Self {
+        Self::new(KeyframeRequesterConfig::default())
     }
 }
 
@@ -674,6 +901,82 @@ mod tests {
         let kf = sender.enqueue_video(PacketType::Keyframe, vec![2], true, 1_033);
         assert_eq!(kf, EnqueueResult::Accepted);
         assert!(!sender.stats().discarding_until_keyframe);
+    }
+
+    #[test]
+    fn keyframe_requester_dispatches_on_congestion_drop_and_enforces_cooldown() {
+        let mut sender = PacingSender::new(2);
+        let mut requester = KeyframeRequester::new(KeyframeRequesterConfig {
+            min_request_interval_ms: 250,
+            starvation_threshold_ms: 100,
+        });
+
+        let mut now = 1_000;
+        // Fill sender capacity
+        sender.enqueue_video(PacketType::DeltaFrame, vec![1; 200], true, now);
+        sender.enqueue_video(PacketType::DeltaFrame, vec![2; 200], true, now + 30);
+        assert!(requester.poll_request(&mut sender, now + 30).is_none());
+
+        // Drop occurs -> triggers explicit keyframe request
+        sender.enqueue_video(PacketType::DeltaFrame, vec![3; 200], true, now + 60);
+        let req = requester.poll_request(&mut sender, now + 60);
+        assert!(
+            req.is_some(),
+            "KeyframeRequester should dispatch on congestion drop"
+        );
+        let msg = req.unwrap();
+        assert_eq!(msg.reason, KeyframeRequestReason::CongestionDrop);
+        assert_eq!(msg.request_seq, 1);
+        assert_eq!(&msg.payload[..4], b"KEYF");
+
+        // Another drop occurs within 250ms cooldown -> should be suppressed
+        sender.enqueue_video(PacketType::DeltaFrame, vec![4; 200], true, now + 100);
+        let suppressed = requester.poll_request(&mut sender, now + 100);
+        assert!(
+            suppressed.is_none(),
+            "Request within cooldown should be suppressed"
+        );
+        assert_eq!(requester.stats().suppressed_by_cooldown, 1);
+
+        // After cooldown expires (now + 350ms)
+        now += 350;
+        sender.on_receiver_decode_failure();
+        let req2 = requester.poll_request(&mut sender, now);
+        assert!(
+            req2.is_some(),
+            "Request after cooldown expires should dispatch"
+        );
+        assert_eq!(req2.unwrap().request_seq, 2);
+    }
+
+    #[test]
+    fn keyframe_requester_triggers_on_sustained_starvation() {
+        let mut sender = PacingSender::new(4);
+        let mut requester = KeyframeRequester::new(KeyframeRequesterConfig {
+            min_request_interval_ms: 200,
+            starvation_threshold_ms: 100,
+        });
+
+        let mut now = 1_000;
+        // Enqueue and transmit 1 frame
+        sender.enqueue_video(PacketType::Keyframe, vec![0; 500], true, now);
+        sender.pop_packet_to_send(now);
+        sender.on_acks_received(1, now + 10);
+
+        // Sender pipeline is now empty.
+        // Poll before starvation threshold (50ms) -> no request
+        assert!(requester.poll_request(&mut sender, now + 50).is_none());
+
+        // Advance past starvation threshold (150ms total)
+        now += 150;
+        let req = requester.poll_request(&mut sender, now);
+        assert!(
+            req.is_some(),
+            "Should dispatch request when sender is starved"
+        );
+        let msg = req.unwrap();
+        assert_eq!(msg.reason, KeyframeRequestReason::SenderStarved);
+        assert_eq!(requester.stats().starvation_requests, 1);
     }
 
     #[test]
