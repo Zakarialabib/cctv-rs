@@ -59,7 +59,7 @@ pub struct NetError {
 
 impl NetError {
     /// Build an error of `kind` carrying `detail`.
-    fn new(kind: ErrorKind, detail: impl Into<String>) -> Self {
+    pub fn new(kind: ErrorKind, detail: impl Into<String>) -> Self {
         Self {
             kind,
             detail: detail.into(),
@@ -88,6 +88,13 @@ impl core::error::Error for NetError {}
 impl From<std::io::Error> for NetError {
     fn from(value: std::io::Error) -> Self {
         Self::new(ErrorKind::Io, value.to_string())
+    }
+}
+
+#[cfg(feature = "quic")]
+impl From<crate::quic::QuicStream> for Stream {
+    fn from(quic: crate::quic::QuicStream) -> Self {
+        Self::Quic(quic)
     }
 }
 
@@ -183,6 +190,9 @@ pub enum Stream {
     Plain(TcpStream),
     /// A TLS session over a TCP connection.
     Tls(Box<tokio_rustls::client::TlsStream<TcpStream>>),
+    /// A bidirectional QUIC stream multiplexed over an iroh connection.
+    #[cfg(feature = "quic")]
+    Quic(crate::quic::QuicStream),
 }
 
 impl fmt::Display for Stream {
@@ -190,6 +200,8 @@ impl fmt::Display for Stream {
         match self {
             Self::Plain(_) => f.write_str("tcp"),
             Self::Tls(_) => f.write_str("tls"),
+            #[cfg(feature = "quic")]
+            Self::Quic(_) => f.write_str("quic"),
         }
     }
 }
@@ -211,6 +223,8 @@ impl tokio::io::AsyncRead for Stream {
         match self.get_mut() {
             Self::Plain(s) => std::pin::Pin::new(s).poll_read(cx, buf),
             Self::Tls(s) => std::pin::Pin::new(s.as_mut()).poll_read(cx, buf),
+            #[cfg(feature = "quic")]
+            Self::Quic(s) => std::pin::Pin::new(s).poll_read(cx, buf),
         }
     }
 }
@@ -224,6 +238,8 @@ impl tokio::io::AsyncWrite for Stream {
         match self.get_mut() {
             Self::Plain(s) => std::pin::Pin::new(s).poll_write(cx, buf),
             Self::Tls(s) => std::pin::Pin::new(s.as_mut()).poll_write(cx, buf),
+            #[cfg(feature = "quic")]
+            Self::Quic(s) => std::pin::Pin::new(s).poll_write(cx, buf),
         }
     }
 
@@ -234,6 +250,8 @@ impl tokio::io::AsyncWrite for Stream {
         match self.get_mut() {
             Self::Plain(s) => std::pin::Pin::new(s).poll_flush(cx),
             Self::Tls(s) => std::pin::Pin::new(s.as_mut()).poll_flush(cx),
+            #[cfg(feature = "quic")]
+            Self::Quic(s) => std::pin::Pin::new(s).poll_flush(cx),
         }
     }
 
@@ -244,6 +262,8 @@ impl tokio::io::AsyncWrite for Stream {
         match self.get_mut() {
             Self::Plain(s) => std::pin::Pin::new(s).poll_shutdown(cx),
             Self::Tls(s) => std::pin::Pin::new(s.as_mut()).poll_shutdown(cx),
+            #[cfg(feature = "quic")]
+            Self::Quic(s) => std::pin::Pin::new(s).poll_shutdown(cx),
         }
     }
 }

@@ -15,6 +15,9 @@
 //! - `net` (feature `net`) — the raw socket layer this crate is for: TCP, UDP
 //!   and TLS with [`policy`] applied, plus the byte reader that feeds
 //!   [`reader`].  No `reqwest`; it is what eventually replaces `http`.
+//! - `quic` (feature `quic`) — QUIC transport via `iroh` for peer-to-peer NAT
+//!   traversal, connection migration, and control/video channel multiplexing
+//!   over a single connection behind the [`net::Stream`] abstraction.
 //! - `fixture` (feature `fixture`) — a canned-response HTTP server the
 //!   drivers' conformance tests run against.
 //!
@@ -32,5 +35,7 @@ pub mod http;
 pub mod net;
 pub mod pacing;
 pub mod policy;
+#[cfg(feature = "quic")]
+pub mod quic;
 pub mod reader;
 pub mod xml;
