@@ -27,7 +27,7 @@ use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraId,
     CameraSnapshot, CameraState, CameraStateCurrent, Capability, CapabilitySet, CapabilityView,
     CommandId, CommandResult, CommandResultPayload, Datagram, Discoverable, DiscoveredCamera,
-    MotionEvent,ObservationStream, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    MotionEvent, ObservationStream, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, ZoneConfig};
 use cctv_driver::discovery::Probe;
