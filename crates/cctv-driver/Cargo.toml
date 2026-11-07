@@ -5,7 +5,10 @@ edition = "2021"
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Vendor-neutral driver extension point for cctv-rs"
+description = "Vendor-neutral driver extension point for cctv-rs: DriverAdapter/DriverRegistry seam with bundled discovery, Ezviz and UVC/PTP/DDC adapters behind features"
+readme = "README.md"
+keywords = ["cctv", "driver", "discovery", "ezviz", "uvc"]
+categories = ["api-bindings", "multimedia::video"]
 
 [features]
 default = ["discovery"]

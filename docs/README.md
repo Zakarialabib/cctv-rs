@@ -16,7 +16,7 @@ Technical documentation, design decisions, and system specifications for `cctv-r
 ## Roadmaps & Plans
 
 - [Release Roadmap](roadmap.md) — Milestone phases, verification gates, and locked architectural decisions.
-- [Execution Plan](plan-v0.2.md) — Work packages (W1–W9) and host application integration phases (A–E).
+- [Execution Plan](plan-v0.2.md) — Work packages (W1–W6) and host application integration phases (A–E).
 
 ## Repository Metadata
 

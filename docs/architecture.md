@@ -10,13 +10,16 @@ cctv-rs (Aggregate Facade)
 ├── cctv-transport ──────── TLS policy, FrameReader, XML scanner, net sockets
 ├── cctv-rtp ────────────── RTP header & H.264/H.265 depacketizer (pure)
 ├── cctv-rtsp ───────────── RTSP framing, SDP parser, interleaved demux, Digest
-├── cctv-discovery ──────── SSDP & WS-Discovery sweeps
-├── cctv-onvif ──────────── ONVIF SOAP services (Device/Media/PTZ) + Discovery
-├── cctv-ezviz ──────────── Ezviz Open Platform cloud adapter
-├── cctv-stream-uvc ─────── Local video seam (UVC, PTP, HAL events)
+├── cctv-driver ─────────── Vendor-neutral adapter seam: DriverAdapter, registry,
+│                           discovery sweeps, plus the Ezviz (feature `ezviz`)
+│                           and local-video UVC/PTP/DDC (features `uvc`,
+│                           `uvc-ptp`, `ddc`) adapters
+├── cctv-onvif ──────────── ONVIF SOAP services (Device/Media/PTZ)
 ├── cctv-agent ──────────── Fleet reconciler, StreamMux, SnapshotProxy
 ├── cctv-detect ─────────── Detection & zone configuration models
-└── cctv-rag ────────────── Incident ledger, spatial topology, BM25 RAG retrieval
+├── cctv-rag ────────────── Incident ledger, spatial topology, BM25 RAG retrieval
+├── cctv-pair ───────────── Pairing ceremony, trust store, zbase32 fingerprints
+└── cctv-sync ───────────── Registry convergence (CRDT: LWW register, OR-set)
 ```
 
 ---
@@ -47,13 +50,13 @@ All camera interactions pass through the typed `Facade` interface:
 | `cctv-transport` | `thiserror` (`tokio-rustls`, `reqwest` optional) | Data-driven TLS policy, time-budgeted `FrameReader`, zero-allocation XML scanner, TCP/TLS socket helpers. |
 | `cctv-rtp` | *(none)* | Pure byte-slice RTP header parsing and H.264/H.265 access-unit reassembly (STAP-A, FU-A, AP, FU). |
 | `cctv-rtsp` | `base64`, `zeroize` | Pure message framing, SDP track extraction, `$`-interleaved frame demuxing, and RFC 2617/7616 Digest auth state machine. |
-| `cctv-discovery` | `cctv-core`, `cctv-transport` | SSDP (`M-SEARCH`) and WS-Discovery (`Probe`) UDP multicast sweeps with address and UUID deduplication. |
-| `cctv-onvif` | `cctv-core`, `cctv-transport` | SOAP 1.2 client for ONVIF Device, Media, and PTZ services; skewed-clock WS-Security `UsernameToken` generation; discovery delegation. |
-| `cctv-ezviz` | `cctv-core`, `ezviz-openapi` | Ezviz Open Platform integration; manages auth tokens, channel inventories, stream URLs, and PTZ translation. |
-| `cctv-stream-uvc` | `cctv-core`, `cctv-transport` | Ports & Adapters local video seam: mockable OS platform seam, UVC capture, PTP fetch surfaces, and HAL hot-plug events. |
+| `cctv-driver` | `cctv-core` (+ `cctv-transport` under `discovery`) | Vendor-neutral adapter seam: the `DriverAdapter` factory surface, `DriverRegistry`, and the bundled protocol adapters. `discovery` (default) carries the SSDP `M-SEARCH` / WS-Discovery `Probe` sweeps; `ezviz` bundles the Ezviz Open Platform adapter; `uvc` / `uvc-ptp` / `ddc` bundle the local-video seam (mockable OS platform, UVC capture, PTP fetch, HAL hot-plug, DDC/CI display control). |
+| `cctv-onvif` | `cctv-core`, `cctv-transport`, `cctv-driver` | SOAP 1.2 client for ONVIF Device, Media, and PTZ services; skewed-clock WS-Security `UsernameToken` generation; discovery delegation to `cctv-driver`. |
 | `cctv-agent` | `cctv-core`, `cctv-rtsp` | Deterministic fleet reconciler, graded remediation actions (`Hold`, `MarkOffline`, `TakeOutOfService`), `StreamMux` GOP caching, and `SnapshotProxy`. |
 | `cctv-detect` | *(pure / alloc-only)* | Motion and object detection primitives: `Detection`, `Zone` (`point`, `rectangle`), `ZoneConfig` with clamped normalization. |
 | `cctv-rag` | `cctv-core`, `cctv-detect` | Deterministic retrieval layer: temporal incident ledger, spatial topology graph, BM25 index, and diagnostic playbooks, exposed as one `KnowledgeBaseIndex`. |
+| `cctv-pair` | `cctv-core` (`serde-sync`) | Device pairing ceremony and trust store: the AKE handshake, `TrustStore` persistence, pairing-URI parsing, and `zbase32` human-comparable fingerprints. |
+| `cctv-sync` | `cctv-core`, `cctv-pair` | Peer-state convergence: CRDT primitives (`LwwRegister`, `OrSet`) and the device/trust registry replicas derived from them. |
 | `cctv-rs` | All workspace crates | Aggregate facade: unified driver factory registry, lifecycle management, zone processing, and discovery entry points. |
 
 ---
@@ -62,11 +65,11 @@ All camera interactions pass through the typed `Facade` interface:
 
 | Channel | Wire Protocol | Auth / Security | Handler Crate |
 | --- | --- | --- | --- |
-| Discovery | UDP Multicast (`239.255.255.250:1900`, `:3702`) | Unauthenticated | `cctv-discovery` |
+| Discovery | UDP Multicast (`239.255.255.250:1900`, `:3702`) | Unauthenticated | `cctv-driver` (`discovery`) |
 | RTSP Streaming | TCP / UDP RTSP 1.0 + interleaved RTP | HTTP Digest / Basic (RFC 2617 / RFC 7616) | `cctv-rtsp`, `cctv-rtp` |
 | ONVIF Control | HTTP/1.1 SOAP 1.2 XML | WS-Security `UsernameToken` (clock-skew compensated) | `cctv-onvif` |
-| Cloud Services | HTTPS REST JSON | OAuth / Account Access Tokens | `cctv-ezviz` |
-| Local Video | USB / V4L2 / AVFoundation via OS Seam | OS permissions | `cctv-stream-uvc` |
+| Cloud Services | HTTPS REST JSON | OAuth / Account Access Tokens | `cctv-driver` (`ezviz`) |
+| Local Video | USB / V4L2 / AVFoundation via OS Seam | OS permissions | `cctv-driver` (`uvc`) |
 
 ---
 
