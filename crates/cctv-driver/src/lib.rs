@@ -1,69 +1,49 @@
 //! Driver surface for any vendor adapter that plugs into the `cctv-driver`
 //! registry.
+//!
+//! §2.3: The DriverAdapter / CameraBackend split separates driver factories
+//! (`DriverAdapter`) from live connected camera handles (`CameraBackend`).
 
-use cctv_core::{Preset, PtzCommand, StreamInfo, StreamQuality};
-/// A platform vendor adapter (Hikvision, Dahua, a legacy bridge, …) that
-/// implements the same `cctv_core::CameraBackend` capability surface used by
-/// the facade. Nothing here is vendor-specific: any vendor that can speak the
-/// shared camera model plugs in here and the facade treats it like any other
-/// driver.
+pub mod error;
+pub mod registry;
+
+#[cfg(feature = "driver-mock")]
+pub mod mock;
+
+use async_trait::async_trait;
+use cctv_core::{CameraBackend, CameraConfig, CameraError, CapabilitySet, ProbeResult};
+
+pub use error::DriverError;
+pub use registry::{DriverRegistry, InMemoryRegistry};
+
+#[cfg(feature = "driver-mock")]
+pub use mock::MockDriverAdapter;
+
+/// A vendor/driver factory that can probe and attach to cameras of a specific kind.
+///
+/// Implements §2.3 factory responsibilities:
+/// - `driver_key`: stable driver key (e.g., `"onvif"`, `"ezviz"`, `"mock"`)
+/// - `capabilities`: capabilities advertised by this driver family
+/// - `probe`: pure derivation or query of probe report
+/// - `attach`: instantiate a [`CameraBackend`] handle from a connection record.
+#[async_trait]
 pub trait DriverAdapter: Send + Sync {
-    /// Stable registry key, e.g. `"hikvision"` / `"ezviz"` / `"generic-rtp"`.
+    /// Stable registry key, e.g. `"hikvision"`, `"ezviz"`, `"mock"`.
     fn driver_key(&self) -> &'static str;
 
     /// Human-readable name of the vendor/driver.
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &'static str {
+        self.driver_key()
+    }
 
     /// Capabilities this adapter advertises (stream, ptz, presets, …).
-    fn capabilities(&self) -> cctv_core::CapabilitySet;
+    fn capabilities(&self) -> CapabilitySet {
+        CapabilitySet::EMPTY
+    }
 
-    /// Build a probe report from the adapter's own configuration.
-    ///
-    /// No network I/O: this is pure derivation from the adapter's config so
-    /// that discovery/failure modes stay deterministic.
-    fn probe(
-        &self,
-        id: &str,
-    ) -> impl std::future::Future<Output = Result<cctv_core::ProbeResult, cctv_core::CameraError>> + Send;
+    /// Build a probe report from the adapter's configuration or connection record.
+    async fn probe(&self, config: &CameraConfig) -> Result<ProbeResult, CameraError>;
 
-    /// Stream URL for the requested quality.
-    fn stream(
-        &self,
-        id: &str,
-        quality: StreamQuality,
-    ) -> impl std::future::Future<Output = Result<StreamInfo, cctv_core::CameraError>> + Send;
-
-    /// PTZ command (pan/tilt/zoom + presets). Not every adapter implements
-    /// every subcommand; return `NotImplemented` for the rest.
-    fn ptz(
-        &self,
-        id: &str,
-        command: PtzCommand,
-    ) -> impl std::future::Future<Output = Result<(), cctv_core::CameraError>> + Send;
-
-    /// Preset list.
-    fn presets(
-        &self,
-        id: &str,
-    ) -> impl std::future::Future<Output = Result<Vec<Preset>, cctv_core::CameraError>> + Send;
-
-    /// Save a preset (config is adapter-specific).
-    fn save_preset(
-        &self,
-        id: &str,
-        config: &str,
-    ) -> impl std::future::Future<Output = Result<(), cctv_core::CameraError>> + Send;
-
-    /// Delete a preset.
-    fn delete_preset(
-        &self,
-        id: &str,
-    ) -> impl std::future::Future<Output = Result<(), cctv_core::CameraError>> + Send;
-
-    /// Goto a preset by name.
-    fn goto_preset(
-        &self,
-        id: &str,
-        preset: &str,
-    ) -> impl std::future::Future<Output = Result<(), cctv_core::CameraError>> + Send;
+    /// Attach to a camera and construct a connected handle implementing [`CameraBackend`].
+    async fn attach(&self, config: &CameraConfig) -> Result<Box<dyn CameraBackend>, CameraError>;
 }

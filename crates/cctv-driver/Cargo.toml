@@ -7,6 +7,14 @@ repository.workspace = true
 rust-version.workspace = true
 description = "Vendor-neutral driver extension point for cctv-rs"
 
+[features]
+default = []
+driver-mock = []
+
 [dependencies]
 cctv-core = { workspace = true }
 async-trait = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+futures-executor = "0.3"

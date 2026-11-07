@@ -16,6 +16,7 @@ ddc = ["cctv-stream-uvc/ddc", "cctv-agent/ddc"]
 
 [dependencies]
 cctv-core.workspace = true
+cctv-driver.workspace = true
 cctv-rtp.workspace = true
 cctv-agent.workspace = true
 cctv-discovery.workspace = true
@@ -35,6 +36,7 @@ serde_json.workspace = true
 # The facade's tests define a failing `CameraBackend`, which is an `async-trait`
 # trait and needs the attribute macro.
 async-trait.workspace = true
+cctv-driver = { workspace = true, features = ["driver-mock"] }
 
 [lints]
 workspace = true
