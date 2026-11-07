@@ -5,52 +5,9 @@ use std::collections::BTreeMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use cctv_core::ProbeResult;
+use cctv_core::{Datagram, DiscoveredCamera, ProbeResult};
 
-use crate::{ssdp, wsd};
-
-/// One camera found by a probe sweep.
-///
-/// `id` is the stable identity discovery observed — the SSDP `USN`, or the
-/// WS-Discovery endpoint address — and is what the fleet adopts the camera
-/// under.  `service_url` is the device's control-service endpoint when the
-/// protocol advertised one (a WS-Discovery `XAddr`), which becomes
-/// `CameraConfig::service_url` on adoption.
-#[derive(Debug, Clone, PartialEq)]
-#[non_exhaustive]
-pub struct DiscoveredCamera {
-    /// Stable identity discovery observed.
-    pub id: String,
-    /// The device-model probe fields for this camera.
-    pub probe: ProbeResult,
-    /// Control-service URL the device advertised, if any.
-    pub service_url: Option<String>,
-}
-
-impl DiscoveredCamera {
-    /// Build a discovered camera from an identity and its probe fields.
-    pub fn new(id: impl Into<String>, probe: ProbeResult) -> Self {
-        Self {
-            id: id.into(),
-            probe,
-            service_url: None,
-        }
-    }
-}
-
-/// The datagram transport a sweep runs on.
-///
-/// Implemented for the real UDP socket ([`UdpTransport`]) and for test doubles,
-/// so the sweep logic is exercised without a network.
-pub trait Datagram {
-    /// Send `request` to `group` and collect every datagram that arrives before
-    /// `timeout` elapses.
-    ///
-    /// Must return whatever it has once the timeout passes rather than blocking
-    /// indefinitely, and must never panic: an unreachable network yields an
-    /// empty sweep, not an error.
-    fn exchange(&self, group: SocketAddr, request: &[u8], timeout: Duration) -> Vec<Vec<u8>>;
-}
+use super::{ssdp, wsd};
 
 /// A UDP transport over a real socket, one ephemeral port per exchange.
 ///
@@ -188,7 +145,7 @@ impl Default for Probe {
 /// Mint a fresh `urn:uuid:` message id for one sweep.
 ///
 /// A WS-Discovery `Probe` carries this so a device can tell two sweeps apart;
-/// [`crate::wsd::probe`] embeds it.  Published for protocol-specific sweeps —
+/// [`super::wsd::probe`] embeds it.  Published for protocol-specific sweeps —
 /// `cctv-onvif`'s filtered ONVIF discovery mints its own.
 pub fn message_id() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};

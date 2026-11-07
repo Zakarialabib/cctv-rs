@@ -42,9 +42,8 @@ ORDER=(
     cctv-transport   # no workspace deps
     cctv-rtp         # zero dependencies: pure payload parsers
     cctv-rtsp        # -> base64 only: session codecs
-    cctv-discovery   # -> cctv-core
-    cctv-onvif       # -> cctv-core, cctv-transport, cctv-discovery
-    cctv-driver      # -> cctv-core (vendor-neutral adapter seam: ezviz, uvc behind features)
+    cctv-driver      # -> cctv-core, cctv-transport (vendor-neutral adapter seam: ezviz, uvc behind features)
+    cctv-onvif       # -> cctv-core, cctv-transport, cctv-driver
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect

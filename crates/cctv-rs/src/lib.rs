@@ -24,18 +24,18 @@ pub use facade::{clock_ms, Facade};
 
 pub use cctv_agent::{
     Action, Audit, AuditEntry, CommandRelay, CompositeInputConfig, CompositeNalu,
-    CompositeStreamMux, GopCache, Grade, Nalu, NaluType, Reconciler, Remediation, StreamMux,
-    StreamMuxConfig, VideoCodec,
+    CompositeStreamMux, GopCache, Grade, Nalu, NaluType, ObservationSubscriber, Reconciler,
+    Remediation, StreamMux, StreamMuxConfig, VideoCodec,
 };
 pub use cctv_core::{
     AudioSource, BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle,
-    CameraId, CameraState, CameraStateCurrent, CameraType, Capability, CapabilitySet,
-    CapabilityView, CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource,
-    GridLayout, MediaFile, Preset, ProfileError, PtzCommand, RecordingContainer, RecordingProfile,
-    Snapshot, StreamInfo, StreamQuality,
+    CameraId, CameraObservation, CameraState, CameraStateCurrent, CameraType, Capability,
+    CapabilitySet, CapabilityView, CommandId, CommandResult, CommandResultPayload, DomainEvent,
+    FrameSource, GridLayout, MediaFile, ObservationSource, ObservationStream, Preset, ProfileError,
+    PtzCommand, RecordingContainer, RecordingProfile, Snapshot, StreamInfo, StreamQuality,
 };
+pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
-pub use cctv_discovery::DiscoveredCamera;
 pub use cctv_driver::{
     BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
 };

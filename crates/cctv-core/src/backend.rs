@@ -340,19 +340,6 @@ pub trait CameraBackend: Send + Sync {
         Err(CameraError::NotImplemented)
     }
 
-    /// Observe the current state of the camera.
-    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
-        let probe = self.probe().await?;
-        let mut state = crate::state::CameraState::new(
-            "".into(),
-            self.driver().into(),
-            crate::types::CameraType::Business,
-        );
-        state.vendor = probe.vendor.clone();
-        state.apply_probe(probe, true, crate::state::CameraStateCurrent::On, 1.0);
-        Ok(state)
-    }
-
     /// Check health status of this camera backend.
     async fn health(&self) -> Result<crate::health::Health, CameraError> {
         match self.probe().await {
@@ -381,6 +368,11 @@ pub trait CameraBackend: Send + Sync {
     async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
         let _ = command;
         Err(CameraError::PtzDisabled)
+    }
+
+    /// Subscribe to live state observations emitted by this backend.
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
+        Err(CameraError::NotImplemented)
     }
 
     /// List the presets stored on the device.
@@ -425,7 +417,7 @@ impl<T: CameraBackend + ?Sized> CameraBackend for alloc::sync::Arc<T> {
         (**self).execute(command).await
     }
 
-    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
         (**self).observe().await
     }
 
@@ -487,7 +479,7 @@ impl<T: CameraBackend + ?Sized> CameraBackend for Box<T> {
         (**self).execute(command).await
     }
 
-    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
         (**self).observe().await
     }
 

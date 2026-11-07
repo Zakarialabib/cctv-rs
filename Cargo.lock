@@ -262,17 +262,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "cctv-discovery"
+name = "cctv-driver"
 version = "0.3.0"
 dependencies = [
+ "async-trait",
  "cctv-core",
  "cctv-transport",
+ "futures-executor",
  "thiserror 2.0.21",
  "tokio",
 ]
 
 [[package]]
-name = "cctv-driver"
+name = "cctv-ezviz"
 version = "0.3.0"
 dependencies = [
  "async-trait",
@@ -293,7 +295,7 @@ dependencies = [
  "async-trait",
  "base64 0.23.1",
  "cctv-core",
- "cctv-discovery",
+ "cctv-driver",
  "cctv-transport",
  "serde_json",
  "sha1",
@@ -333,7 +335,6 @@ dependencies = [
  "cctv-agent",
  "cctv-core",
  "cctv-detect",
- "cctv-discovery",
  "cctv-driver",
  "cctv-onvif",
  "cctv-pair",
@@ -342,6 +343,7 @@ dependencies = [
  "cctv-sync",
  "cctv-transport",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

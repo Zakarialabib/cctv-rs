@@ -12,8 +12,9 @@ use std::time::Duration;
 use cctv_core::ProbeResult;
 use cctv_transport::xml;
 
-use crate::probe::{message_id, Datagram, DiscoveredCamera, UdpTransport};
-use crate::wsd;
+use super::probe::{message_id, UdpTransport};
+use super::wsd;
+use cctv_core::{Datagram, DiscoveredCamera};
 
 /// Multicast group for WS-Discovery and SADP probes.
 pub const MULTICAST_IP: [u8; 4] = [239, 255, 255, 250];
@@ -146,7 +147,7 @@ pub fn scan_multicast_with(net: &dyn Datagram, window: Duration) -> DiscoveryOut
     for d in wsd_replies {
         let text = String::from_utf8_lossy(&d);
         for matched in wsd::parse_probe_matches(&text) {
-            if let Some(cam) = crate::probe::camera_from_probe_match(&matched) {
+            if let Some(cam) = super::probe::camera_from_probe_match(&matched) {
                 discovered.push(cam);
             }
         }

@@ -10,13 +10,13 @@
 - [ ] cctv-transport
 - [ ] cctv-rtp
 - [ ] cctv-rtsp
-- [ ] cctv-discovery
+- [ ] cctv-driver
 - [ ] cctv-onvif
-- [ ] cctv-ezviz
-- [ ] cctv-stream-uvc
 - [ ] cctv-agent
 - [ ] cctv-detect
 - [ ] cctv-rag
+- [ ] cctv-pair
+- [ ] cctv-sync
 - [ ] cctv-rs
 - [ ] workspace / tooling (`scripts/`, `xtask/`, `.github/`, docs)
 

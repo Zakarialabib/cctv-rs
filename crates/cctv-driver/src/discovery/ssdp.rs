@@ -1,7 +1,7 @@
 //! SSDP (Simple Service Discovery Protocol) message codec.
 //!
 //! Pure: the `M-SEARCH` request is built and the replies are parsed here; the
-//! UDP exchange lives in [`crate::probe`].  A reply is either an `M-SEARCH`
+//! UDP exchange lives in [`super::probe`].  A reply is either an `M-SEARCH`
 //! response (`HTTP/1.1 200 OK`) or a `NOTIFY` advertisement — both a start line
 //! followed by `Name: value` headers.
 //!

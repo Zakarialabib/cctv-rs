@@ -6,11 +6,15 @@
 //! workspace never sees one.
 
 use async_trait::async_trait;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
+use tokio::sync::broadcast;
 
+use crate::observe_bridge::BroadcastObservationSource;
 use cctv_core::{
-    CameraBackend, CameraError, Preset, ProbeResult, PtzCommand, Snapshot, StreamInfo,
-    StreamQuality,
+    CameraBackend, CameraError, CameraObservation, CameraStateCurrent, ObservationStream, Preset,
+    ProbeResult, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 
 use crate::error::OnvifError;
@@ -27,16 +31,33 @@ pub struct OnvifCameraBackend {
     session: OnvifSession,
     profile: Option<String>,
     started: Mutex<Option<String>>,
+    tx: broadcast::Sender<CameraObservation>,
+    seq: Arc<AtomicU64>,
 }
 
 impl OnvifCameraBackend {
     /// Bind to a device, picking the best media profile per call.
     pub fn new(session: OnvifSession) -> Self {
+        let (tx, _) = broadcast::channel(128);
         Self {
             session,
             profile: None,
             started: Mutex::new(None),
+            tx,
+            seq: Arc::new(AtomicU64::new(1)),
         }
+    }
+
+    /// Emit a state observation to subscribers.
+    pub fn emit_observation(&self, state: CameraStateCurrent, online: bool, confidence: f32) {
+        let seq = self.seq.fetch_add(1, Ordering::SeqCst);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let cam_id = host_of(self.session.device_url()).unwrap_or_else(|| "onvif".to_string());
+        let obs = CameraObservation::new(cam_id, seq, now, state, online, confidence);
+        let _ = self.tx.send(obs);
     }
 
     /// Bind to one media profile by token.
@@ -83,6 +104,11 @@ impl CameraBackend for OnvifCameraBackend {
         "onvif"
     }
 
+    async fn observe(&self) -> Result<ObservationStream, CameraError> {
+        let rx = self.tx.subscribe();
+        Ok(BroadcastObservationSource::new(rx).into_stream())
+    }
+
     fn capabilities(&self) -> cctv_core::CapabilitySet {
         cctv_core::CapabilitySet::from_slice(&[
             cctv_core::Capability::StreamH264,
@@ -97,13 +123,21 @@ impl CameraBackend for OnvifCameraBackend {
 
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
         {
-            let info = self
-                .session
-                .device_information()
-                .await
-                .map_err(camera_error)?;
-            let services = self.session.services().await.map_err(camera_error)?;
-            Ok(ProbeResult {
+            let info = match self.session.device_information().await {
+                Ok(info) => info,
+                Err(e) => {
+                    self.emit_observation(CameraStateCurrent::Away, false, 0.0);
+                    return Err(camera_error(e));
+                }
+            };
+            let services = match self.session.services().await {
+                Ok(srv) => srv,
+                Err(e) => {
+                    self.emit_observation(CameraStateCurrent::Away, false, 0.0);
+                    return Err(camera_error(e));
+                }
+            };
+            let result = ProbeResult {
                 vendor: info.manufacturer,
                 model: info.model,
                 firmware: info.firmware_version,
@@ -114,7 +148,9 @@ impl CameraBackend for OnvifCameraBackend {
                 // support: a fixed camera simply has no PTZ service.
                 ptz_supported: services.ptz.is_some(),
                 ai_supported: false,
-            })
+            };
+            self.emit_observation(CameraStateCurrent::On, true, 1.0);
+            Ok(result)
         }
     }
 

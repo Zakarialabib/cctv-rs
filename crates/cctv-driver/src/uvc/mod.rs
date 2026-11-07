@@ -4,6 +4,7 @@ pub mod backpressure;
 #[cfg(feature = "ddc")]
 pub mod ddc;
 pub mod hal;
+pub mod observe_bridge;
 #[cfg(feature = "uvc-ptp")]
 pub mod ptp;
 #[allow(clippy::module_inception)]
@@ -17,6 +18,7 @@ pub use ddc::{
     PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
 };
 pub use hal::HalEventSource;
+pub use observe_bridge::BroadcastObservationSource;
 #[cfg(feature = "uvc-ptp")]
 pub use ptp::{PtpAdapter, PtpStatus};
 pub use uvc::{OsError, OsPlatform, UvcAdapter};

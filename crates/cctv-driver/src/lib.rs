@@ -4,8 +4,13 @@
 //! §2.3: The DriverAdapter / CameraBackend split separates driver factories
 //! (`DriverAdapter`) from live connected camera handles (`CameraBackend`).
 
+#[cfg(feature = "discovery")]
+pub mod discovery;
 pub mod error;
 pub mod registry;
+
+#[cfg(feature = "discovery")]
+pub use discovery::{Datagram, Discoverable, DiscoveredCamera, Probe};
 
 #[cfg(feature = "driver-mock")]
 pub mod mock;
