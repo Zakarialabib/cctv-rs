@@ -310,6 +310,36 @@ pub trait CameraBackend: Send + Sync {
         crate::caps::CapabilitySet::EMPTY
     }
 
+    /// Execute a parameterless or catalogue command on the camera backend.
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        let _ = command;
+        Err(CameraError::NotImplemented)
+    }
+
+    /// Observe the current state of the camera.
+    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
+        let probe = self.probe().await?;
+        let mut state = crate::state::CameraState::new(
+            "".into(),
+            self.driver().into(),
+            crate::types::CameraType::Business,
+        );
+        state.vendor = probe.vendor.clone();
+        state.apply_probe(probe, true, crate::state::CameraStateCurrent::On, 1.0);
+        Ok(state)
+    }
+
+    /// Check health status of this camera backend.
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        match self.probe().await {
+            Ok(_) => Ok(crate::health::Health::Healthy),
+            Err(_) => Ok(crate::health::Health::Dead { since_ms: 0 }),
+        }
+    }
+
     /// Read the device identity: vendor, model, firmware, MAC, PTZ support.
     async fn probe(&self) -> Result<ProbeResult, CameraError>;
 
@@ -354,6 +384,130 @@ pub trait CameraBackend: Send + Sync {
     async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
         let _ = id;
         Err(CameraError::PtzDisabled)
+    }
+}
+
+#[async_trait]
+impl<T: CameraBackend + ?Sized> CameraBackend for alloc::sync::Arc<T> {
+    fn driver(&self) -> &'static str {
+        (**self).driver()
+    }
+
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        (**self).capabilities()
+    }
+
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        (**self).execute(command).await
+    }
+
+    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
+        (**self).observe().await
+    }
+
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        (**self).health().await
+    }
+
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        (**self).probe().await
+    }
+
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        (**self).stream(quality).await
+    }
+
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        (**self).snapshot().await
+    }
+
+    async fn trigger_capture(&self) -> Result<MediaFile, CameraError> {
+        (**self).trigger_capture().await
+    }
+
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        (**self).ptz(command).await
+    }
+
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        (**self).presets().await
+    }
+
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        (**self).save_preset(name, id).await
+    }
+
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).goto_preset(id).await
+    }
+
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).delete_preset(id).await
+    }
+}
+
+#[async_trait]
+impl<T: CameraBackend + ?Sized> CameraBackend for Box<T> {
+    fn driver(&self) -> &'static str {
+        (**self).driver()
+    }
+
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        (**self).capabilities()
+    }
+
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        (**self).execute(command).await
+    }
+
+    async fn observe(&self) -> Result<crate::state::CameraState, CameraError> {
+        (**self).observe().await
+    }
+
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        (**self).health().await
+    }
+
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        (**self).probe().await
+    }
+
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        (**self).stream(quality).await
+    }
+
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        (**self).snapshot().await
+    }
+
+    async fn trigger_capture(&self) -> Result<MediaFile, CameraError> {
+        (**self).trigger_capture().await
+    }
+
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        (**self).ptz(command).await
+    }
+
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        (**self).presets().await
+    }
+
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        (**self).save_preset(name, id).await
+    }
+
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).goto_preset(id).await
+    }
+
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).delete_preset(id).await
     }
 }
 

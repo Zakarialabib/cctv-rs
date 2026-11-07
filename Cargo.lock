@@ -277,6 +277,8 @@ version = "0.3.0"
 dependencies = [
  "async-trait",
  "cctv-core",
+ "futures-executor",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -340,6 +342,7 @@ dependencies = [
  "cctv-core",
  "cctv-detect",
  "cctv-discovery",
+ "cctv-driver",
  "cctv-ezviz",
  "cctv-onvif",
  "cctv-pair",

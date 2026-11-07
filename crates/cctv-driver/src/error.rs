@@ -32,11 +32,11 @@ pub enum DriverError {
 impl From<DriverError> for CameraError {
     fn from(e: DriverError) -> Self {
         match e {
-            DriverError::Wire(ref s) => CameraError::Other(s),
+            DriverError::Wire(ref s) => CameraError::Other(s.clone()),
             DriverError::Config(ref s) => CameraError::Other(format!("config: {s}")),
             DriverError::Unreachable(ref s) => CameraError::Other(format!("unreachable: {s}")),
-            DriverError::Unauthorized(ref s) => CameraError::Unauthorized(s),
-            DriverError::NotSupported(ref s) => CameraError::PtzDisabled, // the seam has no vendor presets
+            DriverError::Unauthorized(_) => CameraError::AuthFailed,
+            DriverError::NotSupported(_) => CameraError::NotImplemented,
         }
     }
 }

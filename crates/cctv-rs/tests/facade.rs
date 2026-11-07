@@ -406,6 +406,23 @@ fn the_driver_registry_builds_a_backend_from_a_record() {
 }
 
 #[test]
+fn test_facade_attaches_mock_driver_adapter_by_key() {
+    use cctv_driver::MockDriverAdapter;
+    let mut facade = Facade::new();
+    let adapter = Arc::new(MockDriverAdapter::new("mock-v2"));
+    facade.register_driver_adapter(adapter);
+    assert!(facade.driver_keys().contains(&"mock-v2".to_string()));
+
+    let config = CameraConfig::new("mock_cam_1", "mock-v2", "192.168.1.100");
+    let handle = facade.attach(config).expect("attach mock adapter");
+    assert_eq!(handle.id(), "mock_cam_1");
+    assert!(facade.contains("mock_cam_1"));
+
+    let stats = block_on(facade.camera_get_stats("mock_cam_1")).expect("stats");
+    assert_eq!(stats.camera_id.as_deref(), Some("mock_cam_1"));
+}
+
+#[test]
 fn the_builtin_registry_names_the_ezviz_driver() {
     let facade = Facade::new().with_builtin_drivers();
     assert_eq!(
