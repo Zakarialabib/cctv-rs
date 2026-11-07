@@ -4,7 +4,7 @@ All notable changes to the `cctv-rs` workspace are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-All fifteen crates are versioned and released together, plus `ezviz-openapi`
+All twelve crates are versioned and released together, plus `ezviz-openapi`
 (published from its own repository).
 
 ## [0.3.0] - 2026-11-02
@@ -46,6 +46,14 @@ All fifteen crates are versioned and released together, plus `ezviz-openapi`
 
 ### Changed
 
+- **Driver consolidation — the published surface drops from fifteen crates to
+  twelve.** `cctv-discovery`, `cctv-ezviz` and `cctv-stream-uvc` are folded into
+  `cctv-driver` behind cargo features (`discovery` — default, `ezviz`, `uvc`,
+  `uvc-ptp`, `ddc`, plus `driver-mock`/`mobile`), and the seam is split into a
+  `DriverAdapter` factory surface and the `CameraBackend` live handle.
+  `cctv-onvif`'s discovery delegates to `cctv-driver::discovery`. Publish order
+  and CI are updated accordingly; existing code moves to
+  `cctv_driver::{discovery, ezviz, uvc}`.
 - **The workspace is licensed under Apache-2.0**, replacing MIT.
 - `rust-toolchain.toml` pins the `stable` channel instead of a fixed compiler.
 - `cctv-rag` joins the release plumbing.
@@ -292,6 +300,6 @@ All fifteen crates are versioned and released together, plus `ezviz-openapi`
   `CameraError` taxonomy, the confidence-carrying camera state machine and the
   mock backend with its conformance suite.
 
-[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.3.0...HEAD
 [0.2.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zakarialabib/cctv-rs/releases/tag/v0.1.0

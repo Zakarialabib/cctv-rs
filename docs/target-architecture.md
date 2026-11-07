@@ -12,13 +12,13 @@ Aspirational crate evolution, boundaries, and architectural invariants for the `
 | `cctv-transport` | Data-driven TLS policy, time-budgeted `FrameReader`, zero-allocation XML scanner. | TCP/TLS socket abstractions (`net` feature, `rustls` only). |
 | `cctv-rtp` | Zero-dependency RTP header and H.264/H.265 access-unit depacketizer. | Pure byte-slice processing. |
 | `cctv-rtsp` | Pure message codecs, SDP parser, and Digest auth state machine. | Independent of socket I/O; consumed by streaming loops. |
-| `cctv-discovery` | UDP multicast sweeps (SSDP and WS-Discovery). | Stateless discovery returning strongly typed `DiscoveredCamera`. |
-| `cctv-onvif` | ONVIF SOAP/HTTP `CameraBackend` with clock-skew auth. | Transport-backed HTTP requests with XML parsing. |
-| `cctv-ezviz` | Cloud `CameraBackend` wrapping `ezviz-openapi`. | Token lifecycle and stream endpoint translation. |
-| `cctv-stream-uvc` | Ports & Adapters local video seam (UVC/PTP/HAL). | Isolated behind platform abstraction for hardware-free testability. |
+| `cctv-driver` | Vendor-neutral adapter seam: `DriverAdapter` factories and `DriverRegistry`, plus the bundled adapters — discovery sweeps (`discovery`), Ezviz cloud (`ezviz`), and the local video seam UVC/PTP/DDC (`uvc`, `uvc-ptp`, `ddc`). | Optional drivers compile behind features; the seam itself depends only on `cctv-core`. |
+| `cctv-onvif` | ONVIF SOAP/HTTP `CameraBackend` with clock-skew auth. | Transport-backed HTTP requests with XML parsing; discovery delegated to `cctv-driver`. |
 | `cctv-agent` | Deterministic fleet state reconciler, `StreamMux`, `SnapshotProxy`. | Command issuance via `CommandRelay` and NALU broadcast caching. |
 | `cctv-detect` | Motion & AI detection domain model. | Alloc-only; free of ML frameworks and I/O. |
 | `cctv-rag` | Deterministic retrieval: incident ledger, spatial topology graph, BM25 index, playbook registry. | Runtime-free; bounded in-memory index, no external vector database. |
+| `cctv-pair` | Pairing ceremony, trust store and pairing-URI parsing. | Certificate-secured AKE; `zbase32` fingerprints for human comparison. |
+| `cctv-sync` | CRDT replicas (`LwwRegister`, `OrSet`) for the device and trust registries. | Runtime-free convergence; no coordination server. |
 | `cctv-rs` | Public aggregate facade with dynamic driver factory registry (`Arc<dyn CameraBackend>`). | Single unified interface for host applications. |
 
 ---
