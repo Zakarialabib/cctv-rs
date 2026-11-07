@@ -4,9 +4,16 @@
 //! exposing OS-specific APIs like IOKit or COM to the domain.
 
 use async_trait::async_trait;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use tokio::sync::broadcast;
+
 use cctv_core::{
-    CameraBackend, CameraError, FrameSource, ProbeResult, Snapshot, StreamInfo, StreamQuality,
+    CameraBackend, CameraError, CameraObservation, CameraStateCurrent, FrameSource,
+    ObservationStream, ProbeResult, Snapshot, StreamInfo, StreamQuality,
 };
+
+use crate::observe_bridge::BroadcastObservationSource;
 
 /// Target OS platform for the UVC adapter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,13 +51,17 @@ impl OsError {
     }
 }
 
+use std::sync::atomic::AtomicBool;
+
 /// UVC camera stream adapter.
 pub struct UvcAdapter {
     id: String,
     device_path: String,
     platform: OsPlatform,
-    busy: bool,
+    busy: AtomicBool,
     frame_counter: u64,
+    tx: broadcast::Sender<CameraObservation>,
+    seq: Arc<AtomicU64>,
 }
 
 impl UvcAdapter {
@@ -60,18 +71,38 @@ impl UvcAdapter {
         device_path: impl Into<String>,
         platform: OsPlatform,
     ) -> Self {
+        let (tx, _) = broadcast::channel(128);
         Self {
             id: id.into(),
             device_path: device_path.into(),
             platform,
-            busy: false,
+            busy: AtomicBool::new(false),
             frame_counter: 0,
+            tx,
+            seq: Arc::new(AtomicU64::new(1)),
         }
     }
 
+    /// Emit an observation to subscribers.
+    pub fn emit_observation(&self, state: CameraStateCurrent, online: bool, confidence: f32) {
+        let seq = self.seq.fetch_add(1, Ordering::SeqCst);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let obs = CameraObservation::new(&self.id, seq, now, state, online, confidence);
+        let _ = self.tx.send(obs);
+    }
+
     /// Mark the device state as held / busy by another OS shell process.
-    pub fn set_busy(&mut self, busy: bool) {
-        self.busy = busy;
+    pub fn set_busy(&self, busy: bool) {
+        self.busy.store(busy, Ordering::SeqCst);
+        let (state, online, conf) = if busy {
+            (CameraStateCurrent::Away, false, 0.0)
+        } else {
+            (CameraStateCurrent::Standby, true, 1.0)
+        };
+        self.emit_observation(state, online, conf);
     }
 
     /// The camera identity.
@@ -88,7 +119,7 @@ impl UvcAdapter {
 #[async_trait]
 impl FrameSource for UvcAdapter {
     async fn read_frame(&mut self) -> Result<Vec<u8>, CameraError> {
-        if self.busy {
+        if self.busy.load(Ordering::SeqCst) {
             let os_err = match self.platform {
                 OsPlatform::LinuxV4l2 => OsError::V4l2EBusy,
                 OsPlatform::WindowsMediaFoundation => OsError::MediaFoundationAlreadyInitialized,
@@ -118,10 +149,17 @@ impl CameraBackend for UvcAdapter {
         ])
     }
 
+    async fn observe(&self) -> Result<ObservationStream, CameraError> {
+        let rx = self.tx.subscribe();
+        Ok(BroadcastObservationSource::new(rx).into_stream())
+    }
+
     async fn probe(&self) -> Result<ProbeResult, CameraError> {
-        if self.busy {
+        if self.busy.load(Ordering::SeqCst) {
+            self.emit_observation(CameraStateCurrent::Away, false, 0.0);
             return Err(CameraError::DeviceBusy);
         }
+        self.emit_observation(CameraStateCurrent::On, true, 1.0);
         Ok(ProbeResult {
             vendor: "UVC Standard Camera".into(),
             model: format!("{:?} ({})", self.platform, self.device_path),
@@ -135,7 +173,7 @@ impl CameraBackend for UvcAdapter {
     }
 
     async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
-        if self.busy {
+        if self.busy.load(Ordering::SeqCst) {
             return Err(CameraError::DeviceBusy);
         }
         Ok(StreamInfo {
@@ -149,7 +187,7 @@ impl CameraBackend for UvcAdapter {
     }
 
     async fn snapshot(&self) -> Result<Snapshot, CameraError> {
-        if self.busy {
+        if self.busy.load(Ordering::SeqCst) {
             return Err(CameraError::DeviceBusy);
         }
         Ok(Snapshot::from_bytes(

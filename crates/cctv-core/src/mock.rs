@@ -136,6 +136,11 @@ impl MockBackend {
     }
 }
 
+struct MockSharedState {
+    queue: Vec<crate::observe::CameraObservation>,
+    waker: Option<std::task::Waker>,
+}
+
 /// In-memory [`CameraBackend`](crate::backend::CameraBackend): one fake camera
 /// with a stream, a snapshot, PTZ and device-side presets.
 ///
@@ -146,6 +151,28 @@ pub struct MockCamera {
     next_preset: std::sync::atomic::AtomicU32,
     /// Every PTZ command received, in order.
     pub ptz_log: std::sync::Mutex<Vec<crate::backend::PtzCommand>>,
+    observations: std::sync::Arc<std::sync::Mutex<MockSharedState>>,
+    obs_seq: std::sync::atomic::AtomicU64,
+}
+
+struct MockObservationSource {
+    state: std::sync::Arc<std::sync::Mutex<MockSharedState>>,
+}
+
+impl crate::observe::ObservationSource for MockObservationSource {
+    fn poll_next_observation(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Result<crate::observe::CameraObservation, crate::CameraError>>>
+    {
+        if let Ok(mut st) = self.state.lock() {
+            if !st.queue.is_empty() {
+                return std::task::Poll::Ready(Some(Ok(st.queue.remove(0))));
+            }
+            st.waker = Some(cx.waker().clone());
+        }
+        std::task::Poll::Pending
+    }
 }
 
 impl MockCamera {
@@ -155,6 +182,32 @@ impl MockCamera {
             presets: std::sync::Mutex::new(Vec::new()),
             next_preset: std::sync::atomic::AtomicU32::new(1),
             ptz_log: std::sync::Mutex::new(Vec::new()),
+            observations: std::sync::Arc::new(std::sync::Mutex::new(MockSharedState {
+                queue: Vec::new(),
+                waker: None,
+            })),
+            obs_seq: std::sync::atomic::AtomicU64::new(1),
+        }
+    }
+
+    /// Emit an observation from this mock camera.
+    pub fn emit_observation(&self, state: CameraStateCurrent, online: bool, confidence: f32) {
+        let seq = self
+            .obs_seq
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let obs = crate::observe::CameraObservation::new(
+            "mock-cam",
+            seq,
+            1_700_000_000,
+            state,
+            online,
+            confidence,
+        );
+        if let Ok(mut st) = self.observations.lock() {
+            st.queue.push(obs);
+            if let Some(waker) = st.waker.take() {
+                waker.wake();
+            }
         }
     }
 }
@@ -227,6 +280,14 @@ impl crate::backend::CameraBackend for MockCamera {
                 "image/jpeg",
             ))
         }
+    }
+
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, crate::CameraError> {
+        Ok(crate::observe::ObservationStream::new(
+            MockObservationSource {
+                state: std::sync::Arc::clone(&self.observations),
+            },
+        ))
     }
 
     async fn ptz(&self, command: crate::backend::PtzCommand) -> Result<(), crate::CameraError> {

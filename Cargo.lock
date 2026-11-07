@@ -343,6 +343,7 @@ dependencies = [
  "cctv-sync",
  "cctv-transport",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

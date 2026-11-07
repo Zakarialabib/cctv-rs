@@ -27,7 +27,7 @@ use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraId,
     CameraSnapshot, CameraState, CameraStateCurrent, Capability, CapabilitySet, CapabilityView,
     CommandId, CommandResult, CommandResultPayload, Datagram, Discoverable, DiscoveredCamera,
-    MotionEvent, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
+    MotionEvent,ObservationStream, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, ZoneConfig};
 use cctv_driver::discovery::Probe;
@@ -247,6 +247,24 @@ impl Facade {
     /// redacted form.
     pub fn config(&self, id: &str) -> Option<&CameraConfig> {
         self.cameras.get(id).map(|registered| &registered.config)
+    }
+
+    /// Subscribe to push-based observations for a camera.
+    pub async fn observe(&self, id: &str) -> Result<ObservationStream, CameraError> {
+        self.backend(id)?.observe().await
+    }
+
+    /// Subscribe the reconciler directly to a camera's observation stream.
+    ///
+    /// Consumes push observations from the camera backend and updates the
+    /// reconciler and the provided camera aggregate state in real-time.
+    pub async fn subscribe_reconciler_to_camera(
+        reconciler: Arc<tokio::sync::Mutex<Reconciler>>,
+        stream: ObservationStream,
+        camera: Arc<tokio::sync::Mutex<CameraState>>,
+    ) -> tokio::task::JoinHandle<()> {
+        let subscriber = Arc::new(cctv_agent::ObservationSubscriber::new(reconciler));
+        subscriber.spawn_camera_observer(stream, camera)
     }
 
     /// The driver serving a camera, or a typed error.

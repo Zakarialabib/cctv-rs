@@ -81,6 +81,7 @@ pub mod imperative;
 pub mod lease;
 #[cfg(feature = "testing")]
 pub mod mock;
+pub mod observe;
 pub mod profile;
 pub mod provisioning;
 #[cfg(feature = "quirks")]
@@ -120,6 +121,7 @@ pub use error::{CameraError, CoreError};
 pub use events::{AuditEntry, DomainEvent};
 pub use imperative::ImperativeCameraCommand;
 pub use lease::{CameraId, LeaseMode, MaintenanceLease};
+pub use observe::{CameraObservation, ObservationSource, ObservationStream};
 pub use profile::{AudioSource, GridLayout, ProfileError, RecordingContainer, RecordingProfile};
 pub use provisioning::{
     CameraCapabilitySet, CameraProvisioningBundleV1, DecryptedCameraAuth, EncryptedAuthEnvelope,
