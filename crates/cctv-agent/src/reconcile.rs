@@ -19,8 +19,8 @@
 use std::collections::BTreeMap;
 
 use cctv_core::{
-    CameraConfig, CameraDesired, CameraError, CameraState, CameraStateCurrent, CommandId,
-    DomainEvent, RecordingProfile,
+    CameraConfig, CameraDesired, CameraError, CameraObservation, CameraState, CameraStateCurrent,
+    CommandId, DomainEvent, RecordingProfile,
 };
 
 use crate::audit::Audit;
@@ -164,6 +164,7 @@ pub struct Reconciler {
     desired: BTreeMap<String, CameraDesired>,
     errors: BTreeMap<String, CameraError>,
     group_profiles: BTreeMap<String, RecordingProfile>,
+    last_seq: BTreeMap<String, u64>,
     /// Where remediation commands go, when the caller wants active issuance.
     relay: Option<Box<dyn CommandRelay>>,
 }
@@ -176,6 +177,7 @@ impl Reconciler {
             desired: BTreeMap::new(),
             errors: BTreeMap::new(),
             group_profiles: BTreeMap::new(),
+            last_seq: BTreeMap::new(),
             relay: None,
         }
     }
@@ -303,6 +305,69 @@ impl Reconciler {
                 remediation.grade.as_u8(),
             );
         }
+    }
+
+    /// Ingest a push-based [`CameraObservation`] directly without polling,
+    /// updating `camera` state and returning the resulting [`Remediation`].
+    ///
+    /// Preserves strict per-camera ordering: observations with sequence
+    /// numbers less than or equal to the latest processed for this camera are
+    /// dropped, returning `None`.
+    pub fn handle_observation(
+        &mut self,
+        observation: &CameraObservation,
+        camera: &mut CameraState,
+    ) -> Option<Remediation> {
+        let last = self
+            .last_seq
+            .get(&observation.camera_id)
+            .copied()
+            .unwrap_or(0);
+        if observation.sequence <= last {
+            // Out of order or duplicate observation; drop to guarantee monotonic order
+            return None;
+        }
+        self.last_seq
+            .insert(observation.camera_id.clone(), observation.sequence);
+
+        let desired = self
+            .desired
+            .get(&observation.camera_id)
+            .copied()
+            .unwrap_or(camera.desired);
+        camera.set_desired(desired);
+
+        // Update camera state machine from observation
+        if let Some(ref probe) = observation.probe {
+            camera.apply_probe(
+                probe.clone(),
+                observation.online,
+                observation.state,
+                observation.confidence,
+            );
+        } else {
+            camera.update_confirmation(
+                observation.online,
+                observation.state,
+                observation.confidence,
+            );
+        }
+
+        let remediation = match self.errors.remove(&camera.id) {
+            Some(error) => grade_error(&camera.id, &error),
+            None => diff(&camera.id, desired, camera),
+        };
+        apply(&remediation, camera);
+        self.audit.log(
+            remediation.camera_id.clone(),
+            &format!(
+                "observe [seq:{}]: {}: {}",
+                observation.sequence, remediation.grade, remediation.reason
+            ),
+            remediation.grade.as_u8(),
+        );
+        self.issue(&remediation);
+        Some(remediation)
     }
 
     /// Reconcile a whole fleet, in camera-id order.

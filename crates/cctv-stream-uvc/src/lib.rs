@@ -10,6 +10,7 @@ pub mod backpressure;
 #[cfg(feature = "ddc")]
 pub mod ddc;
 pub mod hal;
+pub mod observe_bridge;
 pub mod ptp;
 pub mod uvc;
 
@@ -21,5 +22,6 @@ pub use ddc::{
     PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
 };
 pub use hal::HalEventSource;
+pub use observe_bridge::BroadcastObservationSource;
 pub use ptp::{PtpAdapter, PtpStatus};
 pub use uvc::{OsError, OsPlatform, UvcAdapter};

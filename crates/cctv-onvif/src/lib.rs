@@ -30,6 +30,7 @@ pub mod discovery;
 pub mod error;
 pub mod events;
 pub mod media;
+pub mod observe_bridge;
 pub mod ptz;
 pub mod session;
 pub mod soap;
