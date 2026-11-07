@@ -73,9 +73,9 @@ pub mod caps;
 pub mod commands;
 pub mod conformance;
 pub mod doctor;
-pub mod health;
 pub mod error;
 pub mod events;
+pub mod health;
 pub mod imperative;
 pub mod lease;
 #[cfg(feature = "testing")]
@@ -123,4 +123,3 @@ pub use provisioning::{
 };
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
 pub use types::CameraType;
-

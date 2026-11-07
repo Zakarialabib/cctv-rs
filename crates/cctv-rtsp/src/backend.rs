@@ -1058,4 +1058,3 @@ mod tests {
         assert!(backend.reader().is_none());
     }
 }
-mktemp: failed to create file via template '/c/Users/user/AppData/Local/hermes/cache/terminal/hermes-snap-e0d5496ab8ec.sh.tmp.XXXXXXXXXX': No such file or directory

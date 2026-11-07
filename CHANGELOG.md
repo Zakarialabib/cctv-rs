@@ -17,12 +17,6 @@ All fifteen crates are versioned and released together, plus `ezviz-openapi`
 - Live stream health watchdog: cctv_core health module (Health/Watchdog),
   wired into the driver stream path through READ_STALL and the reconnect
   policy.
-  `DriverRegistry`): any vendor protocol plugs into the facade through one
-  capability surface (`probe`, `stream`, `ptz`, `presets`, `save/goto/delete
-  preset`) and a typed `CameraError` taxonomy. Leaf crate of the release; its
-  mock fixture and registry round-trip tests are the verification. All
-  fifteen workspace crates are versioned and released together, plus
-  `ezviz-openapi` (published from its own repository).
 
 ## [Unreleased]
 
