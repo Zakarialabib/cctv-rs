@@ -353,6 +353,11 @@ pub trait CameraBackend: Send + Sync {
         Err(CameraError::PtzDisabled)
     }
 
+    /// Subscribe to live state observations emitted by this backend.
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
+        Err(CameraError::NotImplemented)
+    }
+
     /// List the presets stored on the device.
     async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
         Err(CameraError::PtzDisabled)
