@@ -268,18 +268,6 @@ dependencies = [
  "async-trait",
  "cctv-core",
  "cctv-transport",
- "futures-executor",
- "thiserror 2.0.21",
- "tokio",
-]
-
-[[package]]
-name = "cctv-ezviz"
-version = "0.3.0"
-dependencies = [
- "async-trait",
- "cctv-core",
- "cctv-transport",
  "ezviz-openapi",
  "futures-executor",
  "serde",
