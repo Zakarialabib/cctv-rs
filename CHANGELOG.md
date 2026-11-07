@@ -4,7 +4,19 @@ All notable changes to the `cctv-rs` workspace are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-All twelve crates are versioned and released together.
+All fifteen crates are versioned and released together, plus `ezviz-openapi`
+(published from its own repository).
+
+## [0.3.0] - 2026-11-02
+
+### Added
+- **`cctv-driver`: W6 — vendor-neutral adapter seam** (`DriverAdapter` +
+  `DriverRegistry`): any vendor protocol plugs into the facade through one
+  capability surface (`probe`, `stream`, `ptz`, `presets`, `save/goto/delete
+  preset`) and a typed `CameraError` taxonomy. Leaf crate of the release; its
+  mock fixture and registry round-trip tests are the verification. All
+  fifteen workspace crates are versioned and released together, plus
+  `ezviz-openapi` (published from its own repository).
 
 ## [Unreleased]
 

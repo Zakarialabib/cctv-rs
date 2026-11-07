@@ -15,18 +15,21 @@ Twelve single-responsibility crates in publish order:
 
 | Crate | Crates.io | Description |
 | --- | --- | --- |
-| [`cctv-core`](crates/cctv-core) | [![v](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core) | `alloc`-only device model: typed commands, error taxonomy, state machine & mock suite. Zero Tokio, zero async runtime. |
-| [`cctv-transport`](crates/cctv-transport) | [![v](https://img.shields.io/crates/v/cctv-transport.svg)](https://crates.io/crates/cctv-transport) | Budgeted `FrameReader`, zero-alloc XML scanner, pure TCP/TLS socket abstractions (`rustls` only). |
-| [`cctv-rtp`](crates/cctv-rtp) | [![v](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp) | Zero-dependency RTP header parsing & H.264/H.265 access-unit depacketization (STAP-A, FU-A, AP, FU). |
-| [`cctv-rtsp`](crates/cctv-rtsp) | [![v](https://img.shields.io/crates/v/cctv-rtsp.svg)](https://crates.io/crates/cctv-rtsp) | Pure session codecs: RTSP request/response framing, SDP parsing, interleaved RTP demuxing, Digest auth. |
-| [`cctv-discovery`](crates/cctv-discovery) | [![v](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery) | UDP multicast sweeps (SSDP `M-SEARCH` + WS-Discovery `Probe`) with deterministic deduplication. |
-| [`cctv-onvif`](crates/cctv-onvif) | [![v](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif) | ONVIF Device, Media, and PTZ services over SOAP 1.2 with skewed-clock WS-Security `UsernameToken`. |
-| [`cctv-ezviz`](crates/cctv-ezviz) | [![v](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz) | Ezviz Open Platform integration wrapping `ezviz-openapi` into the standard `CameraBackend` trait. |
-| [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | Ports & Adapters local video seam: UVC adapter, budgeted frame reading, PTP capture, HAL hot-plug events. |
-| [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | Deterministic fleet reconciler with graded remediation, audit trail, GOP-cached `StreamMux`, `SnapshotProxy`. |
-| [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | Pure detection device model: zones, detection reports, monitor settings. No I/O, no heavy ML deps. |
-| [`cctv-rag`](crates/cctv-rag) | [![v](https://img.shields.io/crates/v/cctv-rag.svg)](https://crates.io/crates/cctv-rag) | Deterministic RAG: temporal incident ledger, spatial topology graph, BM25 retriever, and diagnostic playbooks. No async runtime, no external database. |
-| [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | Unified aggregate facade: driver registry, universal dispatch, discovery sweeps, zone management. |
+|| [`cctv-core`](crates/cctv-core) | [![v](https://img.shields.io/crates/v/cctv-core.svg)](https://crates.io/crates/cctv-core) | `alloc`-only device model: typed commands, error taxonomy, state machine & mock suite. Zero Tokio, zero async runtime. |
+|| [`cctv-transport`](crates/cctv-transport) | [![v](https://img.shields.io/crates/v/cctv-transport.svg)](https://crates.io/crates/cctv-transport) | Budgeted `FrameReader`, zero-alloc XML scanner, pure TCP/TLS socket abstractions (`rustls` only). |
+|| [`cctv-rtp`](crates/cctv-rtp) | [![v](https://img.shields.io/crates/v/cctv-rtp.svg)](https://crates.io/crates/cctv-rtp) | Zero-dependency RTP header parsing & H.264/H.265 access-unit depacketization (STAP-A, FU-A, AP, FU). |
+|| [`cctv-rtsp`](crates/cctv-rtsp) | [![v](https://img.shields.io/crates/v/cctv-rtsp.svg)](https://crates.io/crates/cctv-rtsp) | Pure session codecs: RTSP request/response framing, SDP parsing, interleaved RTP demuxing, Digest auth. |
+|| [`cctv-discovery`](crates/cctv-discovery) | [![v](https://img.shields.io/crates/v/cctv-discovery.svg)](https://crates.io/crates/cctv-discovery) | UDP multicast sweeps (SSDP `M-SEARCH` + WS-Discovery `Probe`) with deterministic deduplication. |
+|| [`cctv-onvif`](crates/cctv-onvif) | [![v](https://img.shields.io/crates/v/cctv-onvif.svg)](https://crates.io/crates/cctv-onvif) | ONVIF Device, Media, and PTZ services over SOAP 1.2 with skewed-clock WS-Security `UsernameToken`. |
+|| [`cctv-ezviz`](crates/cctv-ezviz) | [![v](https://img.shields.io/crates/v/cctv-ezviz.svg)](https://crates.io/crates/cctv-ezviz) | Ezviz Open Platform integration wrapping `ezviz-openapi` into the standard `CameraBackend` trait. |
+|| [`cctv-stream-uvc`](crates/cctv-stream-uvc) | [![v](https://img.shields.io/crates/v/cctv-stream-uvc.svg)](https://crates.io/crates/cctv-stream-uvc) | Ports & Adapters local video seam: UVC adapter, budgeted frame reading, PTP capture, HAL hot-plug events. |
+|| [`cctv-driver`](crates/cctv-driver) | [![v](https://img.shields.io/crates/v/cctv-driver.svg)](https://crates.io/crates/cctv-driver) | Vendor-neutral adapter seam: `DriverAdapter` capability surface + `DriverRegistry`. W6. |
+|| [`cctv-agent`](crates/cctv-agent) | [![v](https://img.shields.io/crates/v/cctv-agent.svg)](https://crates.io/crates/cctv-agent) | Deterministic fleet reconciler with graded remediation, audit trail, GOP-cached `StreamMux`, `SnapshotProxy`. |
+|| [`cctv-detect`](crates/cctv-detect) | [![v](https://img.shields.io/crates/v/cctv-detect.svg)](https://crates.io/crates/cctv-detect) | Pure detection device model: zones, detection reports, monitor settings. No I/O, no heavy ML deps. |
+|| [`cctv-rag`](crates/cctv-rag) | [![v](https://img.shields.io/crates/v/cctv-rag.svg)](https://crates.io/crates/cctv-rag) | Deterministic RAG: temporal incident ledger, spatial topology graph, BM25 retriever, and diagnostic playbooks. No async runtime, no external database. |
+|| [`cctv-pair`](crates/cctv-pair) | [![v](https://img.shields.io/crates/v/cctv-pair.svg)](https://crates.io/crates/cctv-pair) | Device pairing ceremony and trust store — certificate-secured pairing protocol, `TrustStore`, pairing URI parsing. |
+|| [`cctv-sync`](crates/cctv-sync) | [![v](https://img.shields.io/crates/v/cctv-sync.svg)](https://crates.io/crates/cctv-sync) | Syncronous device registry convergence: graded re-sync loops with tie-breaking. |
+|| [`cctv-rs`](crates/cctv-rs) | [![v](https://img.shields.io/crates/v/cctv-rs.svg)](https://crates.io/crates/cctv-rs) | Unified aggregate facade: driver registry, universal dispatch, discovery sweeps, zone management. |
 
 ## Quick Start
 

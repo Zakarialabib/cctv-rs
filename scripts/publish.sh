@@ -21,10 +21,10 @@
 #     after its dependency was uploaded, while the index catches up. That is a
 #     retry, not an error.
 #   * crates.io rate-limits *new* crates to a burst of 5 per account and then 1
-#     every 10 minutes. A first release of this workspace is twelve new crates
-#     (thirteen with `ezviz-openapi`), so the tail of the order waits. The registry's
-#     error names the time to retry; this script waits and retries rather than
-#     failing a release half way through.
+#     every 10 minutes. This workspace's first release includes fifteen crates
+#     (sixteen with `ezviz-openapi`), so the tail of the order waits. The
+#     registry's error names the time to retry; this script waits and retries
+#     rather than failing a release half way through.
 #
 # NOTE `ezviz-openapi` is NOT in this list: it is published from its own
 # repository (c:\laragon\www\ezviz-openapi-rs) and must already exist on
@@ -46,6 +46,7 @@ ORDER=(
     cctv-onvif       # -> cctv-core, cctv-transport, cctv-discovery
     cctv-ezviz       # -> ezviz-openapi (published separately: must land first)
     cctv-stream-uvc  # -> cctv-core
+    cctv-driver      # -> cctv-core (W6: vendor-neutral adapter seam — leaf)
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect

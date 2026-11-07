@@ -37,9 +37,10 @@ Work packages, release milestones, and verification targets for `cctv-rs`.
 - Shipped `StreamMux` GOP-cached NALU multiplexer and `SnapshotProxy`.
 - Verified via: `cargo test -p cctv-agent`.
 
-### W6 — Extended Vendor Drivers & Protocols (0.3.0 Target)
-- Additional proprietary IP camera protocol drivers.
-- Verified via: Driver mock fixtures and integration suites.
+### W6 — Extended Vendor Drivers & Protocols (0.3.0) ✅
+- `cctv-driver`: vendor-neutral `DriverAdapter` + `DriverRegistry` seam.
+- Released at **0.3.0**: `./scripts/publish.sh --publish` (fifteen crates) +
+  crates.io read-back 200 for all crates.
 
 ---
 

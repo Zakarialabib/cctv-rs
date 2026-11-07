@@ -22,6 +22,14 @@ System development status, release phases, and locked architectural decisions.
 ## Current Status (v0.2.0 Shipped)
 
 - **0.2.0 Released**: 11 of the 12 workspace crates are published to crates.io (`cctv-core`, `cctv-transport`, `cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`, `cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rs`); `cctv-rag` joins the ordered release at the next publish run.
+
+### 0.3.0 — Driver Expansion & Streaming Hardening (2026-11-02)
+- **Released**: fifteen workspace crates, incl. `cctv-driver` (W6 vendor-neutral
+  adapter seam: `DriverAdapter` + `DriverRegistry`).
+- Package: `./scripts/publish.sh --publish`; read-back `200` on crates.io API
+  for all fifteen; git tag `v0.3.0` + GitHub release.
+- Remaining: `cctv-rag` + `cctv-pair` + `cctv-sync` are members of the
+  workspace but not yet published (see next release 0.4.0).
 - **Active Remediation**: `CommandRelay` issues authorized `CommandId`s during reconciliation sweeps.
 - **`StreamMux` & `SnapshotProxy`**: GOP-cached sub-stream multiplexer and throttled snapshot proxy operational in `cctv-agent`.
 - **Zone & Detection Surface**: `Facade` provides complete zone configuration and detection event evaluation via `cctv-detect`.
