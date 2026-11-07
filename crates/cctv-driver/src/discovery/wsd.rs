@@ -2,7 +2,7 @@
 //!
 //! Pure: the `Probe` envelope is built here and `ProbeMatches` are read with
 //! `cctv-transport`'s prefix-agnostic XML scanner; the UDP exchange lives in
-//! [`crate::probe`].
+//! [`super::probe`].
 //!
 //! ONVIF devices answer a WS-Discovery `Probe` with their endpoint address,
 //! their service URLs (`XAddr`) and their `onvif://` scopes — richer than SSDP,
@@ -22,7 +22,7 @@ const ADDRESSING_NS: &str = "http://schemas.xmlsoap.org/ws/2004/08/addressing";
 /// Build a WS-Discovery `Probe` envelope.
 ///
 /// `message_id` must be a fresh `urn:uuid:` per sweep so a device can tell two
-/// sweeps apart; [`crate::probe`] mints one.
+/// sweeps apart; [`super::probe`] mints one.
 pub fn probe(message_id: &str) -> String {
     format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\

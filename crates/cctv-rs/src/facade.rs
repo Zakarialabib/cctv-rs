@@ -26,11 +26,11 @@ use cctv_agent::{Audit, Reconciler, Remediation};
 use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraHandle, CameraId,
     CameraSnapshot, CameraState, CameraStateCurrent, Capability, CapabilitySet, CapabilityView,
-    CommandId, CommandResult, CommandResultPayload, MotionEvent, Preset, PtzCommand, Snapshot,
-    StreamInfo, StreamQuality,
+    CommandId, CommandResult, CommandResultPayload, Datagram, Discoverable, DiscoveredCamera,
+    MotionEvent, Preset, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, ZoneConfig};
-use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
+use cctv_driver::discovery::Probe;
 use cctv_driver::{DriverAdapter, DriverRegistry, InMemoryRegistry};
 use cctv_rag::{HandoffCandidate, KnowledgeBaseIndex, RagContextEnvelope, RagError, SpatialGraph};
 use cctv_transport::reader::FrameReader;
@@ -65,6 +65,7 @@ pub struct Facade {
     cameras: BTreeMap<String, Registered>,
     driver_registry: InMemoryRegistry,
     legacy_drivers: BTreeMap<String, DriverFactory>,
+    discoverable_drivers: Vec<Arc<dyn Discoverable>>,
     /// One frame reader per camera, shared with the application's stream
     /// consumer.  The facade measures from it; it never pushes into it, because
     /// the bytes belong to whoever owns the wire.
@@ -90,6 +91,7 @@ impl Facade {
             cameras: BTreeMap::new(),
             driver_registry: InMemoryRegistry::new(),
             legacy_drivers: BTreeMap::new(),
+            discoverable_drivers: Vec::new(),
             readers: BTreeMap::new(),
             reconciler: Reconciler::new(Audit::new()),
             zones: BTreeMap::new(),
@@ -109,6 +111,7 @@ impl Facade {
         self.register_driver(ONVIF, Arc::new(crate::drivers::onvif));
         self.register_driver(crate::drivers::UVC, Arc::new(crate::drivers::uvc));
         self.register_driver(crate::drivers::PTP, Arc::new(crate::drivers::ptp));
+        self.register_discoverable(Arc::new(cctv_onvif::OnvifDiscovery::new()));
         self
     }
 
@@ -127,6 +130,11 @@ impl Facade {
     /// Access the underlying [`DriverRegistry`] mutably.
     pub fn driver_registry_mut(&mut self) -> &mut InMemoryRegistry {
         &mut self.driver_registry
+    }
+
+    /// Register a [`Discoverable`] provider into the facade.
+    pub fn register_discoverable(&mut self, discoverable: Arc<dyn Discoverable>) {
+        self.discoverable_drivers.push(discoverable);
     }
 
     /// Register a driver factory under a key.
@@ -298,12 +306,34 @@ impl Facade {
     /// exchanges), so it belongs on a worker thread; [`Facade::discover_with`]
     /// is the injectable form the tests use.
     pub fn discover(&self) -> Vec<DiscoveredCamera> {
-        Probe::new().scan()
+        let mut by_id: BTreeMap<String, DiscoveredCamera> = BTreeMap::new();
+        // 1. Generic probe scan (SSDP + WS-Discovery)
+        for cam in Probe::new().scan() {
+            by_id.entry(cam.id.clone()).or_insert(cam);
+        }
+        // 2. Discoverable drivers (union)
+        for driver in &self.discoverable_drivers {
+            for cam in driver.discover() {
+                by_id.entry(cam.id.clone()).or_insert(cam);
+            }
+        }
+        by_id.into_values().collect()
     }
 
     /// The same sweep, over an injected transport.
     pub fn discover_with(&self, net: &dyn Datagram) -> Vec<DiscoveredCamera> {
-        Probe::new().scan_with(net)
+        let mut by_id: BTreeMap<String, DiscoveredCamera> = BTreeMap::new();
+        // 1. Generic probe scan (SSDP + WS-Discovery)
+        for cam in Probe::new().scan_with(net) {
+            by_id.entry(cam.id.clone()).or_insert(cam);
+        }
+        // 2. Discoverable drivers (union)
+        for driver in &self.discoverable_drivers {
+            for cam in driver.discover_with(net) {
+                by_id.entry(cam.id.clone()).or_insert(cam);
+            }
+        }
+        by_id.into_values().collect()
     }
 
     // -- reconciler --------------------------------------------------------

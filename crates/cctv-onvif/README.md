@@ -15,7 +15,7 @@ Maps ONVIF XML protocols cleanly into the standard `CameraBackend` trait.
 - **Device Management**: Queries device information, capabilities, and dynamic `XAddr` service endpoints.
 - **Media Profiles**: Resolves RTSP stream URLs and JPEG snapshot endpoints.
 - **PTZ Service**: Continuous movement, absolute positioning, velocity clamping, and preset storage.
-- **Discovery Delegate**: `OnvifDiscovery` delegates sweeps to `cctv-discovery` while filtering for verified ONVIF XAddrs.
+- **Discovery Delegate**: `OnvifDiscovery` delegates sweeps to `cctv-driver::discovery` while filtering for verified ONVIF XAddrs.
 
 ## Invariants
 

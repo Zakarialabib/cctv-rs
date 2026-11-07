@@ -1,6 +1,6 @@
-//! ONVIF discovery: WS-Discovery sweeps delegated to `cctv-discovery`.
+//! ONVIF discovery: WS-Discovery sweeps delegated to `cctv-driver::discovery`.
 //!
-//! [`cctv_discovery`]'s merged [`Probe`](cctv_discovery::Probe) sweep answers
+//! [`cctv_driver::discovery`]'s merged [`Probe`](cctv_driver::discovery::Probe) sweep answers
 //! both SSDP and WS-Discovery — and SSDP finds every UPnP box on the LAN, not
 //! just cameras, so that sweep cannot move into this crate.  What this module
 //! adds is the ONVIF half: the same multicast exchange over the same
@@ -17,24 +17,9 @@ use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use cctv_discovery::probe::{camera_from_probe_match, message_id};
-use cctv_discovery::{wsd, Datagram, DiscoveredCamera, UdpTransport};
-
-/// A sweep that finds its protocol's devices on the local network.
-///
-/// Object-safe (`Send + Sync`, no generics) so the facade can hold it behind an
-/// `Arc<dyn Discoverable>`, mirroring `tv-rs`'s `SsdpDiscovery`.
-pub trait Discoverable: Send + Sync {
-    /// Sweep over an injected transport — the test seam, no sockets.
-    fn discover_with(&self, net: &dyn Datagram) -> Vec<DiscoveredCamera>;
-
-    /// Sweep the real network over UDP multicast.
-    ///
-    /// An unreachable network yields an empty sweep, never an error.
-    fn discover(&self) -> Vec<DiscoveredCamera> {
-        self.discover_with(&UdpTransport::new())
-    }
-}
+pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
+use cctv_driver::discovery::probe::{camera_from_probe_match, message_id};
+use cctv_driver::discovery::{wsd, UdpTransport};
 
 /// WS-Discovery sweep filtered to ONVIF-capable devices.
 #[derive(Debug, Clone, Copy)]
@@ -64,6 +49,10 @@ impl Default for OnvifDiscovery {
 }
 
 impl Discoverable for OnvifDiscovery {
+    fn discover(&self) -> Vec<DiscoveredCamera> {
+        self.discover_with(&UdpTransport::new())
+    }
+
     fn discover_with(&self, net: &dyn Datagram) -> Vec<DiscoveredCamera> {
         let group = SocketAddr::from(([239, 255, 255, 250], wsd::PORT));
         let request = wsd::probe(&message_id());

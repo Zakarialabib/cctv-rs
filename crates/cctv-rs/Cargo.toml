@@ -16,10 +16,9 @@ ddc = ["cctv-stream-uvc/ddc", "cctv-agent/ddc"]
 
 [dependencies]
 cctv-core.workspace = true
-cctv-driver.workspace = true
+cctv-driver = { workspace = true, features = ["discovery"] }
 cctv-rtp.workspace = true
 cctv-agent.workspace = true
-cctv-discovery.workspace = true
 # Zone / detection device model behind the facade's zone surface.
 cctv-detect.workspace = true
 cctv-rag.workspace = true

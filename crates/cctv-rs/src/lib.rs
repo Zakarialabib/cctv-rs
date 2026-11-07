@@ -34,8 +34,8 @@ pub use cctv_core::{
     GridLayout, MediaFile, Preset, ProfileError, PtzCommand, RecordingContainer, RecordingProfile,
     Snapshot, StreamInfo, StreamQuality,
 };
+pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
-pub use cctv_discovery::DiscoveredCamera;
 pub use cctv_pair::{
     CeremonyConfig, CeremonyRole, CeremonyState, LockoutManager, PairingCeremony, PairingError,
     PairingMessage, PairingMethod, PairingQrPayload, TrustStore, TrustedPeer, PAIRING_ALPN,
