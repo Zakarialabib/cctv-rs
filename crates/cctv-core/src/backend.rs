@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::commands::Preset;
 use crate::error::CameraError;
+use crate::profile::RecordingProfile;
 use crate::state::ProbeResult;
 use crate::types::CameraType;
 
@@ -218,6 +219,12 @@ pub struct CameraConfig {
     /// Request timeout in milliseconds; the driver's default when absent.
     #[cfg_attr(feature = "serde-sync", serde(default))]
     pub timeout_ms: Option<u64>,
+    /// Fleet/zone group identifier this camera belongs to (e.g. "lobby", "warehouse").
+    #[cfg_attr(feature = "serde-sync", serde(default))]
+    pub group: Option<String>,
+    /// Composite recording profile assigned to this camera.
+    #[cfg_attr(feature = "serde-sync", serde(default))]
+    pub recording_profile: Option<RecordingProfile>,
 }
 
 fn default_camera_type() -> CameraType {
@@ -242,7 +249,21 @@ impl CameraConfig {
             accept_invalid_certs: false,
             ty: default_camera_type(),
             timeout_ms: None,
+            group: None,
+            recording_profile: None,
         }
+    }
+
+    /// Builder: assign a fleet/zone group.
+    pub fn with_group(mut self, group: impl Into<String>) -> Self {
+        self.group = Some(group.into());
+        self
+    }
+
+    /// Builder: assign a composite recording profile.
+    pub fn with_recording_profile(mut self, profile: RecordingProfile) -> Self {
+        self.recording_profile = Some(profile);
+        self
     }
 
     /// Builder: set the credentials.

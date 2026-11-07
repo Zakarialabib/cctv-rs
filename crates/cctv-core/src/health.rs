@@ -9,7 +9,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! # use crate::health::{HealthChanged, HealthWatchdog};
+//! # use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
 //! let mut watchdog = HealthWatchdog::new();
 //! // a frame at 500 ms: healthy
 //! assert_eq!(watchdog.tick(500, 500, 15_000).map(|c| c.health), Some(Health::Healthy));
@@ -88,7 +88,7 @@ impl HealthChanged {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use crate::health::{HealthChanged, HealthWatchdog};
+/// # use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
 /// let mut watchdog = HealthWatchdog::new();
 /// // a frame at 500 ms: healthy
 /// assert_eq!(watchdog.tick(500, 500, 15_000).map(|c| c.health), Some(Health::Healthy));
@@ -126,7 +126,9 @@ impl HealthWatchdog {
             if matches!(self.health, Health::Dead { .. }) {
                 self.health
             } else if self.health == Health::Healthy {
-                Health::Stalled { since_ms: now_ms - stall_ms }
+                Health::Stalled {
+                    since_ms: now_ms - stall_ms,
+                }
             } else {
                 // already stalled: keep the since_ms of the first stall
                 self.health
@@ -137,9 +139,13 @@ impl HealthWatchdog {
         if next == self.health {
             return None;
         }
+        let since_ms = match next {
+            Health::Healthy => now_ms,
+            Health::Stalled { since_ms } | Health::Dead { since_ms } => since_ms,
+        };
         let changed = HealthChanged {
             health: next,
-            since_ms: now_ms,
+            since_ms,
         };
         self.health = next;
         Some(changed)
@@ -151,7 +157,7 @@ impl HealthWatchdog {
     }
 }
 
-impl std::default::Default for HealthWatchdog {
+impl core::default::Default for HealthWatchdog {
     fn default() -> Self {
         Self::new()
     }
@@ -163,7 +169,7 @@ mod tests {
 
     #[test]
     fn new_watchdog_is_dead_until_the_first_frame() {
-        let mut watchdog = HealthWatchdog::new();
+        let watchdog = HealthWatchdog::new();
         assert_eq!(watchdog.health, Health::Dead { since_ms: 0 });
     }
 
@@ -180,7 +186,7 @@ mod tests {
     fn a_frame_within_the_budget_keeps_the_stream_healthy() {
         let mut watchdog = HealthWatchdog::new();
         watchdog.tick(500, 500, 15_000); // healthy again
-        // 14 s of silence: still inside a 15 s budget.
+                                         // 14 s of silence: still inside a 15 s budget.
         let c = watchdog.tick(500, 14_000, 15_000);
         // the stream is still healthy: no state change is reported
         assert_eq!(c, None);
@@ -203,7 +209,7 @@ mod tests {
         let mut watchdog = HealthWatchdog::new();
         watchdog.tick(500, 500, 15_000);
         watchdog.tick(500, 20_000, 15_000); // stalled
-        // no frame for 30 s more: still stalled, no second change
+                                            // no frame for 30 s more: still stalled, no second change
         assert_eq!(watchdog.tick(500, 50_000, 15_000), None);
         // the stall state is retained with its original since_ms
         assert_eq!(watchdog.health, Health::Stalled { since_ms: 5_000 });
@@ -214,7 +220,7 @@ mod tests {
         let mut watchdog = HealthWatchdog::new();
         watchdog.tick(500, 500, 15_000);
         watchdog.tick(500, 20_000, 15_000); // stalled
-        // the driver re-arms dead after its reconnect retries are exhausted
+                                            // the driver re-arms dead after its reconnect retries are exhausted
         watchdog.arm_dead(20_000);
         assert_eq!(watchdog.health, Health::Dead { since_ms: 20_000 });
         // a frame while it is dead is *not* a recovery: the watch is retired
