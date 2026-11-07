@@ -23,6 +23,7 @@ pub mod composite_mux;
 pub mod display_policy;
 pub mod events;
 pub mod observer;
+pub mod policy;
 pub mod ptz_watchdog;
 pub mod reconcile;
 pub mod remedy;
@@ -41,6 +42,7 @@ pub use composite_mux::{CompositeInputConfig, CompositeNalu, CompositeStreamMux}
 pub use display_policy::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
 pub use events::{DetectionEvent, EventSubscriptionService, MotionEventStream, SignageCommand};
 pub use observer::ObservationSubscriber;
+pub use policy::{Policy, PolicyTracker, PolicyVerdict, ScheduleWindow};
 pub use ptz_watchdog::{PtzPulse, PtzStop, PtzWatchdog};
 pub use reconcile::{Action, CommandRelay, Grade, Reconciler, Remediation};
 pub use remedy::{ClockHealing, ClockSyncDevice, RemedyStep, MAX_CLOCK_OFFSET_MS};

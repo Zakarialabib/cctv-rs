@@ -24,6 +24,15 @@ use cctv_core::{
 };
 
 use crate::audit::Audit;
+use crate::policy::{Policy, PolicyTracker, PolicyVerdict};
+
+/// Milliseconds since Unix epoch.
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
 
 /// Below this confidence the observation is not trusted enough to act on.
 const CONFIDENCE_FLOOR: f32 = 0.3;
@@ -167,6 +176,10 @@ pub struct Reconciler {
     last_seq: BTreeMap<String, u64>,
     /// Where remediation commands go, when the caller wants active issuance.
     relay: Option<Box<dyn CommandRelay>>,
+    /// Active reconciliation policy governing automated remediations.
+    policy: Option<Policy>,
+    /// Policy runtime tracking state (cooldowns, action counts).
+    policy_tracker: PolicyTracker,
 }
 
 impl Reconciler {
@@ -179,7 +192,31 @@ impl Reconciler {
             group_profiles: BTreeMap::new(),
             last_seq: BTreeMap::new(),
             relay: None,
+            policy: None,
+            policy_tracker: PolicyTracker::new(),
         }
+    }
+
+    /// Set an active reconciliation policy on this reconciler.
+    pub fn set_policy(&mut self, policy: Policy) {
+        self.policy = Some(policy);
+    }
+
+    /// Builder method to configure an active reconciliation policy.
+    #[must_use]
+    pub fn with_policy(mut self, policy: Policy) -> Self {
+        self.policy = Some(policy);
+        self
+    }
+
+    /// Access the active policy, if configured.
+    pub fn policy(&self) -> Option<&Policy> {
+        self.policy.as_ref()
+    }
+
+    /// Access the policy runtime tracker mutably, e.g. for testing or resets.
+    pub fn policy_tracker_mut(&mut self) -> &mut PolicyTracker {
+        &mut self.policy_tracker
     }
 
     /// Assign a default composite recording profile to a camera group.
@@ -271,17 +308,58 @@ impl Reconciler {
             .unwrap_or(camera.desired);
         camera.set_desired(desired);
 
-        let remediation = match self.errors.remove(&camera.id) {
+        let candidate = match self.errors.remove(&camera.id) {
             Some(error) => grade_error(&camera.id, &error),
             None => diff(&camera.id, desired, camera),
         };
-        apply(&remediation, camera);
+
+        let (verdict, policy_id) = if let Some(ref policy) = self.policy {
+            (
+                policy.evaluate(candidate, now_ms(), &mut self.policy_tracker),
+                Some(policy.id.clone()),
+            )
+        } else {
+            (PolicyVerdict::Apply(candidate), None)
+        };
+
+        let remediation = verdict.remediation().clone();
+        if verdict.is_executable() {
+            apply(&remediation, camera);
+        }
+
+        let audit_msg = match policy_id {
+            Some(pid) => match &verdict {
+                PolicyVerdict::DryRun { .. } => {
+                    format!(
+                        "[policy:{pid}] dry_run {}: {}",
+                        remediation.grade, remediation.reason
+                    )
+                }
+                PolicyVerdict::Suppressed { reason, .. } => {
+                    format!(
+                        "[policy:{pid}] suppressed ({reason}) {}: {}",
+                        remediation.grade, remediation.reason
+                    )
+                }
+                PolicyVerdict::Apply(_) => {
+                    format!(
+                        "[policy:{pid}] {}: {}",
+                        remediation.grade, remediation.reason
+                    )
+                }
+            },
+            None => format!("{}: {}", remediation.grade, remediation.reason),
+        };
+
         self.audit.log(
             remediation.camera_id.clone(),
-            &format!("{}: {}", remediation.grade, remediation.reason),
+            &audit_msg,
             remediation.grade.as_u8(),
         );
-        self.issue(&remediation);
+
+        if verdict.is_executable() {
+            self.issue(&remediation);
+        }
         remediation
     }
 
@@ -353,20 +431,61 @@ impl Reconciler {
             );
         }
 
-        let remediation = match self.errors.remove(&camera.id) {
+        let candidate = match self.errors.remove(&camera.id) {
             Some(error) => grade_error(&camera.id, &error),
             None => diff(&camera.id, desired, camera),
         };
-        apply(&remediation, camera);
-        self.audit.log(
-            remediation.camera_id.clone(),
-            &format!(
+
+        let (verdict, policy_id) = if let Some(ref policy) = self.policy {
+            (
+                policy.evaluate(candidate, now_ms(), &mut self.policy_tracker),
+                Some(policy.id.clone()),
+            )
+        } else {
+            (PolicyVerdict::Apply(candidate), None)
+        };
+
+        let remediation = verdict.remediation().clone();
+        if verdict.is_executable() {
+            apply(&remediation, camera);
+        }
+
+        let audit_msg = match policy_id {
+            Some(pid) => match &verdict {
+                PolicyVerdict::DryRun { .. } => {
+                    format!(
+                        "[policy:{pid}] dry_run observe [seq:{}]: {}: {}",
+                        observation.sequence, remediation.grade, remediation.reason
+                    )
+                }
+                PolicyVerdict::Suppressed { reason, .. } => {
+                    format!(
+                        "[policy:{pid}] suppressed ({reason}) observe [seq:{}]: {}: {}",
+                        observation.sequence, remediation.grade, remediation.reason
+                    )
+                }
+                PolicyVerdict::Apply(_) => {
+                    format!(
+                        "[policy:{pid}] observe [seq:{}]: {}: {}",
+                        observation.sequence, remediation.grade, remediation.reason
+                    )
+                }
+            },
+            None => format!(
                 "observe [seq:{}]: {}: {}",
                 observation.sequence, remediation.grade, remediation.reason
             ),
+        };
+
+        self.audit.log(
+            remediation.camera_id.clone(),
+            &audit_msg,
             remediation.grade.as_u8(),
         );
-        self.issue(&remediation);
+
+        if verdict.is_executable() {
+            self.issue(&remediation);
+        }
         Some(remediation)
     }
 
@@ -958,5 +1077,106 @@ mod tests {
         // Second pass is idempotent
         let updated_again = r.reconcile_group_profiles(&mut configs);
         assert!(updated_again.is_empty());
+    }
+
+    #[test]
+    fn test_policy_safe_preset_emits_no_advance() {
+        let mut r = reconciler().with_policy(Policy::safe());
+        r.set_desired("cam-safe", CameraDesired::Armed);
+        let mut camera = observed("cam-safe", CameraStateCurrent::On, 1.0);
+
+        let rem = r.reconcile(&mut camera);
+        // Candidate is Grade::Notify and Action::Advance(Streaming).
+        // Under Policy::safe() (max_grade: Grade::Observe), candidate grade exceeds max_grade,
+        // so it must be demoted to Action::Hold and camera state must not advance.
+        assert_ne!(rem.action, Action::Advance(CameraStateCurrent::Streaming));
+        assert_eq!(rem.action, Action::Hold);
+        assert_eq!(camera.state, CameraStateCurrent::On);
+        assert!(rem.commands().is_empty());
+
+        let audit = r.audit().entries_for("cam-safe");
+        assert_eq!(audit.len(), 1);
+        assert!(audit[0].what.contains("[policy:safe]"));
+        assert_eq!(audit[0].grade, Grade::Notify.as_u8());
+    }
+
+    #[test]
+    fn test_policy_repair_preset_applies_advance_up_to_max_grade() {
+        // Repair with max_grade: Grade::Notify allows Grade::Notify (Advance).
+        let mut r = reconciler().with_policy(Policy::repair(Grade::Notify));
+        r.set_desired("cam-repair", CameraDesired::Armed);
+        let mut camera = observed("cam-repair", CameraStateCurrent::On, 1.0);
+
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.grade, Grade::Notify);
+        assert_eq!(rem.action, Action::Advance(CameraStateCurrent::Streaming));
+        assert_eq!(camera.state, CameraStateCurrent::Streaming);
+
+        let audit = r.audit().entries_for("cam-repair");
+        assert_eq!(audit.len(), 1);
+        assert!(audit[0].what.contains("[policy:repair]"));
+        assert_eq!(audit[0].grade, Grade::Notify.as_u8());
+
+        // Now test error that yields Grade::Retry (Grade 3 > Grade 2).
+        // It must be suppressed / demoted to Action::Hold.
+        r.record_error("cam-repair", CameraError::Network);
+        let rem2 = r.reconcile(&mut camera);
+        assert_eq!(rem2.action, Action::Hold);
+        assert_eq!(camera.state, CameraStateCurrent::Streaming); // Not marked offline
+        let audit2 = r.audit().entries_for("cam-repair");
+        assert_eq!(audit2.len(), 2);
+        assert!(audit2[1].what.contains("[policy:repair]"));
+        assert_eq!(audit2[1].grade, Grade::Retry.as_u8());
+    }
+
+    #[test]
+    fn test_policy_scheduled_outside_window_emits_nothing() {
+        use crate::policy::ScheduleWindow;
+
+        // Window in the past: 1_000 to 2_000 ms.
+        let window = ScheduleWindow::new(1_000, 2_000);
+        let mut r = reconciler().with_policy(Policy::scheduled(window));
+        r.set_desired("cam-sched", CameraDesired::Armed);
+        let mut camera = observed("cam-sched", CameraStateCurrent::On, 1.0);
+
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.action, Action::Hold);
+        assert_eq!(camera.state, CameraStateCurrent::On); // No mutation
+        assert!(rem.commands().is_empty());
+
+        let audit = r.audit().entries_for("cam-sched");
+        assert_eq!(audit.len(), 1);
+        assert!(audit[0].what.contains("[policy:scheduled]"));
+        assert!(audit[0].what.contains("outside scheduled window"));
+        assert_eq!(audit[0].grade, Grade::Notify.as_u8());
+
+        // Now with window in the future encompassing now: 0 to u64::MAX
+        let active_window = ScheduleWindow::new(0, u64::MAX);
+        r.set_policy(Policy::scheduled(active_window));
+        let rem2 = r.reconcile(&mut camera);
+        assert_eq!(rem2.action, Action::Advance(CameraStateCurrent::Streaming));
+        assert_eq!(camera.state, CameraStateCurrent::Streaming);
+    }
+
+    #[test]
+    fn test_policy_dry_run_and_budget_and_cooldown() {
+        let mut r = reconciler().with_policy(
+            Policy::repair(Grade::Disable)
+                .with_dry_run(true)
+                .with_per_camera_budget(1)
+                .with_cooldown_ms(100_000),
+        );
+        r.set_desired("cam-dry", CameraDesired::Armed);
+        let mut camera = observed("cam-dry", CameraStateCurrent::On, 1.0);
+
+        let rem = r.reconcile(&mut camera);
+        assert_eq!(rem.action, Action::Advance(CameraStateCurrent::Streaming));
+        // Dry-run should not mutate camera state
+        assert_eq!(camera.state, CameraStateCurrent::On);
+
+        let audit = r.audit().entries_for("cam-dry");
+        assert_eq!(audit.len(), 1);
+        assert!(audit[0].what.contains("[policy:repair] dry_run"));
+        assert_eq!(audit[0].grade, Grade::Notify.as_u8());
     }
 }

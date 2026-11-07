@@ -24,8 +24,9 @@ pub use facade::{clock_ms, Facade};
 
 pub use cctv_agent::{
     Action, Audit, AuditEntry, CommandRelay, CompositeInputConfig, CompositeNalu,
-    CompositeStreamMux, GopCache, Grade, Nalu, NaluType, ObservationSubscriber, Reconciler,
-    Remediation, StreamMux, StreamMuxConfig, VideoCodec,
+    CompositeStreamMux, GopCache, Grade, Nalu, NaluType, ObservationSubscriber, Policy,
+    PolicyTracker, PolicyVerdict, Reconciler, Remediation, ScheduleWindow, StreamMux,
+    StreamMuxConfig, VideoCodec,
 };
 pub use cctv_core::{
     AudioSource, BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle,
