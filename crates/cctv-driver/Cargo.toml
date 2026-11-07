@@ -8,13 +8,18 @@ rust-version.workspace = true
 description = "Vendor-neutral driver extension point for cctv-rs"
 
 [features]
-default = []
+default = ["discovery"]
+discovery = ["cctv-transport"]
 driver-mock = []
+mobile = ["discovery", "dep:tokio"]
 
 [dependencies]
 cctv-core = { workspace = true }
+cctv-transport = { workspace = true, features = ["http"], optional = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, optional = true, features = ["sync", "time", "net", "rt", "macros"] }
 
 [dev-dependencies]
 futures-executor = "0.3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

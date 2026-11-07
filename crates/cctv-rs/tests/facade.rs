@@ -11,12 +11,12 @@ use std::time::Duration;
 
 use cctv_agent::Grade;
 use cctv_core::mock::MockCamera;
+use cctv_core::Datagram;
 use cctv_core::{
     CameraBackend, CameraConfig, CameraDesired, CameraError, CameraStateCurrent, CommandId,
     CommandResultPayload, ProbeResult, PtzCommand, StreamInfo, StreamQuality,
 };
 use cctv_detect::{Detection, Zone, ZoneConfig};
-use cctv_discovery::Datagram;
 use cctv_rs::{Action, DriverFactory, Facade};
 
 /// A `std`-only executor: the mock's futures never wait on I/O.
@@ -556,6 +556,41 @@ fn discovery_reports_cameras_without_registering_them() {
         facade.list_cameras().is_empty(),
         "discovery reports; registration is the application's choice"
     );
+}
+
+#[test]
+fn discovery_returns_the_union_of_probe_and_discoverable_drivers() {
+    struct TestDiscoverable {
+        cameras: Vec<cctv_core::DiscoveredCamera>,
+    }
+    impl cctv_core::Discoverable for TestDiscoverable {
+        fn discover_with(&self, _net: &dyn Datagram) -> Vec<cctv_core::DiscoveredCamera> {
+            self.cameras.clone()
+        }
+    }
+
+    let mut facade = Facade::new();
+    let cam1 = cctv_core::DiscoveredCamera::new(
+        "custom_cam_1",
+        cctv_core::ProbeResult {
+            vendor: "Acme".into(),
+            model: "X1".into(),
+            firmware: None,
+            ip: Some("192.168.1.99".into()),
+            mac: None,
+            stream_url: None,
+            ptz_supported: false,
+            ai_supported: false,
+        },
+    );
+    facade.register_discoverable(Arc::new(TestDiscoverable {
+        cameras: vec![cam1.clone()],
+    }));
+
+    let found = facade.discover_with(&Silent);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].id, "custom_cam_1");
+    assert_eq!(found[0].probe.vendor, "Acme");
 }
 
 #[test]

@@ -8,7 +8,7 @@
 //! `cctv-core` is the **domain** (the aggregate): `CameraState`, `CameraDesired`,
 //! `CameraStateCurrent`, `CameraType`, `ProbeResult`, `CommandId` and the
 //! `CommandResult` / `CommandResultPayload` pair.  The drivers
-//! (`cctv-ezviz`, `cctv-discovery`, `cctv-transport`) are pure **ports**: they
+//! (`cctv-ezviz`, `cctv-driver`, `cctv-transport`) are pure **ports**: they
 //! translate hardware into this aggregate and nothing else.
 //!
 //! Drivers implement [`CameraBackend`] for one connected camera and prove it
@@ -72,6 +72,7 @@ pub mod backend;
 pub mod caps;
 pub mod commands;
 pub mod conformance;
+pub mod discovery;
 pub mod doctor;
 pub mod error;
 pub mod events;
@@ -109,6 +110,7 @@ pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,
 };
+pub use discovery::{Datagram, Discoverable, DiscoveredCamera};
 pub use doctor::{
     auto_fix, doctor, doctor_with_checks, standard_checks, AutoFixPolicy, Check, CheckKind,
     CheckResult, CheckStatus, ClockResyncFix, ClockSkewCheck, ConfirmCallback, DigestCheck,

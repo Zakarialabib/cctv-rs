@@ -17,7 +17,7 @@ cctv-core.workspace = true
 tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 # The `Datagram` seam, the WS-Discovery envelope/parser and the identity
 # converter the [`discovery`] module delegates its sweep to.
-cctv-discovery.workspace = true
+cctv-driver = { workspace = true, features = ["discovery"] }
 # `xml` (always on) plus the shared rustls-only HTTP client (`http` feature) the
 # drivers authenticate with: ONVIF adds WS-Security at the message level, on top
 # of the transport's Digest / Basic negotiation.
