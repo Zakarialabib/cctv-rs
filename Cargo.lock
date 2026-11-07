@@ -272,6 +272,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cctv-driver"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "cctv-core",
+]
+
+[[package]]
 name = "cctv-ezviz"
 version = "0.2.0"
 dependencies = [

@@ -1,0 +1,12 @@
+[package]
+name = "cctv-driver"
+version.workspace = true
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Vendor-neutral driver extension point for cctv-rs"
+
+[dependencies]
+cctv-core = { workspace = true }
+async-trait = { workspace = true }
