@@ -10,8 +10,8 @@
 //! Topics and filters follow the ONVIF Core Specification (e.g. `tns1:RuleEngine/CellMotionDetector/Motion`,
 //! `tns1:RuleEngine/Motion`, `tns1:Device/Trigger`).
 
-use crate::error::OnvifError;
-use crate::session::OnvifSession;
+use super::error::OnvifError;
+use super::session::OnvifSession;
 use cctv_transport::xml;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};

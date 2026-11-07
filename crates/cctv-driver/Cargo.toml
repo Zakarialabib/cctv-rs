@@ -11,10 +11,11 @@ keywords = ["cctv", "driver", "discovery", "ezviz", "uvc"]
 categories = ["api-bindings", "multimedia::video"]
 
 [features]
-default = ["discovery"]
+default = ["discovery", "onvif"]
 discovery = ["cctv-transport"]
 driver-mock = []
 mobile = ["discovery", "dep:tokio"]
+onvif = ["cctv-transport", "dep:tokio", "dep:base64", "dep:sha1", "dep:serde_json"]
 
 # Non-default driver features
 ezviz = ["dep:ezviz-openapi", "dep:serde", "dep:serde_json"]
@@ -31,6 +32,8 @@ thiserror = { workspace = true }
 tokio = { workspace = true, optional = true, features = ["sync", "time", "net", "rt", "macros"] }
 
 # Optional dependencies behind features
+base64 = { workspace = true, optional = true }
+sha1 = { workspace = true, optional = true }
 ezviz-openapi = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

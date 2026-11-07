@@ -107,11 +107,12 @@ impl Facade {
     /// Today that is `ezviz`, built from the camera's connection record (see
     /// [`crate::drivers::ezviz`] for the field mapping).
     pub fn with_builtin_drivers(mut self) -> Self {
+        self.register_driver_adapter(Arc::new(cctv_driver::onvif::OnvifDriverAdapter::new()));
         self.register_driver(EZVIZ, Arc::new(crate::drivers::ezviz));
         self.register_driver(ONVIF, Arc::new(crate::drivers::onvif));
         self.register_driver(crate::drivers::UVC, Arc::new(crate::drivers::uvc));
         self.register_driver(crate::drivers::PTP, Arc::new(crate::drivers::ptp));
-        self.register_discoverable(Arc::new(cctv_onvif::OnvifDiscovery::new()));
+        self.register_discoverable(Arc::new(cctv_driver::onvif::OnvifDiscovery::new()));
         self
     }
 

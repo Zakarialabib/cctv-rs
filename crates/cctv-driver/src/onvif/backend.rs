@@ -1,6 +1,6 @@
 //! One ONVIF camera, as a [`CameraBackend`].
 //!
-//! The session in [`crate::session`] is the wire; this is the device-model
+//! The session in [`super::session`] is the wire; this is the device-model
 //! surface the facade and the conformance suite drive.  It picks the profile to
 //! address (ONVIF's media profile token, not the camera), so the rest of the
 //! workspace never sees one.
@@ -11,15 +11,14 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use tokio::sync::broadcast;
 
-use crate::observe_bridge::BroadcastObservationSource;
+use super::error::OnvifError;
+use super::media::{pick_main_profile, pick_substream_profile};
+use super::observe_bridge::BroadcastObservationSource;
+use super::session::{host_of, OnvifSession};
 use cctv_core::{
     CameraBackend, CameraError, CameraObservation, CameraStateCurrent, ObservationStream, Preset,
     ProbeResult, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
-
-use crate::error::OnvifError;
-use crate::media::{pick_main_profile, pick_substream_profile};
-use crate::session::{host_of, OnvifSession};
 
 /// One ONVIF camera.
 ///
@@ -91,7 +90,7 @@ impl OnvifCameraBackend {
 
 /// Map a vendor error through the driver's own taxonomy.
 fn camera_error(error: OnvifError) -> CameraError {
-    CameraError::from(error)
+    crate::map::onvif::to_camera_error(&error)
 }
 
 fn poisoned() -> CameraError {
