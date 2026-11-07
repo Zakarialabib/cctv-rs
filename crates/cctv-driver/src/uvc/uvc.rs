@@ -13,7 +13,7 @@ use cctv_core::{
     ObservationStream, ProbeResult, Snapshot, StreamInfo, StreamQuality,
 };
 
-use crate::observe_bridge::BroadcastObservationSource;
+use super::observe_bridge::BroadcastObservationSource;
 
 /// Target OS platform for the UVC adapter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

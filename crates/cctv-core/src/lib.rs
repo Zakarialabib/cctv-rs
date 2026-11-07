@@ -8,7 +8,7 @@
 //! `cctv-core` is the **domain** (the aggregate): `CameraState`, `CameraDesired`,
 //! `CameraStateCurrent`, `CameraType`, `ProbeResult`, `CommandId` and the
 //! `CommandResult` / `CommandResultPayload` pair.  The drivers
-//! (`cctv-ezviz`, `cctv-driver`, `cctv-transport`) are pure **ports**: they
+//! (`cctv-driver`, `cctv-transport`) are pure **ports**: they
 //! translate hardware into this aggregate and nothing else.
 //!
 //! Drivers implement [`CameraBackend`] for one connected camera and prove it

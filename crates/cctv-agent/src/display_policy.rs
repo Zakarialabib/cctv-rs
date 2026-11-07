@@ -6,7 +6,7 @@
 
 use crate::audit::Audit;
 use cctv_core::CapabilitySet;
-use cctv_stream_uvc::ddc::{DdcController, DdcError, DisplayProfile, I2cBus};
+use cctv_driver::uvc::ddc::{DdcController, DdcError, DisplayProfile, I2cBus};
 
 /// Ambient light threshold (lux) below which night display profile is triggered.
 pub const NIGHT_LUX_THRESHOLD: f32 = 100.0;
@@ -57,7 +57,7 @@ impl AmbientDisplayPolicy {
 mod tests {
     use super::*;
     use cctv_core::Capability;
-    use cctv_stream_uvc::ddc::{InputSource, MockI2cBus, PowerMode};
+    use cctv_driver::uvc::ddc::{InputSource, MockI2cBus, PowerMode};
 
     #[test]
     fn test_ambient_light_below_100_lux_applies_night_profile_and_audits() {

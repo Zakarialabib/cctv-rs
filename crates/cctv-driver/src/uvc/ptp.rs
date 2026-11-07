@@ -14,7 +14,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
-use crate::observe_bridge::BroadcastObservationSource;
+use super::observe_bridge::BroadcastObservationSource;
 
 /// PTP device operational status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
