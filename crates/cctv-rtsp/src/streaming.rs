@@ -412,7 +412,7 @@ pub async fn run(
     now_ms: impl Fn() -> u64,
 ) -> StreamOutcome {
     let mut frames = 0u64;
-    let mut retries = 0u32;
+    let mut attempts = 0u32;
     let mut delay = DEFAULT_RECONNECT_DELAY;
 
     // `break` carries the reason out, so there is no placeholder value that is
@@ -426,19 +426,26 @@ pub async fn run(
                 // A clean end of stream.  A camera that has timed a session out
                 // does exactly this, so it is worth one reconnect — and the
                 // reader is left alone, so the facade sees a gap, not a reset.
-                retries = 0;
+                attempts = 0;
                 delay = DEFAULT_RECONNECT_DELAY;
             }
             Err(error) => {
-                if retries >= DEFAULT_RETRIES {
+                // A read error means the session died.  Before giving up we
+                // retry: the reconnect backoff doubles per try, capped at
+                // [`RECONNECT_MAX_DELAY`] (ten seconds), and the stream is only
+                // called dead after [`RECONNECT_MAX_RETRIES`] failed attempts.
+                // The caller observes the outcome — [`StreamEnd::Stalled`] for a
+                // silent session, [`StreamEnd::Failed`] for a hard failure — and
+                // feeds the health watchdog, which reports the stream's state.
+                if attempts >= RECONNECT_MAX_RETRIES {
                     break match error {
                         CameraError::StreamFailed => StreamEnd::Stalled,
                         _ => StreamEnd::Failed,
                     };
                 }
-                retries += 1;
+                attempts += 1;
                 tokio::time::sleep(delay).await;
-                delay = delay.saturating_mul(2);
+                delay = delay.saturating_mul(2).min(RECONNECT_MAX_DELAY);
                 // A reconnect re-runs DESCRIBE/SETUP/PLAY on a fresh connection:
                 // the interleaved channels belong to the connection, and the
                 // camera has forgotten the session by now.

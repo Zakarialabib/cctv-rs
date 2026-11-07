@@ -10,7 +10,13 @@ All fifteen crates are versioned and released together, plus `ezviz-openapi`
 ## [0.3.0] - 2026-11-02
 
 ### Added
-- **`cctv-driver`: W6 — vendor-neutral adapter seam** (`DriverAdapter` +
+- `cctv-driver`: W6 — vendor-neutral adapter seam (DriverAdapter + DriverRegistry).
+- RTSP session reconnection hardening: bounded exponential backoff
+  (RECONNECT_MAX_DELAY 10 s, RECONNECT_MAX_RETRIES 8), StreamEnd::Stalled
+  classification, health-state reporting on reconnect failure.
+- Live stream health watchdog: cctv_core health module (Health/Watchdog),
+  wired into the driver stream path through READ_STALL and the reconnect
+  policy.
   `DriverRegistry`): any vendor protocol plugs into the facade through one
   capability surface (`probe`, `stream`, `ptz`, `presets`, `save/goto/delete
   preset`) and a typed `CameraError` taxonomy. Leaf crate of the release; its

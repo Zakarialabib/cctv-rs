@@ -19,27 +19,47 @@ System development status, release phases, and locked architectural decisions.
 
 ---
 
-## Current Status (v0.2.0 Shipped)
+## Current Status (v0.3.0 Released)
 
-- **0.2.0 Released**: 11 of the 12 workspace crates are published to crates.io (`cctv-core`, `cctv-transport`, `cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`, `cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rs`); `cctv-rag` joins the ordered release at the next publish run.
+### 0.3.0 — Driver Expansion & Streaming Hardening (2026-11-02) **Released**
 
-### 0.3.0 — Driver Expansion & Streaming Hardening (2026-11-02)
-- **Released**: fifteen workspace crates, incl. `cctv-driver` (W6 vendor-neutral
-  adapter seam: `DriverAdapter` + `DriverRegistry`).
-- Package: `./scripts/publish.sh --publish`; read-back `200` on crates.io API
-  for all fifteen; git tag `v0.3.0` + GitHub release.
-- Remaining: `cctv-rag` + `cctv-pair` + `cctv-sync` are members of the
-  workspace but not yet published (see next release 0.4.0).
-- **Active Remediation**: `CommandRelay` issues authorized `CommandId`s during reconciliation sweeps.
-- **`StreamMux` & `SnapshotProxy`**: GOP-cached sub-stream multiplexer and throttled snapshot proxy operational in `cctv-agent`.
-- **Zone & Detection Surface**: `Facade` provides complete zone configuration and detection event evaluation via `cctv-detect`.
+Fifteen workspace crates published to crates.io (`cctv-core`, `cctv-transport`,
+`cctv-rtp`, `cctv-rtsp`, `cctv-discovery`, `cctv-onvif`, `cctv-ezviz`,
+`cctv-stream-uvc`, `cctv-agent`, `cctv-detect`, `cctv-rag`, `cctv-pair`,
+`cctv-sync`, `cctv-rs`, `cctv-driver`) plus `ezviz-openapi` (own repository).
+
+W6 delivered:
+- **RTSP session reconnection hardening** — bounded exponential backoff
+  (`RECONNECT_MAX_DELAY` 10 s, `RECONNECT_MAX_RETRIES` 8), `StreamEnd::Stalled`
+  for a silent session, `StreamEnd::Failed` for a hard failure;
+  `cctv_rtsp::streaming::run` keeps the media channel alive while the loop
+  re-arms.
+- **Live stream health watchdog** — `cctv_core::health` state machine
+  (`HealthWatchdog`, healthy/stalled/dead, alloc-only) wired into the driver
+  stream path through `READ_STALL` and the reconnect policy.
+
+Quirks fixed along the way: the request-response digest retry, the interleaved
+media channel survival, and the stale-frame drop path in `FrameReader`.
+
+### 0.4.0 — Fleet Operations & Edge Storage (planned)
+
+- Edge storage caching primitives.
+- Multi-stream composite recording profiles.
+- Advanced fleet reconciliation policies.
 
 ---
 
 ## Locked Decisions
 
-1. **Pure-Rust Workspace**: No C-FFI, no vendor binary blobs. All 12 crates are licensed under Apache-2.0.
-2. **Explicit Manifest**: Workspace members are explicitly declared in `Cargo.toml` in dependency publish order.
-3. **Decoupled Drivers**: Protocols reside in standalone crates. Drivers do not pollute `cctv-core` with vendor concepts.
-4. **Alloc-Only Contract**: `cctv-core` has zero runtime or socket dependencies.
-5. **No Native TLS**: Network transport relies strictly on `rustls` for deterministic cross-platform behavior.
+1. **Pure-Rust Workspace**: No C-FFI, no vendor binary blobs. All crates are
+   licensed under Apache-2.0.
+2. **Explicit Manifest**: Workspace members are explicitly declared in
+   `Cargo.toml` in dependency publish order.
+3. **Decoupled Drivers**: Protocols reside in standalone crates. Drivers do not
+   pollute `cctv-core` with vendor concepts.
+4. **Alloc-Only Contract**: `cctv-core` has zero runtime or socket
+   dependencies.
+5. **No Native TLS**: Network transport relies strictly on `rustls` for
+   deterministic cross-platform behavior.
+6. **Health as a first-class contract**: a live stream is a health state, not a
+   boolean (cctv_core::health, cctv_rtsp::streaming reconnect policy).

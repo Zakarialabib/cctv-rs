@@ -38,9 +38,13 @@ Work packages, release milestones, and verification targets for `cctv-rs`.
 - Verified via: `cargo test -p cctv-agent`.
 
 ### W6 — Extended Vendor Drivers & Protocols (0.3.0) ✅
-- `cctv-driver`: vendor-neutral `DriverAdapter` + `DriverRegistry` seam.
-- Released at **0.3.0**: `./scripts/publish.sh --publish` (fifteen crates) +
-  crates.io read-back 200 for all crates.
+- RTSP session reconnection hardening: bounded exponential backoff
+  (`RECONNECT_MAX_DELAY` 10 s, `RECONNECT_MAX_RETRIES` 8), `StreamEnd::Stalled`
+  classification, health-state reporting on reconnect failure.
+- Live stream health watchdog: `cctv_core::health` (HealthWatchdog, alloc-only:
+  healthy/stalled/dead), wired into the driver stream path through `READ_STALL`.
+- Verified via: `RECONNECT_MAX_DELAY` + `RECONNECT_MAX_RETRIES` unit tests, the
+  cctv_core health module tests, the rtsp_fixture end-to-end suite.
 
 ---
 

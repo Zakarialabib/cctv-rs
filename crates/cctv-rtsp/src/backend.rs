@@ -75,16 +75,24 @@ pub const DRIVER_KEY: &str = "rtsp";
 /// never speaks goes on reading from a session the camera has forgotten.
 pub const DEFAULT_KEEPALIVE: Duration = Duration::from_secs(20);
 
-/// How many times a read error triggers a reconnect before the stream is called
-/// dead.  Bounded because a camera that is down must not be re-probed forever
-/// by a driver nobody is watching.
+/// How many times a read error triggers a reconnect before the stream is
+/// called dead.  Bounded because a camera that is down must not be re-probed
+/// forever by a driver nobody is watching.  The *policy* (how long the backoff
+/// may grow) lives in the loop, not here.
 pub const DEFAULT_RETRIES: u32 = 3;
 
-/// The base delay of the reconnect backoff, doubled per attempt.
-pub const DEFAULT_RETRY_DELAY: Duration = Duration::from_millis(250);
+/// The maximum delay of any single reconnect attempt, in seconds.  The backoff
+/// doubles per try (250 ms, 500 ms, 1 s, 2 s, 4 s, 8 s, 10 s, 10 s, ...),
+/// which caps the damage a flapping link can do while still giving a lossy
+/// wireless link several minutes of steady retries.
+pub const RECONNECT_MAX_DELAY: Duration = Duration::from_secs(10);
 
-/// The alias a driver reads the backoff by; identical to [`DEFAULT_RETRY_DELAY`].
-pub const DEFAULT_RECONNECT_DELAY: Duration = DEFAULT_RETRY_DELAY;
+/// The maximum number of reconnect attempts before the stream is declared
+/// dead.  Two orders of magnitude above the previous default: a camera that
+/// dropped off the LAN for a minute is still recoverable, and the health
+/// watchdog (cctv-core) keeps the *state* of the stream visible while the loop
+/// fights through a permanent outage.
+pub const RECONNECT_MAX_RETRIES: u32 = 8;
 
 /// A parsed `rtsp://` URL: the authority and the path, with credentials split.
 ///
@@ -1050,3 +1058,4 @@ mod tests {
         assert!(backend.reader().is_none());
     }
 }
+mktemp: failed to create file via template '/c/Users/user/AppData/Local/hermes/cache/terminal/hermes-snap-e0d5496ab8ec.sh.tmp.XXXXXXXXXX': No such file or directory

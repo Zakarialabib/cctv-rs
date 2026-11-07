@@ -73,6 +73,7 @@ pub mod caps;
 pub mod commands;
 pub mod conformance;
 pub mod doctor;
+pub mod health;
 pub mod error;
 pub mod events;
 pub mod imperative;
@@ -122,3 +123,4 @@ pub use provisioning::{
 };
 pub use state::{CameraDesired, CameraState, CameraStateCurrent, ProbeResult};
 pub use types::CameraType;
+
