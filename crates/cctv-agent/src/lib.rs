@@ -18,6 +18,7 @@
 #![forbid(unsafe_code)]
 
 pub mod audit;
+pub mod composite_mux;
 #[cfg(feature = "ddc")]
 pub mod display_policy;
 pub mod events;
@@ -34,6 +35,7 @@ pub use cctv_core::{
     CameraCapabilitySet, CameraId, CameraProvisioningBundleV1, DecryptedCameraAuth,
     ImperativeCameraCommand, LeaseMode, MaintenanceLease, StreamProfileSet,
 };
+pub use composite_mux::{CompositeInputConfig, CompositeNalu, CompositeStreamMux};
 #[cfg(feature = "ddc")]
 pub use display_policy::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
 pub use events::{DetectionEvent, EventSubscriptionService, MotionEventStream, SignageCommand};
