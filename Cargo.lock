@@ -266,9 +266,12 @@ name = "cctv-driver"
 version = "0.3.0"
 dependencies = [
  "async-trait",
+ "base64 0.23.1",
  "cctv-core",
  "cctv-transport",
  "futures-executor",
+ "serde_json",
+ "sha1",
  "thiserror 2.0.21",
  "tokio",
 ]
@@ -290,13 +293,9 @@ dependencies = [
 name = "cctv-onvif"
 version = "0.3.0"
 dependencies = [
- "async-trait",
- "base64 0.23.1",
  "cctv-core",
  "cctv-driver",
  "cctv-transport",
- "serde_json",
- "sha1",
  "tokio",
 ]
 

@@ -1,13 +1,13 @@
 //! ONVIF discovery: WS-Discovery sweeps delegated to `cctv-driver::discovery`.
 //!
-//! [`cctv_driver::discovery`]'s merged [`Probe`](cctv_driver::discovery::Probe) sweep answers
+//! [`crate::discovery`]'s merged [`Probe`](crate::discovery::Probe) sweep answers
 //! both SSDP and WS-Discovery — and SSDP finds every UPnP box on the LAN, not
 //! just cameras, so that sweep cannot move into this crate.  What this module
 //! adds is the ONVIF half: the same multicast exchange over the same
 //! [`Datagram`] seam, gated by ONVIF evidence (an `onvif://` scope or an
 //! ONVIF `Types` entry) and by the presence of an HTTP(S) `XAddr` — because
 //! without the control-service URL there is nothing to open an
-//! [`OnvifSession`](crate::OnvifSession) against.
+//! [`OnvifSession`](super::session::OnvifSession) against.
 //!
 //! WS-Discovery only, by design: the ONVIF Core Specification requires every
 //! device to answer a WS-Discovery `Probe`, so a device that never answers one
@@ -17,9 +17,9 @@ use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::time::Duration;
 
+use crate::discovery::probe::{camera_from_probe_match, message_id};
+use crate::discovery::{wsd, UdpTransport};
 pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
-use cctv_driver::discovery::probe::{camera_from_probe_match, message_id};
-use cctv_driver::discovery::{wsd, UdpTransport};
 
 /// WS-Discovery sweep filtered to ONVIF-capable devices.
 #[derive(Debug, Clone, Copy)]

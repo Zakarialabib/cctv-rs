@@ -1,8 +1,8 @@
 //! The ONVIF session: one device, one HTTP client, one device-service URL.
 //!
-//! This is where the builders in [`crate::device`], [`crate::media`] and
-//! [`crate::ptz`] meet the wire.  Each call wraps its body in
-//! [`crate::soap::envelope`] with a WS-Security header and POSTs it through
+//! This is where the builders in [`super::device`], [`super::media`] and
+//! [`super::ptz`] meet the wire.  Each call wraps its body in
+//! [`super::soap::envelope`] with a WS-Security header and POSTs it through
 //! `cctv-transport`'s shared client, which already negotiates HTTP Digest / Basic
 //! for the devices that want that *in addition to* WS-Security.
 //!
@@ -15,20 +15,21 @@ use std::sync::Mutex;
 use cctv_transport::http::{HttpClient, HttpConfig, Method};
 use cctv_transport::xml;
 
-use crate::device::{
+use super::device::{
     build_get_capabilities, build_get_device_information, parse_capabilities,
     parse_device_information, DeviceInformation, Services,
 };
-use crate::error::OnvifError;
-use crate::media::{
+use super::error::OnvifError;
+use super::events;
+use super::media::{
     build_get_profiles, build_get_snapshot_uri, build_get_stream_uri, parse_media_uri,
     parse_profiles, MediaProfile,
 };
-use crate::ptz::{
+use super::ptz::{
     build_absolute_move, build_continuous_move, build_get_presets, build_goto_preset,
     build_remove_preset, build_set_preset, build_stop, parse_presets, parse_set_preset,
 };
-use crate::soap::{envelope, Credentials};
+use super::soap::{envelope, Credentials};
 
 /// The `Content-Type` ONVIF services expect.
 const SOAP_CONTENT_TYPE: &str = "application/soap+xml";
@@ -155,14 +156,12 @@ impl OnvifSession {
         &self,
         initial_termination_time: Option<std::time::Duration>,
         topic_filter: Option<&str>,
-    ) -> Result<crate::events::SubscriptionReference, OnvifError> {
+    ) -> Result<events::SubscriptionReference, OnvifError> {
         let events_url = self.events_url().await?;
-        let body = crate::events::build_create_pull_point_subscription(
-            initial_termination_time,
-            topic_filter,
-        );
+        let body =
+            events::build_create_pull_point_subscription(initial_termination_time, topic_filter);
         let reply = self.call(&events_url, &body).await?;
-        crate::events::parse_create_pull_point_subscription(&reply)
+        events::parse_create_pull_point_subscription(&reply)
     }
 
     /// `PullMessages` against the subscription's pull-point URL.
@@ -171,10 +170,10 @@ impl OnvifSession {
         pull_point_url: &str,
         timeout: std::time::Duration,
         message_limit: u32,
-    ) -> Result<Vec<crate::events::OnvifEvent>, OnvifError> {
-        let body = crate::events::build_pull_messages(timeout, message_limit);
+    ) -> Result<Vec<events::OnvifEvent>, OnvifError> {
+        let body = events::build_pull_messages(timeout, message_limit);
         let reply = self.call(pull_point_url, &body).await?;
-        crate::events::parse_pull_messages(&reply)
+        events::parse_pull_messages(&reply)
     }
 
     /// `Renew` subscription against the subscription's pull-point URL.
@@ -182,15 +181,15 @@ impl OnvifSession {
         &self,
         pull_point_url: &str,
         termination_time: std::time::Duration,
-    ) -> Result<crate::events::RenewResponse, OnvifError> {
-        let body = crate::events::build_renew(termination_time);
+    ) -> Result<events::RenewResponse, OnvifError> {
+        let body = events::build_renew(termination_time);
         let reply = self.call(pull_point_url, &body).await?;
-        crate::events::parse_renew(&reply)
+        events::parse_renew(&reply)
     }
 
     /// `Unsubscribe` against the subscription's pull-point URL.
     pub async fn unsubscribe(&self, pull_point_url: &str) -> Result<(), OnvifError> {
-        let body = crate::events::build_unsubscribe();
+        let body = events::build_unsubscribe();
         self.call(pull_point_url, body).await.map(|_| ())
     }
 

@@ -2,7 +2,7 @@
 
 use cctv_transport::xml;
 
-use crate::error::OnvifError;
+use super::error::OnvifError;
 
 /// `GetDeviceInformation` body.
 pub fn build_get_device_information() -> &'static str {

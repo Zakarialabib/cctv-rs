@@ -7,6 +7,9 @@
 #[cfg(feature = "discovery")]
 pub mod discovery;
 pub mod error;
+pub mod map;
+#[cfg(feature = "onvif")]
+pub mod onvif;
 pub mod registry;
 
 #[cfg(feature = "discovery")]
@@ -23,6 +26,9 @@ pub use registry::{DriverRegistry, InMemoryRegistry};
 
 #[cfg(feature = "driver-mock")]
 pub use mock::MockDriverAdapter;
+
+#[cfg(feature = "onvif")]
+pub use onvif::{OnvifCameraBackend, OnvifDiscovery, OnvifDriverAdapter, OnvifError, OnvifSession};
 
 /// A vendor/driver factory that can probe and attach to cameras of a specific kind.
 ///

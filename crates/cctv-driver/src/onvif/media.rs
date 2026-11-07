@@ -7,12 +7,12 @@
 //! `/Streaming/Channels/101` or `/cam/realmonitor?channel=1&subtype=0`, and the
 //! low-bandwidth sub-stream is only discoverable through `GetProfiles`.
 //!
-//! Builders return SOAP **body** fragments; [`crate::soap::envelope`] wraps
+//! Builders return SOAP **body** fragments; [`super::soap::envelope`] wraps
 //! them.  Parsers are prefix-agnostic.
 
 use cctv_transport::xml;
 
-use crate::error::OnvifError;
+use super::error::OnvifError;
 
 /// A media profile as reported by the device.
 #[derive(Debug, Clone, PartialEq, Eq)]
