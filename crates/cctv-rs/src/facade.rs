@@ -31,6 +31,7 @@ use cctv_core::{
 };
 use cctv_detect::{Detection, ZoneConfig};
 use cctv_discovery::{Datagram, DiscoveredCamera, Probe};
+use cctv_driver::{DriverAdapter, DriverRegistry, InMemoryRegistry};
 use cctv_rag::{HandoffCandidate, KnowledgeBaseIndex, RagContextEnvelope, RagError, SpatialGraph};
 use cctv_transport::reader::FrameReader;
 
@@ -51,7 +52,7 @@ pub fn clock_ms() -> u64 {
 /// One registered camera: its connection record and the driver that serves it.
 struct Registered {
     config: CameraConfig,
-    backend: Arc<dyn CameraBackend>,
+    backend: Box<dyn CameraBackend>,
 }
 
 /// The single handle the application holds onto; it fronts the whole camera
@@ -62,7 +63,8 @@ struct Registered {
 /// from the connection record ([`Facade::attach`]).
 pub struct Facade {
     cameras: BTreeMap<String, Registered>,
-    drivers: BTreeMap<String, DriverFactory>,
+    driver_registry: InMemoryRegistry,
+    legacy_drivers: BTreeMap<String, DriverFactory>,
     /// One frame reader per camera, shared with the application's stream
     /// consumer.  The facade measures from it; it never pushes into it, because
     /// the bytes belong to whoever owns the wire.
@@ -86,7 +88,8 @@ impl Facade {
     pub fn new() -> Self {
         Self {
             cameras: BTreeMap::new(),
-            drivers: BTreeMap::new(),
+            driver_registry: InMemoryRegistry::new(),
+            legacy_drivers: BTreeMap::new(),
             readers: BTreeMap::new(),
             reconciler: Reconciler::new(Audit::new()),
             zones: BTreeMap::new(),
@@ -111,31 +114,79 @@ impl Facade {
 
     // -- driver registry ---------------------------------------------------
 
+    /// Register a driver adapter under its driver key into the registry.
+    pub fn register_driver_adapter(&mut self, adapter: Arc<dyn DriverAdapter>) {
+        self.driver_registry.register(adapter);
+    }
+
+    /// Access the underlying [`DriverRegistry`].
+    pub fn driver_registry(&self) -> &InMemoryRegistry {
+        &self.driver_registry
+    }
+
+    /// Access the underlying [`DriverRegistry`] mutably.
+    pub fn driver_registry_mut(&mut self) -> &mut InMemoryRegistry {
+        &mut self.driver_registry
+    }
+
     /// Register a driver factory under a key.
     ///
     /// The key is what [`CameraConfig::driver`] names; re-registering a key
     /// replaces the factory.
     pub fn register_driver(&mut self, key: impl Into<String>, factory: DriverFactory) {
-        self.drivers.insert(key.into(), factory);
+        let key_str = key.into();
+        self.legacy_drivers.insert(key_str, factory);
     }
 
     /// The keys a factory is registered under, in order.
     pub fn driver_keys(&self) -> Vec<String> {
-        self.drivers.keys().cloned().collect()
+        let mut keys: Vec<String> = self.driver_registry.keys();
+        for k in self.legacy_drivers.keys() {
+            if !keys.contains(k) {
+                keys.push(k.clone());
+            }
+        }
+        keys.sort();
+        keys
     }
 
     /// Build a camera's backend from its connection record and register it.
     ///
-    /// A key with no registered factory is a typed error, not a panic.
+    /// Routes `attach` through the [`DriverRegistry`], falling back to legacy driver factories.
+    /// A key with no registered factory or adapter is a typed error, not a panic.
     pub fn attach(&mut self, config: CameraConfig) -> Result<CameraHandle, CameraError> {
-        let factory = self.drivers.get(&config.driver).cloned().ok_or_else(|| {
-            CameraError::Other(format!("no driver registered for {:?}", config.driver))
-        })?;
+        if let Some(adapter) = self.driver_registry.get(&config.driver) {
+            let backend = block_on(adapter.attach(&config))?;
+            return Ok(self.register_backend(config, backend));
+        }
+
+        let factory = self
+            .legacy_drivers
+            .get(&config.driver)
+            .cloned()
+            .ok_or_else(|| {
+                CameraError::Other(format!("no driver registered for {:?}", config.driver))
+            })?;
         let backend = factory(&config)?;
-        Ok(self.register(config, backend))
+        Ok(self.register_backend(config, Box::new(backend)))
     }
 
     // -- camera registry ---------------------------------------------------
+
+    /// Register a camera and the backend that serves it using a Boxed handle.
+    pub fn register_backend(
+        &mut self,
+        config: CameraConfig,
+        backend: Box<dyn CameraBackend>,
+    ) -> CameraHandle {
+        let id = config.id.clone();
+        self.cameras
+            .insert(id.clone(), Registered { config, backend });
+        self.readers
+            .entry(id.clone())
+            .or_insert_with(|| Arc::new(Mutex::new(FrameReader::new())));
+        CameraHandle::new(id)
+    }
 
     /// Register a camera and the driver that serves it.
     ///
@@ -146,15 +197,7 @@ impl Facade {
         config: CameraConfig,
         backend: Arc<dyn CameraBackend>,
     ) -> CameraHandle {
-        let id = config.id.clone();
-        self.cameras
-            .insert(id.clone(), Registered { config, backend });
-        // A re-registration keeps the existing reader: the stream may still be
-        // open, and throwing the measurement away would report a false zero.
-        self.readers
-            .entry(id.clone())
-            .or_insert_with(|| Arc::new(Mutex::new(FrameReader::new())));
-        CameraHandle::new(id)
+        self.register_backend(config, Box::new(backend))
     }
 
     /// The frame reader for a camera, shared with the stream consumer.
@@ -217,10 +260,10 @@ impl Facade {
     }
 
     /// The driver serving a camera, or a typed error.
-    fn backend(&self, id: &str) -> Result<&Arc<dyn CameraBackend>, CameraError> {
+    fn backend(&self, id: &str) -> Result<&(dyn CameraBackend + 'static), CameraError> {
         self.cameras
             .get(id)
-            .map(|registered| &registered.backend)
+            .map(|registered| registered.backend.as_ref())
             .ok_or(CameraError::NoCamera)
     }
 
@@ -796,5 +839,17 @@ impl Facade {
 impl Default for Facade {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+    let waker = std::task::Waker::noop();
+    let mut cx = std::task::Context::from_waker(waker);
+    let mut fut = std::pin::pin!(fut);
+    loop {
+        if let std::task::Poll::Ready(v) = fut.as_mut().poll(&mut cx) {
+            return v;
+        }
+        std::thread::yield_now();
     }
 }

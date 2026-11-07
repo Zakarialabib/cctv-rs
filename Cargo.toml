@@ -42,6 +42,7 @@ cctv-onvif = { path = "crates/cctv-onvif", version = "0.3.0" }
 cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.3.0" }
 cctv-stream-uvc = { path = "crates/cctv-stream-uvc", version = "0.3.0" }
 cctv-agent = { path = "crates/cctv-agent", version = "0.3.0" }
+cctv-driver = { path = "crates/cctv-driver", version = "0.3.0" }
 cctv-detect = { path = "crates/cctv-detect", version = "0.3.0" }
 cctv-rag = { path = "crates/cctv-rag", version = "0.3.0" }
 cctv-pair = { path = "crates/cctv-pair", version = "0.3.0" }

@@ -9,7 +9,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! # use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
+//! use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
 //! let mut watchdog = HealthWatchdog::new();
 //! // a frame at 500 ms: healthy
 //! assert_eq!(watchdog.tick(500, 500, 15_000).map(|c| c.health), Some(Health::Healthy));
@@ -88,7 +88,7 @@ impl HealthChanged {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
+/// use cctv_core::health::{Health, HealthChanged, HealthWatchdog};
 /// let mut watchdog = HealthWatchdog::new();
 /// // a frame at 500 ms: healthy
 /// assert_eq!(watchdog.tick(500, 500, 15_000).map(|c| c.health), Some(Health::Healthy));
@@ -139,13 +139,13 @@ impl HealthWatchdog {
         if next == self.health {
             return None;
         }
-        let since_ms = match next {
-            Health::Healthy => now_ms,
-            Health::Stalled { since_ms } | Health::Dead { since_ms } => since_ms,
+        let since = match next {
+            Health::Stalled { since_ms } => since_ms,
+            _ => now_ms,
         };
         let changed = HealthChanged {
             health: next,
-            since_ms,
+            since_ms: since,
         };
         self.health = next;
         Some(changed)
