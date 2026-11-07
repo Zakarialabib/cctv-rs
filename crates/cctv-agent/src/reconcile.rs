@@ -19,7 +19,8 @@
 use std::collections::BTreeMap;
 
 use cctv_core::{
-    CameraDesired, CameraError, CameraState, CameraStateCurrent, CommandId, DomainEvent,
+    CameraConfig, CameraDesired, CameraError, CameraState, CameraStateCurrent, CommandId,
+    DomainEvent, RecordingProfile,
 };
 
 use crate::audit::Audit;
@@ -162,6 +163,7 @@ pub struct Reconciler {
     audit: Audit,
     desired: BTreeMap<String, CameraDesired>,
     errors: BTreeMap<String, CameraError>,
+    group_profiles: BTreeMap<String, RecordingProfile>,
     /// Where remediation commands go, when the caller wants active issuance.
     relay: Option<Box<dyn CommandRelay>>,
 }
@@ -173,8 +175,44 @@ impl Reconciler {
             audit,
             desired: BTreeMap::new(),
             errors: BTreeMap::new(),
+            group_profiles: BTreeMap::new(),
             relay: None,
         }
+    }
+
+    /// Assign a default composite recording profile to a camera group.
+    pub fn set_group_profile(&mut self, group: impl Into<String>, profile: RecordingProfile) {
+        self.group_profiles.insert(group.into(), profile);
+    }
+
+    /// Get the assigned composite recording profile for a camera group, if configured.
+    pub fn group_profile(&self, group: &str) -> Option<&RecordingProfile> {
+        self.group_profiles.get(group)
+    }
+
+    /// Reconcile a fleet of camera configurations against group recording profiles.
+    ///
+    /// If a camera has an assigned `group` and matches a registered group profile,
+    /// sets `camera_config.recording_profile` to the group's profile and returns the list of
+    /// updated camera IDs.
+    pub fn reconcile_group_profiles(&mut self, configs: &mut [CameraConfig]) -> Vec<String> {
+        let mut updated = Vec::new();
+        for config in configs {
+            if let Some(ref group) = config.group {
+                if let Some(profile) = self.group_profiles.get(group) {
+                    if config.recording_profile.as_ref() != Some(profile) {
+                        config.recording_profile = Some(profile.clone());
+                        updated.push(config.id.clone());
+                        self.audit.log(
+                            config.id.clone(),
+                            &format!("applied recording profile from group '{group}'"),
+                            Grade::Reconfigure.as_u8(),
+                        );
+                    }
+                }
+            }
+        }
+        updated
     }
 
     /// The audit trail this reconciler records into.
@@ -824,5 +862,36 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert!(entries[0].what.contains("CameraDropped"));
         assert!(entries[0].what.contains("ghost device preserved"));
+    }
+
+    #[test]
+    fn reconcile_group_profiles_applies_profile_to_all_cameras_in_group() {
+        use cctv_core::{CameraId, GridLayout, RecordingContainer};
+
+        let mut r = reconciler();
+        let profile = RecordingProfile::new(
+            vec![CameraId::new("cam-1"), CameraId::new("cam-2")],
+            GridLayout::SplitHorizontal,
+            None,
+            RecordingContainer::Mp4,
+        );
+
+        r.set_group_profile("perimeter", profile.clone());
+
+        let mut configs = vec![
+            CameraConfig::new("cam-1", "onvif", "10.0.0.1").with_group("perimeter"),
+            CameraConfig::new("cam-2", "onvif", "10.0.0.2").with_group("perimeter"),
+            CameraConfig::new("cam-3", "onvif", "10.0.0.3").with_group("interior"),
+        ];
+
+        let updated = r.reconcile_group_profiles(&mut configs);
+        assert_eq!(updated, vec!["cam-1", "cam-2"]);
+        assert_eq!(configs[0].recording_profile, Some(profile.clone()));
+        assert_eq!(configs[1].recording_profile, Some(profile));
+        assert_eq!(configs[2].recording_profile, None);
+
+        // Second pass is idempotent
+        let updated_again = r.reconcile_group_profiles(&mut configs);
+        assert!(updated_again.is_empty());
     }
 }
