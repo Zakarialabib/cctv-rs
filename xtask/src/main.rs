@@ -38,8 +38,7 @@ const ORDER: &[&str] = &[
     "cctv-rtsp",
     "cctv-driver",
     "cctv-onvif",
-    "cctv-ezviz",
-    "cctv-stream-uvc",
+    "cctv-driver",
     "cctv-agent",
     "cctv-detect",
     "cctv-rag",
@@ -277,7 +276,7 @@ fn publish(args: &[String]) -> Result<(), String> {
 /// Two wordings, one story: a first release has the crate absent entirely, a
 /// later release has it present only at the OLD version while the new one is not
 /// indexed. `ezviz-openapi` is listed too — it is published from its own
-/// repository and `cctv-ezviz` cannot resolve without it.
+/// repository and `cctv-driver` cannot resolve without it when `ezviz` is enabled.
 fn missing_workspace_dependency(stderr: &str) -> bool {
     ["`cctv-", "`ezviz-openapi"].iter().any(|name| {
         stderr.contains(&format!("no matching package named {name}"))

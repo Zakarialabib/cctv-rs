@@ -12,8 +12,6 @@ members = [
     "crates/cctv-rtsp",
     "crates/cctv-driver",
     "crates/cctv-onvif",
-    "crates/cctv-ezviz",
-    "crates/cctv-stream-uvc",
     "crates/cctv-agent",
     "crates/cctv-detect",
     "crates/cctv-rag",
@@ -37,8 +35,6 @@ cctv-transport = { path = "crates/cctv-transport", version = "0.3.0" }
 cctv-rtp = { path = "crates/cctv-rtp", version = "0.3.0" }
 cctv-rtsp = { path = "crates/cctv-rtsp", version = "0.3.0" }
 cctv-onvif = { path = "crates/cctv-onvif", version = "0.3.0" }
-cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.3.0" }
-cctv-stream-uvc = { path = "crates/cctv-stream-uvc", version = "0.3.0" }
 cctv-agent = { path = "crates/cctv-agent", version = "0.3.0" }
 cctv-driver = { path = "crates/cctv-driver", version = "0.3.0" }
 cctv-detect = { path = "crates/cctv-detect", version = "0.3.0" }

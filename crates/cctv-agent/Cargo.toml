@@ -12,16 +12,16 @@ categories = ["hardware-support", "development-tools"]
 
 [features]
 default = []
-ddc = ["cctv-stream-uvc/ddc"]
+ddc = ["cctv-driver/ddc"]
 
 [dependencies]
 async-trait.workspace = true
 futures-core = "0.3"
 cctv-core = { workspace = true, features = ["serde-sync"] }
+cctv-driver = { workspace = true, features = ["uvc"] }
 cctv-onvif.workspace = true
 cctv-rtp.workspace = true
 cctv-rtsp.workspace = true
-cctv-stream-uvc = { workspace = true }
 cctv-transport = { workspace = true, features = ["http", "net"] }
 serde.workspace = true
 serde_json.workspace = true

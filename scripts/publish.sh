@@ -28,7 +28,7 @@
 #
 # NOTE `ezviz-openapi` is NOT in this list: it is published from its own
 # repository (c:\laragon\www\ezviz-openapi-rs) and must already exist on
-# crates.io before `cctv-ezviz` is published, because `cargo publish` strips the
+# crates.io before `cctv-driver` is published, because `cargo publish` strips the
 # `git` key from a `{ git, version }` dependency and resolves the version from the
 # registry. Publish it first, then run this script.
 #
@@ -42,10 +42,8 @@ ORDER=(
     cctv-transport   # no workspace deps
     cctv-rtp         # zero dependencies: pure payload parsers
     cctv-rtsp        # -> base64 only: session codecs
-    cctv-driver      # -> cctv-core, cctv-transport (discovery feature)
+    cctv-driver      # -> cctv-core, cctv-transport (vendor-neutral adapter seam: ezviz, uvc behind features)
     cctv-onvif       # -> cctv-core, cctv-transport, cctv-driver
-    cctv-ezviz       # -> ezviz-openapi (published separately: must land first)
-    cctv-stream-uvc  # -> cctv-core
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect
@@ -163,7 +161,7 @@ if [ "$MODE" = "--publish" ]; then
         "https://crates.io/api/v1/crates/$EXTERNAL_DEP" 2>/dev/null || true)"
     case "$external_code" in
         404)
-            echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-ezviz depends on it." >&2
+            echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-driver depends on it." >&2
             echo "       Publish it from its own repository first:" >&2
             echo "         cd ../ezviz-openapi-rs && cargo publish" >&2
             echo "       (a first release of this workspace is 12 new crates; crates.io" >&2

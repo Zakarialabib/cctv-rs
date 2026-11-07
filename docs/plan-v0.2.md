@@ -29,7 +29,8 @@ Work packages, release milestones, and verification targets for `cctv-rs`.
 - Verified via: `cargo test -p cctv-rtsp`.
 
 ### W4 — `cctv-onvif`: WS-Discovery Delegate ✅
-- Implemented `Discoverable` trait delegating sweeps to `cctv-discovery`.
+- Implemented `Discoverable` trait delegating sweeps to `cctv-driver`'s
+  `discovery` feature (the former `cctv-discovery` crate).
 - Verified via: `cargo test -p cctv-onvif`.
 
 ### W5 — `cctv-agent`: Active Remediation Loop ✅

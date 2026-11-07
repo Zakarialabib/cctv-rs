@@ -18,6 +18,12 @@ pub use discovery::{Datagram, Discoverable, DiscoveredCamera, Probe};
 #[cfg(feature = "driver-mock")]
 pub mod mock;
 
+#[cfg(feature = "ezviz")]
+pub mod ezviz;
+
+#[cfg(feature = "uvc")]
+pub mod uvc;
+
 use async_trait::async_trait;
 use cctv_core::{CameraBackend, CameraConfig, CameraError, CapabilitySet, ProbeResult};
 
@@ -29,6 +35,25 @@ pub use mock::MockDriverAdapter;
 
 #[cfg(feature = "onvif")]
 pub use onvif::{OnvifCameraBackend, OnvifDiscovery, OnvifDriverAdapter, OnvifError, OnvifSession};
+
+#[cfg(feature = "ezviz")]
+pub use ezviz::{EzvizCameraBackend, EzvizDriver, EzvizDriverAdapter, EzvizError};
+
+#[cfg(feature = "uvc")]
+pub use uvc::{
+    BudgetedFrameReader, FrameItem, HalEventSource, OsError, OsPlatform, UvcAdapter,
+    UvcDriverAdapter,
+};
+
+#[cfg(feature = "uvc-ptp")]
+pub use uvc::{PtpAdapter, PtpDriverAdapter, PtpStatus};
+
+#[cfg(all(feature = "uvc", feature = "ddc"))]
+pub use uvc::{
+    build_get_vcp_packet, build_set_vcp_packet, compute_checksum, parse_get_vcp_reply,
+    DdcController, DdcError, DisplayProfile, I2cBus, InputSource, LinuxI2cBus, MockI2cBus,
+    PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
+};
 
 /// A vendor/driver factory that can probe and attach to cameras of a specific kind.
 ///

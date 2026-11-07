@@ -37,6 +37,22 @@
 - crates.io read-back: 15/15 crates HTTP 200
 - Consumer smoke test (`cargo add cctv-rs@0.3.0`) → builds and runs
 
+## Post-0.3.0 — driver consolidation (unreleased)
+- `cctv-discovery`, `cctv-ezviz` and `cctv-stream-uvc` are folded into
+  `cctv-driver` behind features: `discovery` (default), `ezviz`, `uvc`,
+  `uvc-ptp`, `ddc`, plus `driver-mock` and `mobile`. The three standalone crates
+  and their directories are gone.
+- The seam is split: `DriverAdapter` is the factory surface (`driver_key`,
+  `capabilities`, `probe`, `attach`); `CameraBackend` is the live handle.
+- `cctv-driver` sits **before** `cctv-onvif` in `Cargo.toml` member order,
+  `scripts/publish.sh` `ORDER` and CI's per-crate job — `cctv-onvif` depends on
+  it for discovery.
+- Published surface is now **twelve** crates (was fifteen). `ezviz-openapi`
+  remains an external crates.io dependency of the `ezviz` feature.
+- The docs (`README.md`, `docs/architecture.md`, `docs/roadmap.md`,
+  `docs/target-architecture.md`, `CONTRIBUTING.md`, `SECURITY.md`,
+  `docs/plan-v0.2.md`) were reconciled to this topology.
+
 ## What is still open (not part of the shipped 0.3.0)
 - 0.4.0 milestone (not started): edge storage caching primitives,
   multi-stream composite recording profiles, advanced fleet reconciliation

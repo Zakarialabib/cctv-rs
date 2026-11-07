@@ -1,9 +1,9 @@
-//! Tests for DDC/CI monitor control in cctv-stream-uvc.
+//! Tests for DDC/CI monitor control in cctv-driver.
 
-#![cfg(feature = "ddc")]
+#![cfg(all(feature = "uvc", feature = "ddc"))]
 
 use cctv_core::{Capability, CapabilitySet};
-use cctv_stream_uvc::ddc::*;
+use cctv_driver::uvc::ddc::*;
 
 #[test]
 fn test_ddc_packet_checksum() {

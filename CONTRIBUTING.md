@@ -45,8 +45,10 @@ reason to exist.
 
 - `cctv-core` is the device model. It must not gain a network stack, an async
   runtime or vendor vocabulary.
-- A driver crate is protocol only. `cctv-ezviz` wraps `ezviz-openapi-rs` through a
-  git dependency pinned to a rev (published crates use the crates.io release); it never copies vendor code and never reaches the app directly.
+- A driver crate is protocol only. `cctv-driver`'s `ezviz` feature wraps
+  `ezviz-openapi-rs` through a git dependency pinned to a rev (published crates
+  use the crates.io release); it never copies vendor code and never reaches the
+  app directly. Vendors live behind cargo features, not as separate crates.
 - The app talks to `cctv-rs` (the facade), and nothing else. Vendor names must not
   appear in the facade's public surface.
 - Library code must never panic and must never use `unimplemented!()`. A capability
@@ -59,7 +61,7 @@ reason to exist.
 where it helps, one logical change per commit:
 
 ```
-feat(cctv-ezviz): map the device list into EzvizCamera
+feat(cctv-driver): map the device list into EzvizCamera
 fix(cctv-core): record probe_at when applying a probe
 docs: reconcile the architecture doc against the manifests
 chore(lint): satisfy clippy -D warnings
@@ -108,10 +110,10 @@ CRATES_IO_TOKEN=... ./scripts/publish.sh --publish
 ```
 
 **Order, and why it matters.** `ezviz-openapi` is published from its own
-repository and must be on crates.io *before* `cctv-ezviz`: `cargo publish` strips
-the `git` key from a `{ git, version }` dependency and resolves the version from
-the registry, so an unpublished `ezviz-openapi` fails the sequence at
-`cctv-ezviz`.
+repository and must be on crates.io *before* `cctv-driver`: `cargo publish`
+strips the `git` key from a `{ git, version }` dependency and resolves the
+version from the registry, so an unpublished `ezviz-openapi` fails the sequence
+at `cctv-driver`.
 The script checks for it and refuses to start otherwise.
 
 ```bash

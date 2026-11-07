@@ -17,7 +17,7 @@ and it handles camera credentials. Reports in these areas are especially
 relevant:
 
 - **Credential handling** — Ezviz app keys, access tokens and RTSP
-  user/password pairs reach the driver through `cctv-ezviz`. Accidental logging
+  user/password pairs reach the driver through `cctv-driver` (`ezviz` feature). Accidental logging
   of a token, writing one to a world-readable path, or embedding one in an error
   message is in scope.
 - **TLS policy** — `cctv-transport` owns certificate pinning and the minimum TLS
@@ -29,7 +29,7 @@ relevant:
   the reader is in scope. Snapshot paths written by the caller must reject
   traversal (`../`).
 - **Denial of service** — unbounded SSDP/discovery response parsing in
-  `cctv-discovery`, or a frame budget a LAN peer can exhaust.
+  `cctv-driver` (`discovery` feature), or a frame budget a LAN peer can exhaust.
 - **Unsafe code** — there is no `unsafe` in this workspace; every crate root
   forbids it. An `unsafe` block, or unsoundness in FFI reached through a
   dependency, is in scope.
