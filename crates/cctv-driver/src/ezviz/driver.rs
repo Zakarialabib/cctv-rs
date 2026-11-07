@@ -8,8 +8,8 @@ use ezviz_openapi::alarm::{AlarmItem, AlarmStatus, AlarmType};
 use ezviz_openapi::device::{CameraChannel, DeviceInfo};
 use ezviz_openapi::EzvizClient;
 
-use crate::error::Result;
-use crate::types::{Alarm, Connectivity, EzvizCamera};
+use super::error::Result;
+use super::types::{Alarm, Connectivity, EzvizCamera};
 
 /// How many devices one discovery sweep asks for (the platform caps a page).
 const DISCOVER_PAGE: i32 = 50;

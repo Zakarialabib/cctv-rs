@@ -1,7 +1,7 @@
 //! One Ezviz camera / channel, as a [`CameraBackend`].
 //!
 //! This is the per-camera half of the driver — the account-level half is
-//! [`crate::Driver`] — and the subject of the conformance suite.
+//! [`crate::ezviz::EzvizDriver`] — and the subject of the conformance suite.
 
 use async_trait::async_trait;
 use std::sync::Mutex;
@@ -13,8 +13,8 @@ use ezviz_openapi::live::VideoQuality;
 use ezviz_openapi::ptz::PtzDirection;
 use ezviz_openapi::EzvizClient;
 
-use crate::error::DriverError;
-use crate::ptz;
+use super::error::DriverError;
+use super::ptz;
 
 /// One Ezviz camera / channel.
 ///

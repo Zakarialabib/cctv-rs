@@ -1,13 +1,13 @@
 //! The Ezviz driver against a canned HTTP server: the conformance suite plus the
 //! account-level operations, with no camera, no credentials and no network.
-//!
-//! `cctv-transport`'s fixture server answers each `/api/lapp/**` call, and its
-//! `{{base}}` placeholder lets the token response name the fixture as the
-//! region's `areaDomain` — so the client's region switch is exercised for real.
+
+#![cfg(feature = "ezviz")]
 
 use cctv_core::conformance::{run, Expectations};
 use cctv_core::{CameraBackend, CameraError, PtzCommand, StreamQuality};
-use cctv_ezviz::{Connectivity, Driver, DriverError, EzvizCameraBackend, EzvizClient};
+use cctv_driver::ezviz::{
+    Connectivity, EzvizCameraBackend, EzvizClient, EzvizDriver as Driver, EzvizError as DriverError,
+};
 use cctv_transport::fixture::{FixtureServer, Route};
 
 /// A `200` JSON route for a form `POST`.

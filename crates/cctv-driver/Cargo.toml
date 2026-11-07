@@ -11,10 +11,24 @@ description = "Vendor-neutral driver extension point for cctv-rs"
 default = []
 driver-mock = []
 
+# Non-default driver features
+ezviz = ["dep:ezviz-openapi", "dep:serde", "dep:serde_json"]
+pc-sdk = ["ezviz", "ezviz-openapi/pc-sdk"]
+uvc = ["dep:serde"]
+uvc-ptp = ["uvc"]
+ddc = ["uvc"]
+
 [dependencies]
 cctv-core = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 
+# Optional dependencies behind features
+ezviz-openapi = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
 [dev-dependencies]
 futures-executor = "0.3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+cctv-transport = { workspace = true, features = ["fixture"] }

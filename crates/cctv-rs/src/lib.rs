@@ -36,6 +36,9 @@ pub use cctv_core::{
 };
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
 pub use cctv_discovery::DiscoveredCamera;
+pub use cctv_driver::{
+    BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
+};
 pub use cctv_pair::{
     CeremonyConfig, CeremonyRole, CeremonyState, LockoutManager, PairingCeremony, PairingError,
     PairingMessage, PairingMethod, PairingQrPayload, TrustStore, TrustedPeer, PAIRING_ALPN,
@@ -48,9 +51,6 @@ pub use cctv_rag::{
     SpatialGraph, ZoneKind, ZoneNode,
 };
 pub use cctv_rtp::{MediaDescriptor, MediaProbe, TranscodePlan};
-pub use cctv_stream_uvc::{
-    BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
-};
 pub use cctv_sync::{
     LwwRegister, OrSet, SyncCameraRecord, SyncDeviceRegistry, SyncPeerRecord, SyncTrustStore, Tag,
 };
@@ -58,7 +58,7 @@ pub use cctv_sync::{
 #[cfg(feature = "ddc")]
 pub use cctv_agent::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
 #[cfg(feature = "ddc")]
-pub use cctv_stream_uvc::{
+pub use cctv_driver::{
     DdcController, DdcError, DisplayProfile, I2cBus, InputSource, LinuxI2cBus, MockI2cBus,
     PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
 };

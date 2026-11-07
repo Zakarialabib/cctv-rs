@@ -12,11 +12,11 @@ categories = ["multimedia", "hardware-support"]
 
 [features]
 default = []
-ddc = ["cctv-stream-uvc/ddc", "cctv-agent/ddc"]
+ddc = ["cctv-driver/ddc", "cctv-agent/ddc"]
 
 [dependencies]
 cctv-core.workspace = true
-cctv-driver.workspace = true
+cctv-driver = { workspace = true, features = ["ezviz", "uvc", "uvc-ptp"] }
 cctv-rtp.workspace = true
 cctv-agent.workspace = true
 cctv-discovery.workspace = true
@@ -25,9 +25,7 @@ cctv-detect.workspace = true
 cctv-rag.workspace = true
 cctv-pair.workspace = true
 cctv-sync.workspace = true
-cctv-ezviz.workspace = true
 cctv-onvif.workspace = true
-cctv-stream-uvc.workspace = true
 # `http` carries the shared rustls client the ONVIF factory hands to its session.
 cctv-transport = { workspace = true, features = ["http"] }
 serde_json.workspace = true
@@ -36,7 +34,7 @@ serde_json.workspace = true
 # The facade's tests define a failing `CameraBackend`, which is an `async-trait`
 # trait and needs the attribute macro.
 async-trait.workspace = true
-cctv-driver = { workspace = true, features = ["driver-mock"] }
+cctv-driver = { workspace = true, features = ["driver-mock", "ezviz", "uvc", "uvc-ptp"] }
 
 [lints]
 workspace = true

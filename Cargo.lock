@@ -229,10 +229,10 @@ version = "0.3.0"
 dependencies = [
  "async-trait",
  "cctv-core",
+ "cctv-driver",
  "cctv-onvif",
  "cctv-rtp",
  "cctv-rtsp",
- "cctv-stream-uvc",
  "cctv-transport",
  "futures-core",
  "serde",
@@ -277,20 +277,12 @@ version = "0.3.0"
 dependencies = [
  "async-trait",
  "cctv-core",
- "futures-executor",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "cctv-ezviz"
-version = "0.3.0"
-dependencies = [
- "async-trait",
- "cctv-core",
  "cctv-transport",
  "ezviz-openapi",
+ "futures-executor",
  "serde",
  "serde_json",
+ "thiserror 2.0.21",
  "tokio",
 ]
 
@@ -343,12 +335,10 @@ dependencies = [
  "cctv-detect",
  "cctv-discovery",
  "cctv-driver",
- "cctv-ezviz",
  "cctv-onvif",
  "cctv-pair",
  "cctv-rag",
  "cctv-rtp",
- "cctv-stream-uvc",
  "cctv-sync",
  "cctv-transport",
  "serde_json",
@@ -370,17 +360,6 @@ dependencies = [
  "md-5",
  "tokio",
  "tokio-rustls",
-]
-
-[[package]]
-name = "cctv-stream-uvc"
-version = "0.3.0"
-dependencies = [
- "async-trait",
- "cctv-core",
- "serde",
- "thiserror 2.0.21",
- "tokio",
 ]
 
 [[package]]
