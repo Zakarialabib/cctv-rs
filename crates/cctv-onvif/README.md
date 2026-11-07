@@ -4,6 +4,18 @@
 [![docs.rs](https://docs.rs/cctv-onvif/badge.svg)](https://docs.rs/cctv-onvif)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
+> **Deprecated (since 0.3.0).** `cctv-onvif` has folded into
+> `cctv-driver::onvif` and this crate is now a re-export shim retained for one
+> release. Migrate to `cctv-driver` with `features = ["onvif"]`:
+>
+> ```toml
+> cctv-driver = { version = "0.3", features = ["onvif"] }
+> ```
+>
+> ```rust,no_run
+> use cctv_driver::onvif::{Credentials, OnvifSession};
+> ```
+
 ONVIF protocol driver implementation for `cctv-rs`. Provides Device, Media, and PTZ services over SOAP 1.2 with WS-Security `UsernameToken` authentication.
 
 Maps ONVIF XML protocols cleanly into the standard `CameraBackend` trait.
@@ -25,7 +37,7 @@ Maps ONVIF XML protocols cleanly into the standard `CameraBackend` trait.
 ## Usage
 
 ```rust,no_run
-use cctv_onvif::{Credentials, OnvifSession};
+use cctv_driver::onvif::{Credentials, OnvifSession};
 use cctv_transport::http::HttpConfig;
 
 #[tokio::main]

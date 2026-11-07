@@ -12,8 +12,8 @@ Aspirational crate evolution, boundaries, and architectural invariants for the `
 | `cctv-transport` | Data-driven TLS policy, time-budgeted `FrameReader`, zero-allocation XML scanner. | TCP/TLS socket abstractions (`net` feature, `rustls` only). |
 | `cctv-rtp` | Zero-dependency RTP header and H.264/H.265 access-unit depacketizer. | Pure byte-slice processing. |
 | `cctv-rtsp` | Pure message codecs, SDP parser, and Digest auth state machine. | Independent of socket I/O; consumed by streaming loops. |
-| `cctv-driver` | Vendor-neutral adapter seam: `DriverAdapter` factories and `DriverRegistry`, plus the bundled adapters — discovery sweeps (`discovery`), Ezviz cloud (`ezviz`), and the local video seam UVC/PTP/DDC (`uvc`, `uvc-ptp`, `ddc`). | Optional drivers compile behind features; the seam itself depends only on `cctv-core`. |
-| `cctv-onvif` | ONVIF SOAP/HTTP `CameraBackend` with clock-skew auth. | Transport-backed HTTP requests with XML parsing; discovery delegated to `cctv-driver`. |
+| `cctv-driver` | Vendor-neutral adapter seam: `DriverAdapter` factories and `DriverRegistry`, plus the bundled adapters — discovery sweeps (`discovery`), ONVIF SOAP/HTTP (`onvif`), Ezviz cloud (`ezviz`), and the local video seam UVC/PTP/DDC (`uvc`, `uvc-ptp`, `ddc`). | Optional drivers compile behind features; the seam itself depends only on `cctv-core`. |
+| `cctv-onvif` | Deprecated re-export shim forwarding to `cctv-driver::onvif`. | Retained for one release; new code depends on `cctv-driver` with `features = ["onvif"]`. |
 | `cctv-agent` | Deterministic fleet state reconciler, `StreamMux`, `SnapshotProxy`. | Command issuance via `CommandRelay` and NALU broadcast caching. |
 | `cctv-detect` | Motion & AI detection domain model. | Alloc-only; free of ML frameworks and I/O. |
 | `cctv-rag` | Deterministic retrieval: incident ledger, spatial topology graph, BM25 index, playbook registry. | Runtime-free; bounded in-memory index, no external vector database. |

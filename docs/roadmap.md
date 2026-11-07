@@ -10,10 +10,10 @@ System development status, release phases, and locked architectural decisions.
 | --- | --- | --- | --- |
 | 1 | `cctv-core`: alloc-only device model, error taxonomy, state machine, mock backend. | `cargo check -p cctv-core --no-default-features` clean, zero Tokio dependencies. | Completed |
 | 2 | `cctv-transport`, `cctv-rtp`, `cctv-rtsp`: pure codecs, TLS policy, frame reading. | Workspace unit tests pass; RTP/RTSP codecs verified against RFC test vectors. | Completed |
-| 3 | `cctv-onvif`: SOAP builders/parsers, skewed-clock WS-Security `UsernameToken`. | Conformance tests pass against mock SOAP server fixtures. | Completed |
+| 3 | `cctv-driver` (`onvif` feature): SOAP builders/parsers, skewed-clock WS-Security `UsernameToken`. | Conformance tests pass against mock SOAP server fixtures. | Completed |
 | 4 | `cctv-driver` (`ezviz` feature): Ezviz Open Platform cloud integration, token manager, PTZ mapping. | Unit tests pass against mock HTTP server fixture. | Completed |
 | 5 | `cctv-driver` (`uvc` / `uvc-ptp` / `ddc` features): local video Ports & Adapters seam, UVC, PTP, HAL hot-plug, DDC/CI display control. | Unit tests pass across platform mocks. | Completed |
-| 6 | Driver consolidation: `cctv-discovery`, `cctv-ezviz` and `cctv-stream-uvc` fold into `cctv-driver` behind features; `DriverAdapter` / `CameraBackend` split. | `cargo check -p cctv-driver --features ezviz,uvc,uvc-ptp,ddc` clean; workspace tests pass. | Completed |
+| 6 | Driver consolidation: `cctv-discovery`, `cctv-ezviz`, `cctv-stream-uvc` and `cctv-onvif` fold into `cctv-driver` behind features; `DriverAdapter` / `CameraBackend` split. | `cargo check -p cctv-driver --features ezviz,uvc,uvc-ptp,ddc` clean; workspace tests pass. | Completed |
 | 7 | `cctv-agent`: Fleet reconciler with graded remediation, `StreamMux`, `SnapshotProxy`. | Reconciler and stream multiplexer test suites pass. | Completed |
 | 8 | `cctv-detect`, `cctv-pair`, `cctv-sync` & `cctv-rs`: Detection device model, pairing/trust, CRDT convergence, facade registry, universal dispatch. | Full workspace tests and facade integration suite pass. | Completed |
 | 9 | Host Application Integration: Production deployment in edge video management clients. | Integration verification in edge host application. | In Progress |
@@ -28,11 +28,12 @@ Twelve workspace crates published to crates.io (`cctv-core`, `cctv-transport`,
 `cctv-rtp`, `cctv-rtsp`, `cctv-driver`, `cctv-onvif`, `cctv-agent`,
 `cctv-detect`, `cctv-rag`, `cctv-pair`, `cctv-sync`, `cctv-rs`) plus
 `ezviz-openapi` (own repository, consumed by `cctv-driver`'s `ezviz` feature).
+`cctv-onvif` is retained as a deprecated re-export shim for one release.
 
 Since the 0.3.0 release the vendor adapters have consolidated: `cctv-discovery`,
-`cctv-ezviz` and `cctv-stream-uvc` are now features of `cctv-driver`
-(`discovery` — default, `ezviz`, `uvc`, `uvc-ptp`, `ddc`), reducing the
-published surface from fifteen crates to twelve.
+`cctv-ezviz`, `cctv-stream-uvc` and `cctv-onvif` are now features of
+`cctv-driver` (`discovery` and `onvif` — both default, `ezviz`, `uvc`,
+`uvc-ptp`, `ddc`), reducing the published surface from fifteen crates to twelve.
 
 W6 delivered:
 - **RTSP session reconnection hardening** — bounded exponential backoff

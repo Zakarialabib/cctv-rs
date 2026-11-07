@@ -47,13 +47,15 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 ### Changed
 
 - **Driver consolidation — the published surface drops from fifteen crates to
-  twelve.** `cctv-discovery`, `cctv-ezviz` and `cctv-stream-uvc` are folded into
-  `cctv-driver` behind cargo features (`discovery` — default, `ezviz`, `uvc`,
-  `uvc-ptp`, `ddc`, plus `driver-mock`/`mobile`), and the seam is split into a
-  `DriverAdapter` factory surface and the `CameraBackend` live handle.
-  `cctv-onvif`'s discovery delegates to `cctv-driver::discovery`. Publish order
-  and CI are updated accordingly; existing code moves to
-  `cctv_driver::{discovery, ezviz, uvc}`.
+  twelve.** `cctv-discovery`, `cctv-ezviz`, `cctv-stream-uvc` and `cctv-onvif`
+  are folded into `cctv-driver` behind cargo features (`discovery` and `onvif` —
+  both default, `ezviz`, `uvc`, `uvc-ptp`, `ddc`, plus `driver-mock`/`mobile`),
+  and the seam is split into a `DriverAdapter` factory surface and the
+  `CameraBackend` live handle. `cctv-onvif` remains as a deprecated re-export
+  shim for one release. Publish order and CI are updated accordingly; existing
+  code moves to `cctv_driver::{discovery, onvif, ezviz, uvc}`.
+- **Graded reconciliation policies** (`cctv-agent`): `Policy` / `PolicyTracker` /
+  `PolicyVerdict` gate every remediation and write an audit entry.
 - **The workspace is licensed under Apache-2.0**, replacing MIT.
 - `rust-toolchain.toml` pins the `stable` channel instead of a fixed compiler.
 - `cctv-rag` joins the release plumbing.
