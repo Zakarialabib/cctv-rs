@@ -180,8 +180,7 @@ impl Quirks {
     /// `action` — a row without those cannot be acted on, so accepting it would
     /// silently disable the workaround it was written for.
     pub fn parse(source: &str) -> Result<Self, QuirkError> {
-        let document: toml::Value = source
-            .parse()
+        let document: toml::Value = toml::from_str(source)
             .map_err(|error: toml::de::Error| QuirkError::Parse(error.to_string()))?;
 
         let rows = document
