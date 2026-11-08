@@ -115,7 +115,7 @@ external crates.io dependency pulled in only by the `ezviz` feature.
 
 | Item | Change | Why |
 | --- | --- | --- |
-| CV-16 | Prove the `no_std` contract on a bare-metal target (`thumbv7em-none-eabi`) in the `core` CI job and extend the graph assertion | `--no-default-features` only proves the crate compiles without `std` on a `std` host; the bare-metal target proves nothing in the graph pulls `std` back in |
+| ~~CV-16~~ | ~~Prove the `no_std` contract on a bare-metal target (`thumbv7em-none-eabi`) in the `core` CI job and extend the graph assertion~~ | ~~`--no-default-features` only proves the crate compiles without `std` on a `std` host; the bare-metal target proves nothing in the graph pulls `std` back in~~ (Shipped) |
 | CV-17 | Exercise the feature matrix in CI: isolate every feature, `--no-default-features` per crate, `--all-features` for `cctv-core` / `cctv-transport` / `cctv-driver`, and both `ddc` facade paths | Only three non-default feature paths are built today, so a feature combination can rot unnoticed |
 
 ---
@@ -147,5 +147,5 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
 CI adds the MSRV build (1.89.0), the per-crate build in publish order, the
-tokio-free `cctv-core` graph assertion, `cargo-deny`, and the Annex-B parser
+tokio-free and std-free `cctv-core` graph assertions, bare-metal (`thumbv7em-none-eabi`) `cctv-core` compilation, `cargo-deny`, and the Annex-B parser
 fuzz target.
