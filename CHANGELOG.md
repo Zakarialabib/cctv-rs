@@ -66,7 +66,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 - `cctv-rag` joins the release plumbing.
 
 ### Fixed
-
+- CV-23 (technical debt): Introduced a `Clock` trait (with `SystemClock` and `MockClock` implementations) into `cctv-agent` to replace non-deterministic `std::time::SystemTime::now()` calls in the reconciler and audit trails. Tests now use `MockClock` for predictable time advancement, resolving non-determinism in cooldown and schedule logic.
 - **PTZ watchdog virtual clock** (`cctv-agent`): the watchdog now drives from
   the tokio clock, not wall-clock time, so tests and skewed-clock cameras
   behave identically.
@@ -273,7 +273,6 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   process list.
 
 ### Fixed
-
 - The workspace builds again: three commits (`2e032a6`, `a31c4aa`) had left
   `cctv-core`, `cctv-agent`, `cctv-detect` and the RTSP fixture test broken —
   tests stranded inside `impl CameraState`, the fixture's `respond` function
