@@ -18,7 +18,11 @@
 pub mod drivers;
 pub mod facade;
 
-pub use cctv_driver::{DriverAdapter, DriverError, DriverRegistry, InMemoryRegistry};
+pub use cctv_driver::{
+    analyse_web_ui, priority, AuthScheme, DriverAdapter, DriverError, DriverProposal,
+    DriverRegistry, FingerprintRule, InMemoryRegistry, PlaybackUri, RecordingItem,
+    RecordingSummary, RtspTemplate, TrackInformation, WebUiAnalyser,
+};
 pub use drivers::{DriverFactory, EZVIZ, ONVIF, PTP, UVC};
 pub use facade::{clock_ms, Facade};
 

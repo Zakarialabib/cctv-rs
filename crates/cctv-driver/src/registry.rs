@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use cctv_core::{CameraBackend, CameraConfig, CameraError};
+use cctv_core::{CameraBackend, CameraConfig, CameraError, ProbeResult};
 
+use crate::fingerprint::priority;
 use crate::DriverAdapter;
 
 /// Trait for driver registries mapping driver keys to [`DriverAdapter`] instances.
@@ -23,9 +24,84 @@ pub trait DriverRegistry: Send + Sync {
     /// Remove a driver adapter by key.
     fn remove(&mut self, key: &str) -> Option<Arc<dyn DriverAdapter>>;
 
+    /// List all registered adapters.
+    fn all(&self) -> Vec<Arc<dyn DriverAdapter>>;
+
+    /// Resolve a driver adapter for a camera configuration using the five-step ladder:
+    ///
+    /// 1. **Explicit Key Match**: If `config.driver` names an active registered driver, use it.
+    /// 2. **Specific Vendor Fingerprint**: Highest-priority vendor match (`priority < OEM`).
+    /// 3. **OEM / White-label Platform**: Matching OEM platform rules (`priority < FALLBACK`).
+    /// 4. **ONVIF Fallback**: Standard ONVIF profile fallback (`priority <= FALLBACK` or `"onvif"`).
+    /// 5. **RTSP Template Fallback**: Fallback adapter exposing usable RTSP templates.
+    fn resolve(
+        &self,
+        config: &CameraConfig,
+        candidate: Option<&ProbeResult>,
+    ) -> Option<Arc<dyn DriverAdapter>> {
+        // Step 1: Explicit driver match if non-empty and not "auto"
+        let explicit = config.driver.trim();
+        if !explicit.is_empty() && !explicit.eq_ignore_ascii_case("auto") {
+            if let Some(adapter) = self.get(explicit) {
+                return Some(adapter);
+            }
+        }
+
+        // Collect and sort adapters by priority ascending (lower value = higher priority)
+        let mut adapters = self.all();
+        adapters.sort_by_key(|a| a.priority());
+
+        if let Some(probe) = candidate {
+            // Step 2: Specific vendor fingerprint match (priority < OEM)
+            for adapter in adapters.iter().filter(|a| a.priority() < priority::OEM) {
+                if adapter.fingerprint().matches(probe) {
+                    return Some(adapter.clone());
+                }
+            }
+
+            // Step 3: OEM / white-label platform match (OEM <= priority < FALLBACK)
+            for adapter in adapters
+                .iter()
+                .filter(|a| a.priority() >= priority::OEM && a.priority() < priority::FALLBACK)
+            {
+                if adapter.fingerprint().matches(probe) {
+                    return Some(adapter.clone());
+                }
+            }
+
+            // Step 4: ONVIF fallback match if probe indicates ONVIF or service_url / scope present
+            if probe.stream_url.is_some()
+                || config.service_url.is_some()
+                || probe.vendor.to_lowercase().contains("onvif")
+            {
+                if let Some(onvif) = adapters
+                    .iter()
+                    .find(|a| a.driver_key() == "onvif" || a.priority() == priority::FALLBACK)
+                {
+                    return Some(onvif.clone());
+                }
+            }
+        }
+
+        // Still Step 4: Default ONVIF fallback if available
+        if let Some(onvif) = self.get("onvif") {
+            return Some(onvif);
+        }
+
+        // Step 5: RTSP template generic fallback (first adapter with rtsp_templates or highest priority)
+        for adapter in &adapters {
+            if !adapter.rtsp_templates().is_empty() {
+                return Some(adapter.clone());
+            }
+        }
+
+        // Final fallback: first available adapter
+        adapters.into_iter().next()
+    }
+
     /// Route `attach` through the registry to build a [`CameraBackend`] handle.
     async fn attach(&self, config: &CameraConfig) -> Result<Box<dyn CameraBackend>, CameraError> {
-        let adapter = self.get(&config.driver).ok_or_else(|| {
+        let adapter = self.resolve(config, None).ok_or_else(|| {
             CameraError::Other(format!("no driver registered for {:?}", config.driver))
         })?;
         adapter.attach(config).await
@@ -64,6 +140,10 @@ impl DriverRegistry for InMemoryRegistry {
 
     fn remove(&mut self, key: &str) -> Option<Arc<dyn DriverAdapter>> {
         self.adapters.remove(key)
+    }
+
+    fn all(&self) -> Vec<Arc<dyn DriverAdapter>> {
+        self.adapters.values().cloned().collect()
     }
 }
 

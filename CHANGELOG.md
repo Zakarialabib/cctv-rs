@@ -10,6 +10,19 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 ## [Unreleased]
 
 ### Added
+- **Fingerprint & Priority Registry (`cctv-driver`)**:
+  - `FingerprintRule`, `RtspTemplate`, and `priority` constants.
+  - Added `fingerprint()`, `priority()`, and `rtsp_templates()` methods to `DriverAdapter`.
+  - Implemented 5-step ladder resolution in `DriverRegistry::resolve`: explicit key -> specific vendor -> OEM platform -> ONVIF fallback -> RTSP template probe fallback.
+- **Reviewable Driver Proposals (`cctv-driver::analyse`)**:
+  - `AuthScheme`, `DriverProposal`, `WebUiAnalyser`, and `analyse_web_ui` for extracting RTSP and HTTP endpoints from camera web UI scripts and firmware strings.
+  - Markdown PR generator (`to_markdown_pr()`) producing human-reviewable proposals rather than blindly auto-merging at runtime.
+- **ONVIF Profile G Client (`cctv-driver::onvif`)**:
+  - Profile G search and playback services: `RecordingSummary`, `RecordingItem`, `TrackInformation`, and `PlaybackUri`.
+  - Edge recording retrieval via `find_recordings`, `get_recording_summary`, `get_recording_search_results`, and `get_playback_uri` in `OnvifSession`.
+  - Re-exports through facade `cctv-rs`.
+
+### Added
 
 - **Feature-matrix CI job (CV-17).** `feature matrix` builds every feature
   combination on its own — `--no-default-features` and `--all-features` for

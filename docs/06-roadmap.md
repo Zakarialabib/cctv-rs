@@ -38,6 +38,12 @@ Delivered on top of the 0.3.0 surface:
   hysteresis and staged rollout capping.
 - The vendor-adapter consolidation (phase 6) completed: `cctv-onvif` was removed
   from the workspace, leaving the adapters as features of `cctv-driver`.
+- **Driver Resolution Ladder & Fingerprinting** (`cctv-driver`): `FingerprintRule`,
+  `RtspTemplate`, and priority bands resolving camera drivers via a 5-step ladder.
+- **Reviewable Driver Proposals** (`cctv-driver`): `WebUiAnalyser` extracting RTSP/HTTP
+  endpoints and generating human-reviewable `DriverProposal` PR templates.
+- **ONVIF Profile G Client** (`cctv-driver::onvif`): edge recording search, playback URI,
+  and summary retrieval for camera SD cards.
 
 ### 0.3.0 — Driver Expansion & Streaming Hardening (2026-11-02)
 
