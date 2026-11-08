@@ -47,7 +47,7 @@ All camera interactions pass through the typed `Facade` interface:
 
 | Crate | Dependencies | Responsibility |
 | --- | --- | --- |
-| `cctv-core` | `thiserror`, `async-trait` (`serde` optional) | The immutable device model: `CameraHandle`, `CommandId`, `CameraState`, `CameraError`, quirks table, mock backend. `#![no_std]` + `alloc` compatible. |
+| `cctv-core` | `thiserror`, `async-trait` (`serde` optional) | The immutable device model: `CameraHandle`, `CommandId`, `CameraState`, `CameraError`, quirks table, edge caching primitives, mock backend. `#![no_std]` + `alloc` compatible. |
 | `cctv-transport` | `thiserror` (`tokio-rustls`, `reqwest` optional) | Data-driven TLS policy, time-budgeted `FrameReader`, zero-allocation XML scanner, TCP/TLS socket helpers. |
 | `cctv-rtp` | *(none)* | Pure byte-slice RTP header parsing and H.264/H.265 access-unit reassembly (STAP-A, FU-A, AP, FU). |
 | `cctv-rtsp` | `base64`, `zeroize` | Pure message framing, SDP track extraction, `$`-interleaved frame demuxing, and RFC 2617/7616 Digest auth state machine. |

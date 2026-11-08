@@ -48,6 +48,10 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   ONVIF-disabled default (V5.5.0), Ezviz's disabled local service / image
   encryption, and Sony SRG-360's absent RTSP interleaved TCP bit stream.
 - `xtask`, the workspace task runner: `cargo xtask publish` and `cargo xtask hw-test`.
+- **Edge storage caching primitives** (`cctv-core`): `EdgeCache` is a
+  runtime-free, `alloc`-only bounded ring-buffer for the most recent snapshots
+  and clips per camera, with explicit capacity and deterministic oldest-first
+  eviction. Re-exported from the `cctv-rs` facade.
 
 ### Changed
 
