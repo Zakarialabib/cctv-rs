@@ -710,7 +710,7 @@ impl Facade {
     ///
     /// **`fps` and `bytes_per_sec` are zero today.**  Nothing measures them
     /// until `cctv-transport`'s frame reader is wired into the stream path (see
-    /// `docs/roadmap.md`); only `online` is measured, from a probe.
+    /// `docs/06-roadmap.md`); only `online` is measured, from a probe.
     pub async fn camera_get_stats(&self, id: &str) -> Result<CommandResult, CameraError> {
         let registered = self.backend(id)?;
         let online = registered.probe().await.is_ok();

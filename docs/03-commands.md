@@ -1,23 +1,33 @@
-# Command Catalogue
+# 03 — Command Catalogue
 
-`CommandId` defines *what* a camera is asked to do. Drivers implement *how* over the wire. The facade and reconciler dispatch commands using enum variants rather than string identifiers.
+> `CommandId` defines *what* a camera is asked to do; drivers implement *how* over
+> the wire. The facade and reconciler dispatch commands by enum variant rather
+> than by string identifier.
+
+**Read this when** you are adding a command, wiring a driver capability, or
+looking up the payload a command returns. The device model behind these variants
+is described in [04 — Camera Taxonomy](04-camera-types.md).
 
 Defined in [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands.rs).
 
 ---
 
-## Core Invariants
+## 1. Core Invariants
 
-1. **Deterministic Order (`CommandId::order`)**: Provides a stable execution sequence for fleet reconciliation sweeps.
-2. **Capability Guard (`CommandId::supports`)**: Queries if a driver backend supports the requested operation. Unsupported calls fail with `CameraError::Unsupported` rather than panicking.
+1. **Deterministic order (`CommandId::order`).** Provides a stable execution
+   sequence for fleet reconciliation sweeps, so identical fleets reconcile in
+   identical order across scans.
+2. **Capability guard (`CommandId::supports`).** Queries whether a driver backend
+   supports the requested operation. Unsupported calls fail with
+   `CameraError::Unsupported` rather than panicking.
 
-`CommandId` defines **56 variants** organized across domain groups.
+`CommandId` defines **56 variants** across the domain groups below.
 
 ---
 
-## Command Groups
+## 2. Command Groups
 
-| Domain Group | Count | Commands |
+| Domain group | Count | Commands |
 | --- | --- | --- |
 | Discovery | 3 | `Discover`, `DiscoverByRange`, `ListUsbCameras` |
 | Live Source | 4 | `LiveSourceList`, `LiveSourceDelete`, `LiveSourceSave`, `LiveSourceGet` |
@@ -36,11 +46,11 @@ Defined in [`crates/cctv-core/src/commands.rs`](../crates/cctv-core/src/commands
 
 ---
 
-## Command Result Payloads (`CommandResultPayload`)
+## 3. Command Result Payloads (`CommandResultPayload`)
 
 Results wrap typed data inside the `CommandResultPayload` enum:
 
-| Variant | Encapsulated Data |
+| Variant | Encapsulated data |
 | --- | --- |
 | `Frame` | Decoded frame metadata (`width`, `height`, byte count) |
 | `Stream` | Active stream info (`StreamInfo`) |
@@ -59,3 +69,18 @@ Results wrap typed data inside the `CommandResultPayload` enum:
 | `AiStatus` | AI status state (`enabled`, active `model`) |
 | `Health` | Health check payload (`healthy`, message) |
 | `Empty` | Unit acknowledgement |
+
+---
+
+## See also
+
+- [01 — Architecture](01-architecture.md) §2 — the facade entry points that dispatch these commands.
+- [04 — Camera Taxonomy](04-camera-types.md) — the device classes commands act on.
+
+---
+
+## License & Security
+
+- **License:** Apache-2.0 ([LICENSE](../LICENSE)).
+- **Security:** see [SECURITY.md](../SECURITY.md) for the vulnerability disclosure
+  process.

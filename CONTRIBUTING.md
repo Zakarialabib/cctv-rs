@@ -40,8 +40,8 @@ Camera tests against live hardware are opt-in and must never run in CI.
 
 ## Layout rules
 
-Read [`docs/architecture.md`](docs/architecture.md) first; each crate has one
-reason to exist.
+Read [`docs/01-architecture.md`](docs/01-architecture.md) first; each crate has
+one reason to exist.
 
 - `cctv-core` is the device model. It must not gain a network stack, an async
   runtime or vendor vocabulary.
@@ -134,6 +134,6 @@ from `~/.cargo/credentials.toml`.
 
 ## Docs
 
-Start at [`docs/README.md`](docs/README.md). The house engineering standard is
-[`docs/04-rust-package-standard.md`](docs/04-rust-package-standard.md); it is the
-authority for everything above.
+Start at [`docs/00-index.md`](docs/00-index.md). The house engineering standard
+is [`docs/02-rust-package-standard.md`](docs/02-rust-package-standard.md); it is
+the authority for everything above.

@@ -9,6 +9,15 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation restructured into a numbered set.** `docs/` is now an ordered
+  `00-index` … `07-plan` sequence: `architecture.md` and `target-architecture.md`
+  merged into `01-architecture.md`, `04-rust-package-standard.md` renumbered to
+  `02`, and the remaining pages renumbered to `03`–`07`. Every document gained a
+  consistent header, a *See also* block, and a license & security footer. The
+  root `README.md` is condensed to an overview that links into the numbered index.
+
 ## [0.4.0] - 2026-11-08
 
 ### Added
