@@ -41,13 +41,14 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      # The device model must stay embeddable by consumers that never link tokio.
+      # The device model must stay embeddable by consumers that never link tokio
+      # and on bare-metal platforms with no std.
       # This is the compile-time guarantee the spec makes, so CI has to hold it.
-      - name: Core has no tokio in its graph
+      - name: Core has no tokio or std in its graph
         run: |
           cargo tree -p cctv-core -e normal > /tmp/core-tree.txt
-          if grep -qE '(^| )tokio v' /tmp/core-tree.txt; then
-            echo "::error::cctv-core must not depend on tokio"
+          if grep -qE '(^| )(tokio|std) v' /tmp/core-tree.txt; then
+            echo "::error::cctv-core must not depend on tokio or std"
             exit 1
           fi
       # The conformance suite runs against the mock backend, so it needs no
@@ -55,9 +56,12 @@ jobs:
       - run: cargo test -p cctv-core
       # The contract must compile without `std`.  `--no-default-features` turns
       # off the mock backend (it needs `Mutex`) and the quirks table (`toml` is
-      # std-only), leaving only the alloc-only device model.
+      # std-only), leaving only the alloc-only device model. The bare-metal
+      # target proves nothing in the dependency graph pulls std back in.
       - name: Contract is alloc-only
-        run: cargo check -p cctv-core --no-default-features
+        run: |
+          rustup target add thumbv7em-none-eabi
+          cargo build -p cctv-core --no-default-features --target thumbv7em-none-eabi
 
       # The `net` feature is the replacement for `reqwest`, so it must stay free
       # of it — otherwise the socket layer drags in the HTTP stack it exists to
@@ -110,7 +114,7 @@ jobs:
       - run: cargo check -p cctv-rtp
       - run: cargo check -p cctv-rtsp
       - run: cargo check -p cctv-driver
-      - run: cargo check -p cctv-onvif
+
       - run: cargo check -p cctv-driver --features ezviz,uvc,uvc-ptp,ddc
       - run: cargo check -p cctv-agent
       - run: cargo check -p cctv-detect

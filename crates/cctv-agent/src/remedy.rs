@@ -10,7 +10,7 @@ use std::time::SystemTime;
 
 use async_trait::async_trait;
 use cctv_core::{CameraError, ImperativeCameraCommand};
-use cctv_onvif::build_set_system_date_and_time_soap;
+use cctv_driver::onvif::build_set_system_date_and_time_soap;
 use serde::{Deserialize, Serialize};
 
 /// Maximum permissible clock drift between camera and host before healing is triggered (1 minute).

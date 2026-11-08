@@ -11,7 +11,7 @@
 - [ ] cctv-rtp
 - [ ] cctv-rtsp
 - [ ] cctv-driver
-- [ ] cctv-onvif
+
 - [ ] cctv-agent
 - [ ] cctv-detect
 - [ ] cctv-rag
@@ -31,6 +31,7 @@
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings` — 0 errors
 - [ ] `cargo test --workspace` — all tests green
 - [ ] `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` — clean
+- [ ] `cargo build -p cctv-core --no-default-features --target thumbv7em-none-eabi` — builds without std
 
 ## Notes
 

@@ -7,17 +7,6 @@ and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.
 All twelve crates are versioned and released together, plus `ezviz-openapi`
 (published from its own repository).
 
-## [0.3.0] - 2026-11-02
-
-### Added
-- `cctv-driver`: W6 — vendor-neutral adapter seam (DriverAdapter + DriverRegistry).
-- RTSP session reconnection hardening: bounded exponential backoff
-  (RECONNECT_MAX_DELAY 10 s, RECONNECT_MAX_RETRIES 8), StreamEnd::Stalled
-  classification, health-state reporting on reconnect failure.
-- Live stream health watchdog: cctv_core health module (Health/Watchdog),
-  wired into the driver stream path through READ_STALL and the reconnect
-  policy.
-
 ## [Unreleased]
 
 ## [0.4.0] - 2026-11-08
@@ -45,6 +34,12 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   ONVIF-disabled default (V5.5.0), Ezviz's disabled local service / image
   encryption, and Sony SRG-360's absent RTSP interleaved TCP bit stream.
 - `xtask`, the workspace task runner: `cargo xtask publish` and `cargo xtask hw-test`.
+- **Edge storage caching primitives** (`cctv-core`): `EdgeCache` is a
+  runtime-free, `alloc`-only bounded ring-buffer for the most recent snapshots
+  and clips per camera, with explicit capacity and deterministic oldest-first
+  eviction. Re-exported from the `cctv-rs` facade.
+- **Advanced fleet reconciliation policies** (`cctv-agent`): configurable
+  hysteresis and staged rollout capping.
 
 ### Changed
 
@@ -53,7 +48,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   are folded into `cctv-driver` behind cargo features (`discovery` and `onvif` —
   both default, `ezviz`, `uvc`, `uvc-ptp`, `ddc`, plus `driver-mock`/`mobile`),
   and the seam is split into a `DriverAdapter` factory surface and the
-  `CameraBackend` live handle. `cctv-onvif` remains as a deprecated re-export
+  `CameraBackend` live handle. `cctv-onvif` was a deprecated re-export
   shim for one release. Publish order and CI are updated accordingly; existing
   code moves to `cctv_driver::{discovery, onvif, ezviz, uvc}`.
 - **Graded reconciliation policies** (`cctv-agent`): `Policy` / `PolicyTracker` /
@@ -63,10 +58,21 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 - `cctv-rag` joins the release plumbing.
 
 ### Fixed
-
+- CV-23 (technical debt): Introduced a `Clock` trait (with `SystemClock` and `MockClock` implementations) into `cctv-agent` to replace non-deterministic `std::time::SystemTime::now()` calls in the reconciler and audit trails. Tests now use `MockClock` for predictable time advancement, resolving non-determinism in cooldown and schedule logic.
 - **PTZ watchdog virtual clock** (`cctv-agent`): the watchdog now drives from
   the tokio clock, not wall-clock time, so tests and skewed-clock cameras
   behave identically.
+
+## [0.3.0] - 2026-11-02
+
+### Added
+- `cctv-driver`: W6 — vendor-neutral adapter seam (DriverAdapter + DriverRegistry).
+- RTSP session reconnection hardening: bounded exponential backoff
+  (RECONNECT_MAX_DELAY 10 s, RECONNECT_MAX_RETRIES 8), StreamEnd::Stalled
+  classification, health-state reporting on reconnect failure.
+- Live stream health watchdog: cctv_core health module (Health/Watchdog),
+  wired into the driver stream path through READ_STALL and the reconnect
+  policy.
 
 ## [0.2.0] - 2026-11-01
 
@@ -170,7 +176,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   against `cctv-transport`'s fixture HTTP server. The three things the platform
   cannot do (return image bytes, list presets, move to an absolute position) are
   typed `NotImplemented`, not silent failures.
-- `cctv-onvif` is now a working driver, not just builders: `OnvifSession` drives
+- `cctv-onvif` became a working driver, not just builders: `OnvifSession` drives
   the SOAP calls over `cctv-transport`'s HTTP client — following (and caching) the
   `XAddr`s `GetCapabilities` returns — and `OnvifCameraBackend` implements
   `CameraBackend` for `probe`, `stream`, `snapshot`, `ptz` and the preset round
@@ -270,7 +276,6 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   process list.
 
 ### Fixed
-
 - The workspace builds again: three commits (`2e032a6`, `a31c4aa`) had left
   `cctv-core`, `cctv-agent`, `cctv-detect` and the RTSP fixture test broken —
   tests stranded inside `impl CameraState`, the fixture's `respond` function

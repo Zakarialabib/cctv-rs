@@ -43,10 +43,15 @@ pub struct Policy {
     pub per_camera_budget: u32,
     /// Optional scheduled maintenance window. Outside this window, active remediations are suppressed.
     pub window: Option<ScheduleWindow>,
+    /// Minimum time in milliseconds a state difference must persist before being actively remediated (hysteresis).
+    pub hysteresis_ms: u64,
+    /// Maximum number of active remediations permitted across the fleet per tick (staged rollout cap).
+    pub rollout_cap: u32,
 }
 
 impl Policy {
     /// Create a custom policy.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: impl Into<String>,
         max_grade: Grade,
@@ -54,6 +59,8 @@ impl Policy {
         cooldown_ms: u64,
         per_camera_budget: u32,
         window: Option<ScheduleWindow>,
+        hysteresis_ms: u64,
+        rollout_cap: u32,
     ) -> Self {
         Self {
             id: id.into(),
@@ -62,6 +69,8 @@ impl Policy {
             cooldown_ms,
             per_camera_budget,
             window,
+            hysteresis_ms,
+            rollout_cap,
         }
     }
 
@@ -76,6 +85,8 @@ impl Policy {
             cooldown_ms: 0,
             per_camera_budget: u32::MAX,
             window: None,
+            hysteresis_ms: 0,
+            rollout_cap: u32::MAX,
         }
     }
 
@@ -88,6 +99,8 @@ impl Policy {
             cooldown_ms: 0,
             per_camera_budget: u32::MAX,
             window: None,
+            hysteresis_ms: 0,
+            rollout_cap: u32::MAX,
         }
     }
 
@@ -100,6 +113,8 @@ impl Policy {
             cooldown_ms: 0,
             per_camera_budget: u32::MAX,
             window: Some(window),
+            hysteresis_ms: 0,
+            rollout_cap: u32::MAX,
         }
     }
 
@@ -130,6 +145,20 @@ impl Policy {
         self.window = window;
         self
     }
+
+    /// Builder method to configure hysteresis duration in milliseconds.
+    #[must_use]
+    pub fn with_hysteresis_ms(mut self, hysteresis_ms: u64) -> Self {
+        self.hysteresis_ms = hysteresis_ms;
+        self
+    }
+
+    /// Builder method to configure staged rollout fleet limit.
+    #[must_use]
+    pub fn with_rollout_cap(mut self, rollout_cap: u32) -> Self {
+        self.rollout_cap = rollout_cap;
+        self
+    }
 }
 
 /// Tracks runtime enforcement state per camera under a policy (cooldowns, action counts).
@@ -139,6 +168,10 @@ pub struct PolicyTracker {
     pub last_action_ms: BTreeMap<String, u64>,
     /// Number of actions applied per camera.
     pub action_count: BTreeMap<String, u32>,
+    /// Timestamp (ms) when a remediation was first seen for a camera.
+    pub first_seen_ms: BTreeMap<String, u64>,
+    /// Current tick count of actions.
+    pub tick_action_count: u32,
 }
 
 impl PolicyTracker {
@@ -151,12 +184,20 @@ impl PolicyTracker {
     pub fn reset_camera(&mut self, camera_id: &str) {
         self.last_action_ms.remove(camera_id);
         self.action_count.remove(camera_id);
+        self.first_seen_ms.remove(camera_id);
     }
 
     /// Reset all tracked stats across the fleet.
     pub fn clear(&mut self) {
         self.last_action_ms.clear();
         self.action_count.clear();
+        self.first_seen_ms.clear();
+        self.tick_action_count = 0;
+    }
+
+    /// Begin a new tick, resetting per-tick limit counters.
+    pub fn begin_tick(&mut self) {
+        self.tick_action_count = 0;
     }
 }
 
@@ -209,10 +250,34 @@ impl Policy {
     ) -> PolicyVerdict {
         // If not actionable (Grade::None), allow through without state changes or tracking consumption.
         if !candidate.is_actionable() {
+            tracker.first_seen_ms.remove(&candidate.camera_id);
             return PolicyVerdict::Apply(candidate);
         }
 
-        // 1. Scheduled window check: outside the window, active remediations are suppressed.
+        let first_seen = *tracker
+            .first_seen_ms
+            .entry(candidate.camera_id.clone())
+            .or_insert(now_ms);
+
+        // 1. Hysteresis check: must wait until camera health has been flapping/deviated for long enough.
+        if self.hysteresis_ms > 0 && now_ms < first_seen.saturating_add(self.hysteresis_ms) {
+            let elapsed = now_ms.saturating_sub(first_seen);
+            let suppressed_rem = Remediation {
+                camera_id: candidate.camera_id.clone(),
+                grade: candidate.grade,
+                action: Action::Hold,
+                reason: format!(
+                    "suppressed by policy '{}': hysteresis in progress ({} ms < {} ms)",
+                    self.id, elapsed, self.hysteresis_ms
+                ),
+            };
+            return PolicyVerdict::Suppressed {
+                remediation: suppressed_rem,
+                reason: "hysteresis in progress".to_string(),
+            };
+        }
+
+        // 2. Scheduled window check: outside the window, active remediations are suppressed.
         if let Some(ref window) = self.window {
             if !window.contains(now_ms) {
                 let suppressed_rem = Remediation {
@@ -231,7 +296,7 @@ impl Policy {
             }
         }
 
-        // 2. Cooldown check: must respect minimum elapsed milliseconds since previous action.
+        // 3. Cooldown check: must respect minimum elapsed milliseconds since previous action.
         if self.cooldown_ms > 0 {
             if let Some(&last_ms) = tracker.last_action_ms.get(&candidate.camera_id) {
                 if now_ms < last_ms.saturating_add(self.cooldown_ms) {
@@ -253,7 +318,7 @@ impl Policy {
             }
         }
 
-        // 3. Per-camera budget check: cannot exceed permitted count of remediations.
+        // 4. Per-camera budget check: cannot exceed permitted count of remediations.
         let current_count = tracker
             .action_count
             .get(&candidate.camera_id)
@@ -275,7 +340,7 @@ impl Policy {
             };
         }
 
-        // 4. Maximum grade enforcement:
+        // 5. Maximum grade enforcement:
         // Safe preset (and any policy capping below candidate.grade) must emit no Advance action.
         if candidate.grade > self.max_grade {
             let suppressed_rem = Remediation {
@@ -296,20 +361,38 @@ impl Policy {
             };
         }
 
-        // 5. Dry-run mode: do not mutate or record consumption, report DryRun verdict.
+        // 6. Rollout cap check: cannot exceed permitted count of remediations per tick across fleet.
+        if tracker.tick_action_count >= self.rollout_cap {
+            let suppressed_rem = Remediation {
+                camera_id: candidate.camera_id.clone(),
+                grade: candidate.grade,
+                action: Action::Hold,
+                reason: format!(
+                    "suppressed by policy '{}': staged rollout cap exhausted ({}/{})",
+                    self.id, tracker.tick_action_count, self.rollout_cap
+                ),
+            };
+            return PolicyVerdict::Suppressed {
+                remediation: suppressed_rem,
+                reason: "rollout cap exhausted".to_string(),
+            };
+        }
+
+        // 7. Dry-run mode: do not mutate or record consumption, report DryRun verdict.
         if self.dry_run {
             return PolicyVerdict::DryRun {
                 remediation: candidate,
             };
         }
 
-        // 6. Remediation is authorized. Record action timestamp and increment budget count.
+        // 8. Remediation is authorized. Record action timestamp and increment budget count.
         tracker
             .last_action_ms
             .insert(candidate.camera_id.clone(), now_ms);
         tracker
             .action_count
             .insert(candidate.camera_id.clone(), current_count.saturating_add(1));
+        tracker.tick_action_count = tracker.tick_action_count.saturating_add(1);
 
         PolicyVerdict::Apply(candidate)
     }

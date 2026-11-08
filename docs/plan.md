@@ -12,7 +12,7 @@ consolidation track, release milestones, and the gate each one is held to.
 | **0.2.0** | Alloc-only core contract, `net` socket layer, RTP/RTSP codecs, ONVIF driver, agent remediation loop, `StreamMux`, `SnapshotProxy`, facade detection surface. | Released |
 | **0.3.0** | Driver expansion and streaming hardening: bounded reconnect backoff, live-stream health watchdog, plus `cctv-detect` / `cctv-rag` / `cctv-pair` / `cctv-sync` on the published surface. | Released |
 | **post-0.3.0** | Driver consolidation — the vendor adapters fold into `cctv-driver` behind cargo features. | In progress |
-| **0.4.0** | Fleet operations and edge storage: edge caching primitives, composite recording profiles, advanced fleet reconciliation policies. | Planned |
+| **0.4.0** | Fleet operations and edge storage: edge caching primitives, composite recording profiles, advanced fleet reconciliation policies. | In progress |
 
 ---
 
@@ -90,7 +90,6 @@ live behind cargo features on `cctv-driver` instead of as standalone crates.
 | CV-14 | #57 | `CameraBackend::observe` and `Facade::observe` |
 | CV-13 | #58 | `cctv-discovery` folds in behind the `discovery` feature |
 | CV-12 | #59 | `cctv-ezviz` and `cctv-stream-uvc` fold in behind `ezviz`, `uvc`, `uvc-ptp`, `ddc` |
-| CV-11 | #62 | `cctv-onvif` folds in behind the `onvif` feature; `cctv-onvif` stays as a deprecated re-export shim for one release |
 | CV-20 | #60 | Graded reconciliation policies with an audit trail |
 
 `cctv-driver` now carries the whole adapter surface:
@@ -107,7 +106,7 @@ live behind cargo features on `cctv-driver` instead of as standalone crates.
 | `uvc-ptp` | no | `uvc` plus the PTP still-image path |
 | `ddc` | no | `uvc` plus DDC/CI display control |
 
-`cctv-driver` sits before `cctv-onvif` in `Cargo.toml` member order,
+`cctv-driver` sits in `Cargo.toml` member order,
 `scripts/publish.sh` `ORDER` and CI's per-crate job; `ezviz-openapi` remains an
 external crates.io dependency pulled in only by the `ezviz` feature.
 
@@ -115,7 +114,7 @@ external crates.io dependency pulled in only by the `ezviz` feature.
 
 | Item | Change | Why |
 | --- | --- | --- |
-| CV-16 | Prove the `no_std` contract on a bare-metal target (`thumbv7em-none-eabi`) in the `core` CI job and extend the graph assertion | `--no-default-features` only proves the crate compiles without `std` on a `std` host; the bare-metal target proves nothing in the graph pulls `std` back in |
+| ~~CV-16~~ | ~~Prove the `no_std` contract on a bare-metal target (`thumbv7em-none-eabi`) in the `core` CI job and extend the graph assertion~~ | ~~`--no-default-features` only proves the crate compiles without `std` on a `std` host; the bare-metal target proves nothing in the graph pulls `std` back in~~ (Shipped) |
 | CV-17 | Exercise the feature matrix in CI: isolate every feature, `--no-default-features` per crate, `--all-features` for `cctv-core` / `cctv-transport` / `cctv-driver`, and both `ddc` facade paths | Only three non-default feature paths are built today, so a feature combination can rot unnoticed |
 
 ---
@@ -147,5 +146,5 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
 CI adds the MSRV build (1.89.0), the per-crate build in publish order, the
-tokio-free `cctv-core` graph assertion, `cargo-deny`, and the Annex-B parser
+tokio-free and std-free `cctv-core` graph assertions, bare-metal (`thumbv7em-none-eabi`) `cctv-core` compilation, `cargo-deny`, and the Annex-B parser
 fuzz target.
