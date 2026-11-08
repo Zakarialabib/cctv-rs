@@ -35,7 +35,7 @@ tokio = { workspace = true, features = ["sync", "rt"] }
 # trait and needs the attribute macro.
 async-trait.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
-cctv-driver = { workspace = true, features = ["driver-mock", "ezviz", "uvc", "uvc-ptp"] }
+cctv-driver = { workspace = true, features = ["driver-mock", "discovery", "ezviz", "uvc", "uvc-ptp"] }
 
 [lints]
 workspace = true

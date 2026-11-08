@@ -34,5 +34,5 @@ serde_json = { workspace = true, optional = true }
 
 [dev-dependencies]
 futures-executor = "0.3"
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 cctv-transport = { workspace = true, features = ["fixture"] }
