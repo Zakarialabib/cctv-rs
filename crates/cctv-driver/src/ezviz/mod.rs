@@ -45,6 +45,16 @@ impl DriverAdapter for EzvizDriverAdapter {
         ])
     }
 
+    fn priority(&self) -> u16 {
+        crate::fingerprint::priority::SPECIFIC
+    }
+
+    fn fingerprint(&self) -> crate::fingerprint::FingerprintRule {
+        crate::fingerprint::FingerprintRule::new()
+            .with_manufacturer("ezviz")
+            .with_model("cs-")
+    }
+
     async fn probe(&self, config: &CameraConfig) -> Result<ProbeResult, CameraError> {
         let backend = self.attach(config).await?;
         backend.probe().await

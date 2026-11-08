@@ -103,6 +103,7 @@ behind cargo features on `cctv-driver` instead of as standalone crates.
 | CV-13 | #58 | `cctv-discovery` folds in behind the `discovery` feature |
 | CV-12 | #59 | `cctv-ezviz` and `cctv-stream-uvc` fold in behind `ezviz`, `uvc`, `uvc-ptp`, `ddc` |
 | CV-20 | #60 | Graded reconciliation policies with an audit trail |
+| CV-24 | #61 | Fingerprint/priority registry with 5-step ladder resolution, reviewable driver proposals, and ONVIF Profile G edge recording client |
 
 `cctv-driver` now carries the whole adapter surface:
 

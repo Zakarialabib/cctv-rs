@@ -4,9 +4,11 @@
 //! §2.3: The DriverAdapter / CameraBackend split separates driver factories
 //! (`DriverAdapter`) from live connected camera handles (`CameraBackend`).
 
+pub mod analyse;
 #[cfg(feature = "discovery")]
 pub mod discovery;
 pub mod error;
+pub mod fingerprint;
 pub mod map;
 #[cfg(feature = "onvif")]
 pub mod onvif;
@@ -27,14 +29,19 @@ pub mod uvc;
 use async_trait::async_trait;
 use cctv_core::{CameraBackend, CameraConfig, CameraError, CapabilitySet, ProbeResult};
 
+pub use analyse::{analyse_web_ui, AuthScheme, DriverProposal, WebUiAnalyser};
 pub use error::DriverError;
+pub use fingerprint::{priority, FingerprintRule, RtspTemplate};
 pub use registry::{DriverRegistry, InMemoryRegistry};
 
 #[cfg(feature = "driver-mock")]
 pub use mock::MockDriverAdapter;
 
 #[cfg(feature = "onvif")]
-pub use onvif::{OnvifCameraBackend, OnvifDiscovery, OnvifDriverAdapter, OnvifError, OnvifSession};
+pub use onvif::{
+    OnvifCameraBackend, OnvifDiscovery, OnvifDriverAdapter, OnvifError, OnvifSession, PlaybackUri,
+    RecordingItem, RecordingSummary, TrackInformation,
+};
 
 #[cfg(feature = "ezviz")]
 pub use ezviz::{EzvizCameraBackend, EzvizDriver, EzvizDriverAdapter, EzvizError};
@@ -75,6 +82,23 @@ pub trait DriverAdapter: Send + Sync {
     /// Capabilities this adapter advertises (stream, ptz, presets, …).
     fn capabilities(&self) -> CapabilitySet {
         CapabilitySet::EMPTY
+    }
+
+    /// Fingerprint rule for identifying cameras matching this driver adapter.
+    fn fingerprint(&self) -> FingerprintRule {
+        FingerprintRule::for_driver(self.driver_key())
+    }
+
+    /// Selection priority (lower numeric value = higher priority).
+    ///
+    /// Specific vendor (< 500) < OEM (< 1000) < ONVIF fallback (1000) < Generic (5000).
+    fn priority(&self) -> u16 {
+        fingerprint::priority::FALLBACK
+    }
+
+    /// RTSP URL path templates for fallback streaming on non-ONVIF devices.
+    fn rtsp_templates(&self) -> &[RtspTemplate] {
+        &[]
     }
 
     /// Build a probe report from the adapter's configuration or connection record.

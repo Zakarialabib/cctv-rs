@@ -151,6 +151,71 @@ impl OnvifSession {
             .ok_or(OnvifError::MissingService("Events"))
     }
 
+    /// The Search service URL (Profile G), or [`OnvifError::MissingService`].
+    pub async fn search_url(&self) -> Result<String, OnvifError> {
+        self.services()
+            .await?
+            .search
+            .ok_or(OnvifError::MissingService("Search"))
+    }
+
+    /// The Playback service URL (Profile G), or [`OnvifError::MissingService`].
+    pub async fn playback_url(&self) -> Result<String, OnvifError> {
+        self.services()
+            .await?
+            .playback
+            .ok_or(OnvifError::MissingService("Playback"))
+    }
+
+    /// `GetRecordingSummary` against the Search service (Profile G).
+    pub async fn get_recording_summary(
+        &self,
+    ) -> Result<super::profile_g::RecordingSummary, OnvifError> {
+        let search_url = self.search_url().await?;
+        let body = super::profile_g::build_get_recording_summary();
+        let reply = self.call(&search_url, &body).await?;
+        super::profile_g::parse_get_recording_summary(&reply)
+    }
+
+    /// `FindRecordings` against the Search service (Profile G).
+    pub async fn find_recordings(
+        &self,
+        scope_token: Option<&str>,
+        earliest: Option<&str>,
+        latest: Option<&str>,
+        max_matches: u32,
+    ) -> Result<String, OnvifError> {
+        let search_url = self.search_url().await?;
+        let body =
+            super::profile_g::build_find_recordings(scope_token, earliest, latest, max_matches);
+        let reply = self.call(&search_url, &body).await?;
+        super::profile_g::parse_find_recordings(&reply)
+    }
+
+    /// `GetRecordingSearchResults` against the Search service (Profile G).
+    pub async fn get_recording_search_results(
+        &self,
+        search_token: &str,
+        max_results: u32,
+    ) -> Result<Vec<super::profile_g::RecordingItem>, OnvifError> {
+        let search_url = self.search_url().await?;
+        let body = super::profile_g::build_get_recording_search_results(search_token, max_results);
+        let reply = self.call(&search_url, &body).await?;
+        super::profile_g::parse_get_recording_search_results(&reply)
+    }
+
+    /// `GetPlaybackUri` against the Playback service (Profile G).
+    pub async fn get_playback_uri(
+        &self,
+        recording_token: &str,
+        stream_setup: &str,
+    ) -> Result<super::profile_g::PlaybackUri, OnvifError> {
+        let playback_url = self.playback_url().await?;
+        let body = super::profile_g::build_get_playback_uri(recording_token, stream_setup);
+        let reply = self.call(&playback_url, &body).await?;
+        super::profile_g::parse_get_playback_uri(&reply)
+    }
+
     /// `CreatePullPointSubscription` against the events service.
     pub async fn create_pull_point_subscription(
         &self,

@@ -51,9 +51,13 @@ pub struct Services {
     pub ptz: Option<String>,
     /// Events service `XAddr`.
     pub events: Option<String>,
+    /// Search service `XAddr` (Profile G).
+    pub search: Option<String>,
+    /// Playback service `XAddr` (Profile G).
+    pub playback: Option<String>,
 }
 
-/// Parse a `GetCapabilitiesResponse`: the `XAddr` inside `Media`, `PTZ`, and `Events`.
+/// Parse a `GetCapabilitiesResponse`: the `XAddr` inside `Media`, `PTZ`, `Events`, `Search`, and `Recording`/`Playback`.
 pub fn parse_capabilities(body: &str) -> Result<Services, OnvifError> {
     let caps = xml::element_body(body, "Capabilities")
         .ok_or_else(|| OnvifError::Parse("no Capabilities in the reply".into()))?;
@@ -66,6 +70,8 @@ pub fn parse_capabilities(body: &str) -> Result<Services, OnvifError> {
         media: xaddr("Media"),
         ptz: xaddr("PTZ"),
         events: xaddr("Events"),
+        search: xaddr("Search"),
+        playback: xaddr("Playback").or_else(|| xaddr("Recording")),
     })
 }
 

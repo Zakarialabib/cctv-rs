@@ -29,6 +29,7 @@ pub mod error;
 pub mod events;
 pub mod media;
 pub mod observe_bridge;
+pub mod profile_g;
 pub mod ptz;
 pub mod session;
 pub mod soap;
@@ -48,6 +49,12 @@ pub use events::{
     parse_pull_messages, parse_renew, subscribe_events, EventSubscription, OnvifEvent,
     PullPointConfig, RenewResponse, SubscriptionReference, EVENTS_NS, TOPIC_NS, WSA_NS, WSE_NS,
     WSNT_NS,
+};
+pub use profile_g::{
+    build_find_recordings, build_get_playback_uri, build_get_recording_search_results,
+    build_get_recording_summary, parse_find_recordings, parse_get_playback_uri,
+    parse_get_recording_search_results, parse_get_recording_summary, PlaybackUri, RecordingItem,
+    RecordingSummary, TrackInformation, PLAYBACK_NS, SEARCH_NS,
 };
 pub use ptz::{
     build_absolute_move, build_continuous_move, build_get_presets, build_goto_preset,
@@ -84,6 +91,16 @@ impl DriverAdapter for OnvifDriverAdapter {
             cctv_core::Capability::AudioIn,
             cctv_core::Capability::AudioOut,
         ])
+    }
+
+    fn priority(&self) -> u16 {
+        crate::fingerprint::priority::FALLBACK
+    }
+
+    fn fingerprint(&self) -> crate::fingerprint::FingerprintRule {
+        crate::fingerprint::FingerprintRule::new()
+            .with_manufacturer("onvif")
+            .with_server_header("onvif")
     }
 
     async fn probe(&self, config: &CameraConfig) -> Result<ProbeResult, CameraError> {

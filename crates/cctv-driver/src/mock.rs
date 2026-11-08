@@ -3,6 +3,7 @@
 use async_trait::async_trait;
 use cctv_core::{CameraBackend, CameraConfig, CameraError, Capability, CapabilitySet, ProbeResult};
 
+use crate::fingerprint::{priority, FingerprintRule, RtspTemplate};
 use crate::DriverAdapter;
 
 /// In-memory mock camera backend created by [`MockDriverAdapter`].
@@ -62,6 +63,8 @@ impl CameraBackend for MockBackendHandle {
 pub struct MockDriverAdapter {
     key: &'static str,
     caps: CapabilitySet,
+    priority: u16,
+    templates: Vec<RtspTemplate>,
 }
 
 impl MockDriverAdapter {
@@ -75,12 +78,26 @@ impl MockDriverAdapter {
                 Capability::PtzPresets,
                 Capability::CameraContinuous,
             ]),
+            priority: priority::SPECIFIC,
+            templates: vec![RtspTemplate::new("/live", 554)],
         }
     }
 
     /// Set capabilities for this mock adapter.
     pub fn with_capabilities(mut self, caps: CapabilitySet) -> Self {
         self.caps = caps;
+        self
+    }
+
+    /// Set priority for this mock adapter.
+    pub fn with_priority(mut self, priority: u16) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    /// Set templates for this mock adapter.
+    pub fn with_templates(mut self, templates: Vec<RtspTemplate>) -> Self {
+        self.templates = templates;
         self
     }
 }
@@ -99,6 +116,20 @@ impl DriverAdapter for MockDriverAdapter {
 
     fn capabilities(&self) -> CapabilitySet {
         self.caps
+    }
+
+    fn priority(&self) -> u16 {
+        self.priority
+    }
+
+    fn fingerprint(&self) -> FingerprintRule {
+        FingerprintRule::new()
+            .with_manufacturer(self.key)
+            .with_model("mock")
+    }
+
+    fn rtsp_templates(&self) -> &[RtspTemplate] {
+        &self.templates
     }
 
     async fn probe(&self, config: &CameraConfig) -> Result<ProbeResult, CameraError> {

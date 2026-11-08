@@ -53,6 +53,17 @@ impl DriverAdapter for UvcDriverAdapter {
         ])
     }
 
+    fn priority(&self) -> u16 {
+        crate::fingerprint::priority::SPECIFIC
+    }
+
+    fn fingerprint(&self) -> crate::fingerprint::FingerprintRule {
+        crate::fingerprint::FingerprintRule::new()
+            .with_manufacturer("uvc")
+            .with_manufacturer("usb")
+            .with_model("video")
+    }
+
     async fn probe(&self, config: &CameraConfig) -> Result<ProbeResult, CameraError> {
         let backend = self.attach(config).await?;
         backend.probe().await
