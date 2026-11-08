@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use cctv_agent::{DetectionEvent, EventSubscriptionService, SignageCommand};
 use cctv_core::CameraId;
-use cctv_onvif::{subscribe_events, Credentials, OnvifSession, PullPointConfig};
+use cctv_driver::onvif::{subscribe_events, Credentials, OnvifSession, PullPointConfig};
 use cctv_transport::fixture::{FixtureServer, Route};
 use cctv_transport::http::HttpConfig;
 

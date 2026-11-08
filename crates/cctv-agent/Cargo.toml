@@ -4,30 +4,33 @@ description = "Fleet reconciler for cctv-rs: desired state -> graded remediation
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
 keywords = ["cctv", "camera", "reconciler", "fleet", "audit"]
 categories = ["hardware-support", "development-tools"]
 
+[features]
+default = []
+ddc = ["cctv-driver/ddc"]
 [dependencies]
 async-trait.workspace = true
 futures-core = "0.3"
 cctv-core = { workspace = true, features = ["serde-sync"] }
-cctv-onvif.workspace = true
+cctv-driver = { workspace = true, features = ["uvc"] }
+
 cctv-rtp.workspace = true
 cctv-rtsp.workspace = true
 cctv-transport = { workspace = true, features = ["http", "net"] }
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["sync", "rt", "time", "macros", "net"] }
-
 [dev-dependencies]
 cctv-transport = { workspace = true, features = ["http", "net", "fixture"] }
 # `test-util` supplies the paused clock the runner tests drive virtual time with,
 # so a watchdog deadline is asserted on the timer it actually fired from rather
 # than on how many milliseconds the test machine happened to be busy for.
 tokio = { workspace = true, features = ["sync", "rt-multi-thread", "macros", "time", "rt", "test-util"] }
-
 [lints]
 workspace = true

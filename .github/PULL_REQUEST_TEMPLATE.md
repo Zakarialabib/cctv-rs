@@ -10,13 +10,13 @@
 - [ ] cctv-transport
 - [ ] cctv-rtp
 - [ ] cctv-rtsp
-- [ ] cctv-discovery
-- [ ] cctv-onvif
-- [ ] cctv-ezviz
-- [ ] cctv-stream-uvc
+- [ ] cctv-driver
+
 - [ ] cctv-agent
 - [ ] cctv-detect
 - [ ] cctv-rag
+- [ ] cctv-pair
+- [ ] cctv-sync
 - [ ] cctv-rs
 - [ ] workspace / tooling (`scripts/`, `xtask/`, `.github/`, docs)
 
@@ -31,6 +31,7 @@
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings` — 0 errors
 - [ ] `cargo test --workspace` — all tests green
 - [ ] `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` — clean
+- [ ] `cargo build -p cctv-core --no-default-features --target thumbv7em-none-eabi` — builds without std
 
 ## Notes
 

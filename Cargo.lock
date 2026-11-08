@@ -273,11 +273,11 @@ dependencies = [
 
 [[package]]
 name = "cctv-agent"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "cctv-core",
- "cctv-onvif",
+ "cctv-driver",
  "cctv-rtp",
  "cctv-rtsp",
  "cctv-transport",
@@ -289,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-core"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "insta",
@@ -302,52 +302,32 @@ dependencies = [
 
 [[package]]
 name = "cctv-detect"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "rayon",
 ]
 
 [[package]]
-name = "cctv-discovery"
-version = "0.2.0"
+name = "cctv-driver"
+version = "0.4.0"
 dependencies = [
+ "async-trait",
+ "base64 0.23.1",
  "cctv-core",
  "cctv-transport",
+ "ezviz-openapi",
+ "futures-executor",
+ "serde",
+ "serde_json",
+ "sha1",
  "thiserror 2.0.21",
  "tokio",
 ]
 
 [[package]]
-name = "cctv-ezviz"
-version = "0.2.0"
-dependencies = [
- "async-trait",
- "cctv-core",
- "cctv-transport",
- "ezviz-openapi",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "cctv-onvif"
-version = "0.2.0"
-dependencies = [
- "async-trait",
- "base64 0.23.1",
- "cctv-core",
- "cctv-discovery",
- "cctv-transport",
- "serde_json",
- "sha1",
- "tokio",
-]
-
-[[package]]
 name = "cctv-pair"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "cctv-core",
@@ -361,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-rag"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "cctv-detect",
@@ -372,31 +352,29 @@ dependencies = [
 
 [[package]]
 name = "cctv-rs"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "cctv-agent",
  "cctv-core",
  "cctv-detect",
- "cctv-discovery",
- "cctv-ezviz",
- "cctv-onvif",
+ "cctv-driver",
  "cctv-pair",
  "cctv-rag",
  "cctv-rtp",
- "cctv-stream-uvc",
  "cctv-sync",
  "cctv-transport",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
 name = "cctv-rtp"
-version = "0.2.0"
+version = "0.4.0"
 
 [[package]]
 name = "cctv-rtsp"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -409,19 +387,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "cctv-stream-uvc"
-version = "0.2.0"
-dependencies = [
- "async-trait",
- "cctv-core",
- "serde",
- "thiserror 2.0.21",
- "tokio",
-]
-
-[[package]]
 name = "cctv-sync"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "cctv-pair",
@@ -432,7 +399,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-transport"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "iroh",
@@ -4328,7 +4295,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "cctv-rs",
 ]

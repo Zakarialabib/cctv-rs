@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::commands::Preset;
 use crate::error::CameraError;
+use crate::profile::RecordingProfile;
 use crate::state::ProbeResult;
 use crate::types::CameraType;
 
@@ -218,6 +219,12 @@ pub struct CameraConfig {
     /// Request timeout in milliseconds; the driver's default when absent.
     #[cfg_attr(feature = "serde-sync", serde(default))]
     pub timeout_ms: Option<u64>,
+    /// Fleet/zone group identifier this camera belongs to (e.g. "lobby", "warehouse").
+    #[cfg_attr(feature = "serde-sync", serde(default))]
+    pub group: Option<String>,
+    /// Composite recording profile assigned to this camera.
+    #[cfg_attr(feature = "serde-sync", serde(default))]
+    pub recording_profile: Option<RecordingProfile>,
 }
 
 fn default_camera_type() -> CameraType {
@@ -242,7 +249,21 @@ impl CameraConfig {
             accept_invalid_certs: false,
             ty: default_camera_type(),
             timeout_ms: None,
+            group: None,
+            recording_profile: None,
         }
+    }
+
+    /// Builder: assign a fleet/zone group.
+    pub fn with_group(mut self, group: impl Into<String>) -> Self {
+        self.group = Some(group.into());
+        self
+    }
+
+    /// Builder: assign a composite recording profile.
+    pub fn with_recording_profile(mut self, profile: RecordingProfile) -> Self {
+        self.recording_profile = Some(profile);
+        self
     }
 
     /// Builder: set the credentials.
@@ -310,6 +331,23 @@ pub trait CameraBackend: Send + Sync {
         crate::caps::CapabilitySet::EMPTY
     }
 
+    /// Execute a parameterless or catalogue command on the camera backend.
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        let _ = command;
+        Err(CameraError::NotImplemented)
+    }
+
+    /// Check health status of this camera backend.
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        match self.probe().await {
+            Ok(_) => Ok(crate::health::Health::Healthy),
+            Err(_) => Ok(crate::health::Health::Dead { since_ms: 0 }),
+        }
+    }
+
     /// Read the device identity: vendor, model, firmware, MAC, PTZ support.
     async fn probe(&self) -> Result<ProbeResult, CameraError>;
 
@@ -330,6 +368,11 @@ pub trait CameraBackend: Send + Sync {
     async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
         let _ = command;
         Err(CameraError::PtzDisabled)
+    }
+
+    /// Subscribe to live state observations emitted by this backend.
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
+        Err(CameraError::NotImplemented)
     }
 
     /// List the presets stored on the device.
@@ -354,6 +397,130 @@ pub trait CameraBackend: Send + Sync {
     async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
         let _ = id;
         Err(CameraError::PtzDisabled)
+    }
+}
+
+#[async_trait]
+impl<T: CameraBackend + ?Sized> CameraBackend for alloc::sync::Arc<T> {
+    fn driver(&self) -> &'static str {
+        (**self).driver()
+    }
+
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        (**self).capabilities()
+    }
+
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        (**self).execute(command).await
+    }
+
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
+        (**self).observe().await
+    }
+
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        (**self).health().await
+    }
+
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        (**self).probe().await
+    }
+
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        (**self).stream(quality).await
+    }
+
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        (**self).snapshot().await
+    }
+
+    async fn trigger_capture(&self) -> Result<MediaFile, CameraError> {
+        (**self).trigger_capture().await
+    }
+
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        (**self).ptz(command).await
+    }
+
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        (**self).presets().await
+    }
+
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        (**self).save_preset(name, id).await
+    }
+
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).goto_preset(id).await
+    }
+
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).delete_preset(id).await
+    }
+}
+
+#[async_trait]
+impl<T: CameraBackend + ?Sized> CameraBackend for Box<T> {
+    fn driver(&self) -> &'static str {
+        (**self).driver()
+    }
+
+    fn capabilities(&self) -> crate::caps::CapabilitySet {
+        (**self).capabilities()
+    }
+
+    async fn execute(
+        &self,
+        command: crate::commands::CommandId,
+    ) -> Result<crate::commands::CommandResult, CameraError> {
+        (**self).execute(command).await
+    }
+
+    async fn observe(&self) -> Result<crate::observe::ObservationStream, CameraError> {
+        (**self).observe().await
+    }
+
+    async fn health(&self) -> Result<crate::health::Health, CameraError> {
+        (**self).health().await
+    }
+
+    async fn probe(&self) -> Result<ProbeResult, CameraError> {
+        (**self).probe().await
+    }
+
+    async fn stream(&self, quality: StreamQuality) -> Result<StreamInfo, CameraError> {
+        (**self).stream(quality).await
+    }
+
+    async fn snapshot(&self) -> Result<Snapshot, CameraError> {
+        (**self).snapshot().await
+    }
+
+    async fn trigger_capture(&self) -> Result<MediaFile, CameraError> {
+        (**self).trigger_capture().await
+    }
+
+    async fn ptz(&self, command: PtzCommand) -> Result<(), CameraError> {
+        (**self).ptz(command).await
+    }
+
+    async fn presets(&self) -> Result<Vec<Preset>, CameraError> {
+        (**self).presets().await
+    }
+
+    async fn save_preset(&self, name: &str, id: Option<&str>) -> Result<Preset, CameraError> {
+        (**self).save_preset(name, id).await
+    }
+
+    async fn goto_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).goto_preset(id).await
+    }
+
+    async fn delete_preset(&self, id: &str) -> Result<(), CameraError> {
+        (**self).delete_preset(id).await
     }
 }
 

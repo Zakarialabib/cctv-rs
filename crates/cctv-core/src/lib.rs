@@ -8,7 +8,7 @@
 //! `cctv-core` is the **domain** (the aggregate): `CameraState`, `CameraDesired`,
 //! `CameraStateCurrent`, `CameraType`, `ProbeResult`, `CommandId` and the
 //! `CommandResult` / `CommandResultPayload` pair.  The drivers
-//! (`cctv-ezviz`, `cctv-discovery`, `cctv-transport`) are pure **ports**: they
+//! (`cctv-driver`, `cctv-transport`) are pure **ports**: they
 //! translate hardware into this aggregate and nothing else.
 //!
 //! Drivers implement [`CameraBackend`] for one connected camera and prove it
@@ -69,16 +69,21 @@ pub(crate) mod prelude {
 }
 
 pub mod backend;
+pub mod cache;
 pub mod caps;
 pub mod commands;
 pub mod conformance;
+pub mod discovery;
 pub mod doctor;
 pub mod error;
 pub mod events;
+pub mod health;
 pub mod imperative;
 pub mod lease;
 #[cfg(feature = "testing")]
 pub mod mock;
+pub mod observe;
+pub mod profile;
 pub mod provisioning;
 #[cfg(feature = "quirks")]
 pub mod quirks;
@@ -99,6 +104,7 @@ pub use backend::{
     jpeg_dimensions, redact_uri, with_credentials, CameraBackend, CameraConfig, FrameSource,
     MediaFile, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
+pub use cache::EdgeCache;
 pub use caps::{
     BackendCapabilityRegistry, Capability, CapabilitySet, CapabilityView, ParseCapabilityError,
 };
@@ -106,6 +112,7 @@ pub use commands::{
     CameraHandle, CameraSnapshot, CommandId, CommandResult, CommandResultPayload, MotionEvent,
     Preset, SnapshotRef, StreamHandle,
 };
+pub use discovery::{Datagram, Discoverable, DiscoveredCamera};
 pub use doctor::{
     auto_fix, doctor, doctor_with_checks, standard_checks, AutoFixPolicy, Check, CheckKind,
     CheckResult, CheckStatus, ClockResyncFix, ClockSkewCheck, ConfirmCallback, DigestCheck,
@@ -116,6 +123,8 @@ pub use error::{CameraError, CoreError};
 pub use events::{AuditEntry, DomainEvent};
 pub use imperative::ImperativeCameraCommand;
 pub use lease::{CameraId, LeaseMode, MaintenanceLease};
+pub use observe::{CameraObservation, ObservationSource, ObservationStream};
+pub use profile::{AudioSource, GridLayout, ProfileError, RecordingContainer, RecordingProfile};
 pub use provisioning::{
     CameraCapabilitySet, CameraProvisioningBundleV1, DecryptedCameraAuth, EncryptedAuthEnvelope,
     MacAddress, StreamProfileSet,

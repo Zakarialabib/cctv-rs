@@ -10,10 +10,7 @@ members = [
     "crates/cctv-transport",
     "crates/cctv-rtp",
     "crates/cctv-rtsp",
-    "crates/cctv-discovery",
-    "crates/cctv-onvif",
-    "crates/cctv-ezviz",
-    "crates/cctv-stream-uvc",
+    "crates/cctv-driver",
     "crates/cctv-agent",
     "crates/cctv-detect",
     "crates/cctv-rag",
@@ -24,30 +21,29 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.89"
+authors = ["Zakaria Labib"]
 license = "Apache-2.0"
 repository = "https://github.com/Zakarialabib/cctv-rs"
 
 [workspace.dependencies]
 # --- workspace crates (path + version: Cargo strips `path` at publish time) ---
-cctv-core = { path = "crates/cctv-core", version = "0.2.0" }
-cctv-transport = { path = "crates/cctv-transport", version = "0.2.0" }
-cctv-rtp = { path = "crates/cctv-rtp", version = "0.2.0" }
-cctv-rtsp = { path = "crates/cctv-rtsp", version = "0.2.0" }
-cctv-discovery = { path = "crates/cctv-discovery", version = "0.2.0" }
-cctv-onvif = { path = "crates/cctv-onvif", version = "0.2.0" }
-cctv-ezviz = { path = "crates/cctv-ezviz", version = "0.2.0" }
-cctv-stream-uvc = { path = "crates/cctv-stream-uvc", version = "0.2.0" }
-cctv-agent = { path = "crates/cctv-agent", version = "0.2.0" }
-cctv-detect = { path = "crates/cctv-detect", version = "0.2.0" }
-cctv-rag = { path = "crates/cctv-rag", version = "0.2.0" }
-cctv-pair = { path = "crates/cctv-pair", version = "0.2.0" }
-cctv-sync = { path = "crates/cctv-sync", version = "0.2.0" }
+cctv-core = { path = "crates/cctv-core", version = "0.4.0" }
+cctv-transport = { path = "crates/cctv-transport", version = "0.4.0" }
+cctv-rtp = { path = "crates/cctv-rtp", version = "0.4.0" }
+cctv-rtsp = { path = "crates/cctv-rtsp", version = "0.4.0" }
+
+cctv-agent = { path = "crates/cctv-agent", version = "0.4.0" }
+cctv-driver = { path = "crates/cctv-driver", version = "0.4.0" }
+cctv-detect = { path = "crates/cctv-detect", version = "0.4.0" }
+cctv-rag = { path = "crates/cctv-rag", version = "0.4.0" }
+cctv-pair = { path = "crates/cctv-pair", version = "0.4.0" }
+cctv-sync = { path = "crates/cctv-sync", version = "0.4.0" }
 # The facade is published last: it re-exports every crate above.  It cannot be
 # called `cctv` — that name is taken on crates.io by an unrelated project.
-cctv-rs = { path = "crates/cctv-rs", version = "0.2.0" }
+cctv-rs = { path = "crates/cctv-rs", version = "0.4.0" }
 
 # --- external driver ---
 # Published from its own repository (`ezviz-openapi-rs`). Development builds use

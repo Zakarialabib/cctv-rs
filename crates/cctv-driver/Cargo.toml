@@ -1,0 +1,45 @@
+[package]
+name = "cctv-driver"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Vendor-neutral driver extension point for cctv-rs: DriverAdapter/DriverRegistry seam with bundled discovery, Ezviz and UVC/PTP/DDC adapters behind features"
+readme = "README.md"
+keywords = ["cctv", "driver", "discovery", "ezviz", "uvc"]
+categories = ["api-bindings", "multimedia::video"]
+
+[features]
+default = ["discovery", "onvif"]
+discovery = ["cctv-transport"]
+driver-mock = []
+mobile = ["discovery", "dep:tokio"]
+onvif = ["cctv-transport", "dep:tokio", "dep:base64", "dep:sha1", "dep:serde_json"]
+
+# Non-default driver features
+ezviz = ["dep:ezviz-openapi", "dep:serde", "dep:serde_json"]
+pc-sdk = ["ezviz", "ezviz-openapi/pc-sdk"]
+uvc = ["dep:serde", "dep:tokio"]
+uvc-ptp = ["uvc"]
+ddc = ["uvc"]
+
+[dependencies]
+cctv-core = { workspace = true }
+cctv-transport = { workspace = true, features = ["http"], optional = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, optional = true, features = ["sync", "time", "net", "rt", "macros"] }
+
+# Optional dependencies behind features
+base64 = { workspace = true, optional = true }
+sha1 = { workspace = true, optional = true }
+ezviz-openapi = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+futures-executor = "0.3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+cctv-transport = { workspace = true, features = ["fixture"] }

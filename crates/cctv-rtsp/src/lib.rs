@@ -40,7 +40,8 @@ pub use sdp::{parse_sdp, Session, Track};
 pub use backend::{
     map_net_error, map_status, probe_result, resolve_control, uri_path, RtspCameraBackend,
     RtspSession, RtspUrl, SessionOffer, DEFAULT_KEEPALIVE, DEFAULT_RECONNECT_DELAY,
-    DEFAULT_RETRIES, DRIVER_KEY, GENERIC_MODEL, GENERIC_VENDOR,
+    DEFAULT_RECONNECT_MAX_DELAY, DEFAULT_RECONNECT_MAX_RETRIES, DEFAULT_RETRIES, DRIVER_KEY,
+    GENERIC_MODEL, GENERIC_VENDOR,
 };
 #[cfg(feature = "net")]
 pub use streaming::{

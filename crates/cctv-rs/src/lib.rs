@@ -18,18 +18,29 @@
 pub mod drivers;
 pub mod facade;
 
+pub use cctv_driver::{DriverAdapter, DriverError, DriverRegistry, InMemoryRegistry};
 pub use drivers::{DriverFactory, EZVIZ, ONVIF, PTP, UVC};
 pub use facade::{clock_ms, Facade};
 
-pub use cctv_agent::{Action, Audit, AuditEntry, CommandRelay, Grade, Reconciler, Remediation};
-pub use cctv_core::{
-    BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle, CameraId,
-    CameraState, CameraStateCurrent, CameraType, Capability, CapabilitySet, CapabilityView,
-    CommandId, CommandResult, CommandResultPayload, DomainEvent, FrameSource, MediaFile, Preset,
-    PtzCommand, Snapshot, StreamInfo, StreamQuality,
+pub use cctv_agent::{
+    Action, Audit, AuditEntry, CommandRelay, CompositeInputConfig, CompositeNalu,
+    CompositeStreamMux, GopCache, Grade, Nalu, NaluType, ObservationSubscriber, Policy,
+    PolicyTracker, PolicyVerdict, Reconciler, Remediation, ScheduleWindow, StreamMux,
+    StreamMuxConfig, VideoCodec,
 };
+pub use cctv_core::{
+    AudioSource, BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle,
+    CameraId, CameraObservation, CameraState, CameraStateCurrent, CameraType, Capability,
+    CapabilitySet, CapabilityView, CommandId, CommandResult, CommandResultPayload, DomainEvent,
+    EdgeCache, FrameSource, GridLayout, MediaFile, ObservationSource, ObservationStream, Preset,
+    ProfileError, PtzCommand, RecordingContainer, RecordingProfile, Snapshot, StreamInfo,
+    StreamQuality,
+};
+pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};
-pub use cctv_discovery::DiscoveredCamera;
+pub use cctv_driver::{
+    BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
+};
 pub use cctv_pair::{
     CeremonyConfig, CeremonyRole, CeremonyState, LockoutManager, PairingCeremony, PairingError,
     PairingMessage, PairingMethod, PairingQrPayload, TrustStore, TrustedPeer, PAIRING_ALPN,
@@ -42,9 +53,14 @@ pub use cctv_rag::{
     SpatialGraph, ZoneKind, ZoneNode,
 };
 pub use cctv_rtp::{MediaDescriptor, MediaProbe, TranscodePlan};
-pub use cctv_stream_uvc::{
-    BudgetedFrameReader, HalEventSource, OsError, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter,
-};
 pub use cctv_sync::{
     LwwRegister, OrSet, SyncCameraRecord, SyncDeviceRegistry, SyncPeerRecord, SyncTrustStore, Tag,
+};
+
+#[cfg(feature = "ddc")]
+pub use cctv_agent::{AmbientDisplayPolicy, NIGHT_LUX_THRESHOLD};
+#[cfg(feature = "ddc")]
+pub use cctv_driver::{
+    DdcController, DdcError, DisplayProfile, I2cBus, InputSource, LinuxI2cBus, MockI2cBus,
+    PowerMode, VcpCode, DDC_HOST_ADDR, DDC_I2C_ADDR,
 };

@@ -21,14 +21,14 @@
 #     after its dependency was uploaded, while the index catches up. That is a
 #     retry, not an error.
 #   * crates.io rate-limits *new* crates to a burst of 5 per account and then 1
-#     every 10 minutes. A first release of this workspace is twelve new crates
-#     (thirteen with `ezviz-openapi`), so the tail of the order waits. The registry's
-#     error names the time to retry; this script waits and retries rather than
-#     failing a release half way through.
+#     every 10 minutes. This workspace's first release includes fifteen crates
+#     (sixteen with `ezviz-openapi`), so the tail of the order waits. The
+#     registry's error names the time to retry; this script waits and retries
+#     rather than failing a release half way through.
 #
 # NOTE `ezviz-openapi` is NOT in this list: it is published from its own
 # repository (c:\laragon\www\ezviz-openapi-rs) and must already exist on
-# crates.io before `cctv-ezviz` is published, because `cargo publish` strips the
+# crates.io before `cctv-driver` is published, because `cargo publish` strips the
 # `git` key from a `{ git, version }` dependency and resolves the version from the
 # registry. Publish it first, then run this script.
 #
@@ -42,10 +42,8 @@ ORDER=(
     cctv-transport   # no workspace deps
     cctv-rtp         # zero dependencies: pure payload parsers
     cctv-rtsp        # -> base64 only: session codecs
-    cctv-discovery   # -> cctv-core
-    cctv-onvif       # -> cctv-core, cctv-transport, cctv-discovery
-    cctv-ezviz       # -> ezviz-openapi (published separately: must land first)
-    cctv-stream-uvc  # -> cctv-core
+    cctv-driver      # -> cctv-core, cctv-transport (vendor-neutral adapter seam: ezviz, uvc behind features)
+
     cctv-agent       # -> cctv-core
     cctv-detect      # -> cctv-core
     cctv-rag         # -> cctv-core, cctv-detect
@@ -163,7 +161,7 @@ if [ "$MODE" = "--publish" ]; then
         "https://crates.io/api/v1/crates/$EXTERNAL_DEP" 2>/dev/null || true)"
     case "$external_code" in
         404)
-            echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-ezviz depends on it." >&2
+            echo "error: $EXTERNAL_DEP is not on crates.io, and cctv-driver depends on it." >&2
             echo "       Publish it from its own repository first:" >&2
             echo "         cd ../ezviz-openapi-rs && cargo publish" >&2
             echo "       (a first release of this workspace is 12 new crates; crates.io" >&2
@@ -226,6 +224,7 @@ for crate in "${ORDER[@]}"; do
         # present only at the OLD version while the new one is not indexed yet.
         # Dry run = expected; real publish = index lag.
         if printf '%s' "$output" | grep -q 'no matching package named `\(cctv\|ezviz-openapi\)' \
+            || printf '%s' "$output" | grep -q 'failed to select a version for `\(cctv\|ezviz-openapi\)' \
             || printf '%s' "$output" | grep -q 'failed to select a version for the requirement `\(cctv\|ezviz-openapi\)'; then
             if [ "$MODE" = "--dry-run" ]; then
                 echo "warning: $crate not fully verified — a workspace dependency is not on" \
