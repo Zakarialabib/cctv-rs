@@ -131,6 +131,56 @@ jobs:
       # from the index yet; the script reports that as a warning, not a failure.
       - run: bash scripts/publish.sh --dry-run
 
+  features:
+    name: feature matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # `--workspace` unifies features across the graph, so a crate that only
+      # compiles because a sibling enabled a feature can rot unnoticed. Every
+      # combination below is built on its own: `--no-default-features` omits
+      # everything, `--all-features` enables everything, and each feature is
+      # checked in isolation. This job earned its place immediately — it found
+      # that `cctv-driver`'s `onvif` feature did not build without `discovery`.
+      - name: cctv-core
+        run: |
+          cargo check -p cctv-core --no-default-features
+          cargo check -p cctv-core --all-features
+          cargo check -p cctv-core --no-default-features --features testing
+          cargo check -p cctv-core --no-default-features --features serde-sync
+          cargo check -p cctv-core --no-default-features --features quirks
+      - name: cctv-transport
+        run: |
+          cargo check -p cctv-transport --no-default-features
+          cargo check -p cctv-transport --all-features
+          cargo check -p cctv-transport --no-default-features --features http
+          cargo check -p cctv-transport --no-default-features --features fixture
+          cargo check -p cctv-transport --no-default-features --features net
+          cargo check -p cctv-transport --no-default-features --features quic
+      - name: cctv-driver
+        run: |
+          cargo check -p cctv-driver --no-default-features
+          cargo check -p cctv-driver --all-features
+          cargo check -p cctv-driver --no-default-features --features discovery
+          cargo check -p cctv-driver --no-default-features --features onvif
+          cargo check -p cctv-driver --no-default-features --features driver-mock
+          cargo check -p cctv-driver --no-default-features --features mobile
+          cargo check -p cctv-driver --no-default-features --features ezviz
+          cargo check -p cctv-driver --no-default-features --features pc-sdk
+          cargo check -p cctv-driver --no-default-features --features uvc
+          cargo check -p cctv-driver --no-default-features --features uvc-ptp
+          cargo check -p cctv-driver --no-default-features --features ddc
+      # `ddc` is a pass-through feature on both the facade and the agent (each
+      # re-exports it to `cctv-driver`), so both paths are built here.
+      - name: ddc facade paths
+        run: |
+          cargo check -p cctv-agent --no-default-features
+          cargo check -p cctv-agent --features ddc
+          cargo check -p cctv-rs --no-default-features
+          cargo check -p cctv-rs --features ddc
+
   msrv:
     name: msrv (${{ matrix.rust }})
     runs-on: ubuntu-latest

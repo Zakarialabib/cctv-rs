@@ -65,6 +65,9 @@ CI adds jobs beyond this local set:
 
 - **MSRV build** — `1.89.0` (pinned in `rust-toolchain.toml`).
 - **Per-crate build** in publish order.
+- **Feature matrix** — `--no-default-features` and `--all-features` for
+  `cctv-core`, `cctv-transport`, and `cctv-driver`, every feature isolated, and
+  both `ddc` facade paths.
 - **`cctv-core` graph assertions** — tokio-free and std-free, plus bare-metal
   (`thumbv7em-none-eabi`) compilation.
 - **`cargo-deny`** — license, advisory, and ban checks.

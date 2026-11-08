@@ -108,8 +108,8 @@ behind cargo features on `cctv-driver` instead of as standalone crates.
 
 | Feature | Default | Provides |
 | --- | --- | --- |
-| `discovery` | yes | WS-Discovery sweeps delegated to the ONVIF adapter |
-| `onvif` | yes | ONVIF SOAP services (Device / Media / PTZ), session, WS-Security |
+| `discovery` | yes | Merged SSDP + WS-Discovery `Probe` sweep, the `Datagram` / `Discoverable` seam and `UdpTransport` |
+| `onvif` | yes | ONVIF SOAP services (Device / Media / PTZ), session, WS-Security; implies `discovery` (the ONVIF sweep filters the shared one) |
 | `driver-mock` | no | In-repo fixture adapter for tests |
 | `mobile` | no | `discovery` plus the tokio runtime the mobile probe needs |
 | `ezviz` | no | Ezviz Open Platform cloud adapter |
@@ -127,7 +127,7 @@ dependency pulled in only by the `ezviz` feature.
 | Item | Change | Why |
 | --- | --- | --- |
 | ~~CV-16~~ | ~~Prove the `no_std` contract on a bare-metal target (`thumbv7em-none-eabi`) in the `core` CI job and extend the graph assertion~~ | ~~`--no-default-features` only proves the crate compiles without `std` on a `std` host; the bare-metal target proves nothing in the graph pulls `std` back in~~ (Shipped) |
-| CV-17 | Exercise the feature matrix in CI: isolate every feature, `--no-default-features` per crate, `--all-features` for `cctv-core` / `cctv-transport` / `cctv-driver`, and both `ddc` facade paths. | Only three non-default feature paths are built today, so a feature combination can rot unnoticed. |
+| ~~CV-17~~ | ~~Exercise the feature matrix in CI: isolate every feature, `--no-default-features` per crate, `--all-features` for `cctv-core` / `cctv-transport` / `cctv-driver`, and both `ddc` facade paths~~ | ~~Only three non-default feature paths are built today, so a feature combination can rot unnoticed~~ (Shipped — the new `feature matrix` CI job runs it. It found the rot on its first run: `cctv-driver --no-default-features --features onvif` did not build, because `onvif::discovery` filters the shared sweep. `onvif` now implies `discovery`.) |
 
 ---
 
@@ -158,6 +158,7 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
 CI adds the MSRV build (1.89.0), the per-crate build in publish order, the
+feature matrix (every combination built on its own — see §3, CV-17), the
 tokio-free and std-free `cctv-core` graph assertions, bare-metal
 (`thumbv7em-none-eabi`) `cctv-core` compilation, `cargo-deny`, and the Annex-B
 parser fuzz target. The rule set behind these gates is

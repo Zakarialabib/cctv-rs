@@ -9,6 +9,20 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 
 ## [Unreleased]
 
+### Added
+
+- **Feature-matrix CI job (CV-17).** `feature matrix` builds every feature
+  combination on its own — `--no-default-features` and `--all-features` for
+  `cctv-core`, `cctv-transport`, and `cctv-driver`, each feature isolated, and
+  both `ddc` facade paths — so a combination can no longer rot unseen behind
+  `--workspace` feature unification.
+
+### Fixed
+
+- **`cctv-driver`'s `onvif` feature did not build without `discovery`.**
+  `onvif::discovery` filters the shared sweep, so `onvif` now implies
+  `discovery`. Caught by the new feature-matrix job on its first run.
+
 ### Changed
 
 - **Documentation restructured into a numbered set.** `docs/` is now an ordered
