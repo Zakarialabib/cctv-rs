@@ -32,8 +32,9 @@ pub use cctv_core::{
     AudioSource, BackendCapabilityRegistry, CameraBackend, CameraConfig, CameraError, CameraHandle,
     CameraId, CameraObservation, CameraState, CameraStateCurrent, CameraType, Capability,
     CapabilitySet, CapabilityView, CommandId, CommandResult, CommandResultPayload, DomainEvent,
-    FrameSource, GridLayout, MediaFile, ObservationSource, ObservationStream, Preset, ProfileError,
-    PtzCommand, RecordingContainer, RecordingProfile, Snapshot, StreamInfo, StreamQuality,
+    EdgeCache, FrameSource, GridLayout, MediaFile, ObservationSource, ObservationStream, Preset,
+    ProfileError, PtzCommand, RecordingContainer, RecordingProfile, Snapshot, StreamInfo,
+    StreamQuality,
 };
 pub use cctv_core::{Datagram, Discoverable, DiscoveredCamera};
 pub use cctv_detect::{Detection, Region, RegionKind, Zone, ZoneConfig};

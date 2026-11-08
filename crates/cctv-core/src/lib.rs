@@ -69,6 +69,7 @@ pub(crate) mod prelude {
 }
 
 pub mod backend;
+pub mod cache;
 pub mod caps;
 pub mod commands;
 pub mod conformance;
@@ -103,6 +104,7 @@ pub use backend::{
     jpeg_dimensions, redact_uri, with_credentials, CameraBackend, CameraConfig, FrameSource,
     MediaFile, PtzCommand, Snapshot, StreamInfo, StreamQuality,
 };
+pub use cache::EdgeCache;
 pub use caps::{
     BackendCapabilityRegistry, Capability, CapabilitySet, CapabilityView, ParseCapabilityError,
 };
