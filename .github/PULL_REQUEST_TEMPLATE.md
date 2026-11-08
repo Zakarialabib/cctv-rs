@@ -11,7 +11,7 @@
 - [ ] cctv-rtp
 - [ ] cctv-rtsp
 - [ ] cctv-driver
-- [ ] cctv-onvif
+
 - [ ] cctv-agent
 - [ ] cctv-detect
 - [ ] cctv-rag

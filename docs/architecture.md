@@ -15,7 +15,7 @@ cctv-rs (Aggregate Facade)
 │                           (feature `onvif`), plus the Ezviz (feature `ezviz`)
 │                           and local-video UVC/PTP/DDC (features `uvc`,
 │                           `uvc-ptp`, `ddc`) adapters
-├── cctv-onvif ──────────── Deprecated re-export shim for `cctv-driver::onvif`
+
 ├── cctv-agent ──────────── Fleet reconciler, StreamMux, SnapshotProxy
 ├── cctv-detect ─────────── Detection & zone configuration models
 ├── cctv-rag ────────────── Incident ledger, spatial topology, BM25 RAG retrieval
@@ -52,7 +52,7 @@ All camera interactions pass through the typed `Facade` interface:
 | `cctv-rtp` | *(none)* | Pure byte-slice RTP header parsing and H.264/H.265 access-unit reassembly (STAP-A, FU-A, AP, FU). |
 | `cctv-rtsp` | `base64`, `zeroize` | Pure message framing, SDP track extraction, `$`-interleaved frame demuxing, and RFC 2617/7616 Digest auth state machine. |
 | `cctv-driver` | `cctv-core` (+ `cctv-transport` under `discovery` / `onvif`) | Vendor-neutral adapter seam: the `DriverAdapter` factory surface, `DriverRegistry`, and the bundled protocol adapters. `discovery` and `onvif` (both default) carry the SSDP `M-SEARCH` / WS-Discovery `Probe` sweeps and the ONVIF SOAP 1.2 Device/Media/PTZ client with skewed-clock WS-Security `UsernameToken`; `ezviz` bundles the Ezviz Open Platform adapter; `uvc` / `uvc-ptp` / `ddc` bundle the local-video seam (mockable OS platform, UVC capture, PTP fetch, HAL hot-plug, DDC/CI display control). |
-| `cctv-onvif` | `cctv-driver` (`onvif`) | **Deprecated re-export shim** — forwards to `cctv-driver::onvif` and is retained for one release. Migrate to `cctv-driver` with `features = ["onvif"]`. |
+
 | `cctv-agent` | `cctv-core`, `cctv-rtsp` | Deterministic fleet reconciler, graded remediation actions (`Hold`, `MarkOffline`, `TakeOutOfService`), `StreamMux` GOP caching, and `SnapshotProxy`. |
 | `cctv-detect` | *(pure / alloc-only)* | Motion and object detection primitives: `Detection`, `Zone` (`point`, `rectangle`), `ZoneConfig` with clamped normalization. |
 | `cctv-rag` | `cctv-core`, `cctv-detect` | Deterministic retrieval layer: temporal incident ledger, spatial topology graph, BM25 index, and diagnostic playbooks, exposed as one `KnowledgeBaseIndex`. |

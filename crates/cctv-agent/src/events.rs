@@ -9,7 +9,7 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use cctv_core::CameraId;
-use cctv_onvif::{subscribe_events, EventSubscription, OnvifSession, PullPointConfig};
+use cctv_driver::onvif::{subscribe_events, EventSubscription, OnvifSession, PullPointConfig};
 use futures_core::Stream;
 use tokio::sync::mpsc;
 

@@ -90,7 +90,6 @@ live behind cargo features on `cctv-driver` instead of as standalone crates.
 | CV-14 | #57 | `CameraBackend::observe` and `Facade::observe` |
 | CV-13 | #58 | `cctv-discovery` folds in behind the `discovery` feature |
 | CV-12 | #59 | `cctv-ezviz` and `cctv-stream-uvc` fold in behind `ezviz`, `uvc`, `uvc-ptp`, `ddc` |
-| CV-11 | #62 | `cctv-onvif` folds in behind the `onvif` feature; `cctv-onvif` stays as a deprecated re-export shim for one release |
 | CV-20 | #60 | Graded reconciliation policies with an audit trail |
 
 `cctv-driver` now carries the whole adapter surface:
@@ -107,7 +106,7 @@ live behind cargo features on `cctv-driver` instead of as standalone crates.
 | `uvc-ptp` | no | `uvc` plus the PTP still-image path |
 | `ddc` | no | `uvc` plus DDC/CI display control |
 
-`cctv-driver` sits before `cctv-onvif` in `Cargo.toml` member order,
+`cctv-driver` sits in `Cargo.toml` member order,
 `scripts/publish.sh` `ORDER` and CI's per-crate job; `ezviz-openapi` remains an
 external crates.io dependency pulled in only by the `ezviz` feature.
 

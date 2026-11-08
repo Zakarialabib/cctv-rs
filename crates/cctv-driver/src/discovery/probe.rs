@@ -146,7 +146,7 @@ impl Default for Probe {
 ///
 /// A WS-Discovery `Probe` carries this so a device can tell two sweeps apart;
 /// [`super::wsd::probe`] embeds it.  Published for protocol-specific sweeps —
-/// `cctv-onvif`'s filtered ONVIF discovery mints its own.
+/// `cctv-driver::onvif`'s filtered ONVIF discovery mints its own.
 pub fn message_id() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
     static SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -211,7 +211,7 @@ fn camera_from_ssdp(reply: &ssdp::SsdpReply) -> Option<DiscoveredCamera> {
 ///
 /// The identity falls back to the endpoint, the control-service URL carries the
 /// first HTTP(S) `XAddr`, and vendor / model come from the `onvif://` scopes.
-/// Published for protocol-specific sweeps: `cctv-onvif` reuses it after applying
+/// Published for protocol-specific sweeps: `cctv-driver::onvif` reuses it after applying
 /// its own ONVIF-evidence filter to the matches.
 pub fn camera_from_probe_match(matched: &wsd::ProbeMatch) -> Option<DiscoveredCamera> {
     let service_url = matched.service_url().map(str::to_owned);
