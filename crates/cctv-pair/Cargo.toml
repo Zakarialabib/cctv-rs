@@ -4,6 +4,7 @@ description = "Device pairing ceremony, QR/ADB flows, and trust store for cctv-r
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"

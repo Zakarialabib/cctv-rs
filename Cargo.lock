@@ -225,7 +225,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-agent"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "cctv-core",
@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "insta",
@@ -254,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-detect"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "rayon",
@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-driver"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-pair"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "cctv-core",
@@ -293,7 +293,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-rag"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "cctv-detect",
@@ -304,7 +304,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-rs"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "cctv-agent",
@@ -322,11 +322,11 @@ dependencies = [
 
 [[package]]
 name = "cctv-rtp"
-version = "0.3.0"
+version = "0.4.0"
 
 [[package]]
 name = "cctv-rtsp"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -340,7 +340,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-sync"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cctv-core",
  "cctv-pair",
@@ -351,7 +351,7 @@ dependencies = [
 
 [[package]]
 name = "cctv-transport"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "iroh",
@@ -4150,7 +4150,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cctv-rs",
 ]

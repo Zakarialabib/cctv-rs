@@ -9,21 +9,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 
 ## [Unreleased]
 
-### Added
-- `cctv-agent`: Advanced fleet reconciliation policies with configurable hysteresis and staged rollout capping.
-
-## [0.3.0] - 2026-11-02
-
-### Added
-- `cctv-driver`: W6 — vendor-neutral adapter seam (DriverAdapter + DriverRegistry).
-- RTSP session reconnection hardening: bounded exponential backoff
-  (RECONNECT_MAX_DELAY 10 s, RECONNECT_MAX_RETRIES 8), StreamEnd::Stalled
-  classification, health-state reporting on reconnect failure.
-- Live stream health watchdog: cctv_core health module (Health/Watchdog),
-  wired into the driver stream path through READ_STALL and the reconnect
-  policy.
-
-## [Unreleased]
+## [0.4.0] - 2026-11-08
 
 ### Added
 
@@ -52,6 +38,8 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   runtime-free, `alloc`-only bounded ring-buffer for the most recent snapshots
   and clips per camera, with explicit capacity and deterministic oldest-first
   eviction. Re-exported from the `cctv-rs` facade.
+- **Advanced fleet reconciliation policies** (`cctv-agent`): configurable
+  hysteresis and staged rollout capping.
 
 ### Changed
 
@@ -74,6 +62,17 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 - **PTZ watchdog virtual clock** (`cctv-agent`): the watchdog now drives from
   the tokio clock, not wall-clock time, so tests and skewed-clock cameras
   behave identically.
+
+## [0.3.0] - 2026-11-02
+
+### Added
+- `cctv-driver`: W6 — vendor-neutral adapter seam (DriverAdapter + DriverRegistry).
+- RTSP session reconnection hardening: bounded exponential backoff
+  (RECONNECT_MAX_DELAY 10 s, RECONNECT_MAX_RETRIES 8), StreamEnd::Stalled
+  classification, health-state reporting on reconnect failure.
+- Live stream health watchdog: cctv_core health module (Health/Watchdog),
+  wired into the driver stream path through READ_STALL and the reconnect
+  policy.
 
 ## [0.2.0] - 2026-11-01
 
@@ -310,6 +309,8 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   `CameraError` taxonomy, the confidence-carrying camera state machine and the
   mock backend with its conformance suite.
 
-[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zakarialabib/cctv-rs/releases/tag/v0.1.0
