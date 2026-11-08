@@ -12,7 +12,7 @@ consolidation track, release milestones, and the gate each one is held to.
 | **0.2.0** | Alloc-only core contract, `net` socket layer, RTP/RTSP codecs, ONVIF driver, agent remediation loop, `StreamMux`, `SnapshotProxy`, facade detection surface. | Released |
 | **0.3.0** | Driver expansion and streaming hardening: bounded reconnect backoff, live-stream health watchdog, plus `cctv-detect` / `cctv-rag` / `cctv-pair` / `cctv-sync` on the published surface. | Released |
 | **post-0.3.0** | Driver consolidation — the vendor adapters fold into `cctv-driver` behind cargo features. | In progress |
-| **0.4.0** | Fleet operations and edge storage: edge caching primitives, composite recording profiles, advanced fleet reconciliation policies. | Planned |
+| **0.4.0** | Fleet operations and edge storage: edge caching primitives, composite recording profiles, advanced fleet reconciliation policies. | In progress |
 
 ---
 

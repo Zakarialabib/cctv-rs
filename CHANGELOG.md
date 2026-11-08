@@ -7,6 +7,11 @@ and the workspace adheres to [Semantic Versioning](https://semver.org/spec/v2.0.
 All twelve crates are versioned and released together, plus `ezviz-openapi`
 (published from its own repository).
 
+## [Unreleased]
+
+### Added
+- `cctv-agent`: Advanced fleet reconciliation policies with configurable hysteresis and staged rollout capping.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added
