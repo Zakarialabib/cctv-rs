@@ -56,7 +56,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   are folded into `cctv-driver` behind cargo features (`discovery` and `onvif` —
   both default, `ezviz`, `uvc`, `uvc-ptp`, `ddc`, plus `driver-mock`/`mobile`),
   and the seam is split into a `DriverAdapter` factory surface and the
-  `CameraBackend` live handle. `cctv-onvif` remains as a deprecated re-export
+  `CameraBackend` live handle. `cctv-onvif` was a deprecated re-export
   shim for one release. Publish order and CI are updated accordingly; existing
   code moves to `cctv_driver::{discovery, onvif, ezviz, uvc}`.
 - **Graded reconciliation policies** (`cctv-agent`): `Policy` / `PolicyTracker` /
@@ -173,7 +173,7 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   against `cctv-transport`'s fixture HTTP server. The three things the platform
   cannot do (return image bytes, list presets, move to an absolute position) are
   typed `NotImplemented`, not silent failures.
-- `cctv-onvif` is now a working driver, not just builders: `OnvifSession` drives
+- `cctv-onvif` became a working driver, not just builders: `OnvifSession` drives
   the SOAP calls over `cctv-transport`'s HTTP client — following (and caching) the
   `XAddr`s `GetCapabilities` returns — and `OnvifCameraBackend` implements
   `CameraBackend` for `probe`, `stream`, `snapshot`, `ptz` and the preset round

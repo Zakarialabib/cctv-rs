@@ -114,7 +114,7 @@ jobs:
       - run: cargo check -p cctv-rtp
       - run: cargo check -p cctv-rtsp
       - run: cargo check -p cctv-driver
-      - run: cargo check -p cctv-onvif
+
       - run: cargo check -p cctv-driver --features ezviz,uvc,uvc-ptp,ddc
       - run: cargo check -p cctv-agent
       - run: cargo check -p cctv-detect

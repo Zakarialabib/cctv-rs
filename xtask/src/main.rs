@@ -37,7 +37,6 @@ const ORDER: &[&str] = &[
     "cctv-rtp",
     "cctv-rtsp",
     "cctv-driver",
-    "cctv-onvif",
     "cctv-driver",
     "cctv-agent",
     "cctv-detect",

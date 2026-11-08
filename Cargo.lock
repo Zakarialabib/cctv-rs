@@ -230,7 +230,6 @@ dependencies = [
  "async-trait",
  "cctv-core",
  "cctv-driver",
- "cctv-onvif",
  "cctv-rtp",
  "cctv-rtsp",
  "cctv-transport",
@@ -279,16 +278,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cctv-onvif"
-version = "0.3.0"
-dependencies = [
- "cctv-core",
- "cctv-driver",
- "cctv-transport",
- "tokio",
-]
-
-[[package]]
 name = "cctv-pair"
 version = "0.3.0"
 dependencies = [
@@ -322,7 +311,6 @@ dependencies = [
  "cctv-core",
  "cctv-detect",
  "cctv-driver",
- "cctv-onvif",
  "cctv-pair",
  "cctv-rag",
  "cctv-rtp",

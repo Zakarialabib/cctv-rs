@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use cctv_core::{CameraConfig, CameraDesired, CameraState, CameraStateCurrent, CameraType};
-use cctv_onvif::{Credentials, OnvifCameraBackend, OnvifSession};
+use cctv_driver::onvif::{Credentials, OnvifCameraBackend, OnvifSession};
 use cctv_rs::{Facade, OsPlatform, PtpAdapter, PtpStatus, UvcAdapter};
 use cctv_transport::http::HttpConfig;
 

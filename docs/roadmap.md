@@ -25,10 +25,10 @@ System development status, release phases, and locked architectural decisions.
 ### 0.3.0 — Driver Expansion & Streaming Hardening (2026-11-02) **Released**
 
 Twelve workspace crates published to crates.io (`cctv-core`, `cctv-transport`,
-`cctv-rtp`, `cctv-rtsp`, `cctv-driver`, `cctv-onvif`, `cctv-agent`,
+`cctv-rtp`, `cctv-rtsp`, `cctv-driver`, `cctv-agent`,
 `cctv-detect`, `cctv-rag`, `cctv-pair`, `cctv-sync`, `cctv-rs`) plus
 `ezviz-openapi` (own repository, consumed by `cctv-driver`'s `ezviz` feature).
-`cctv-onvif` is retained as a deprecated re-export shim for one release.
+`cctv-onvif` was retained as a deprecated re-export shim for one release and is now removed.
 
 Since the 0.3.0 release the vendor adapters have consolidated: `cctv-discovery`,
 `cctv-ezviz`, `cctv-stream-uvc` and `cctv-onvif` are now features of

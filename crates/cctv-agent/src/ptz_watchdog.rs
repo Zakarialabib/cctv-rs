@@ -15,7 +15,7 @@ use std::time::Duration;
 use tokio::time::Instant;
 
 use cctv_core::{CameraId, ImperativeCameraCommand};
-use cctv_onvif::{build_continuous_move, build_stop};
+use cctv_driver::onvif::{build_continuous_move, build_stop};
 use serde::{Deserialize, Serialize};
 
 /// Heartbeat pulse keeping a PTZ continuous move alive.
