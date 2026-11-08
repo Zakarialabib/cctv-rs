@@ -4,18 +4,35 @@
 //! is in memory here; the application persists it, because the workspace owns no
 //! database.
 
+use crate::clock::{Clock, SystemClock};
 pub use cctv_core::AuditEntry;
+use std::sync::Arc;
 
 /// Append-only record of every remediation the reconciler applies.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct Audit {
     entries: Vec<AuditEntry>,
+    clock: Arc<dyn Clock>,
+}
+
+impl Default for Audit {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Audit {
-    /// Create an empty audit trail.
+    /// Create an empty audit trail using the default system clock.
     pub fn new() -> Self {
-        Self::default()
+        Self::with_clock(Arc::new(SystemClock))
+    }
+
+    /// Create an empty audit trail with a custom clock.
+    pub fn with_clock(clock: Arc<dyn Clock>) -> Self {
+        Self {
+            entries: Vec::new(),
+            clock,
+        }
     }
 
     /// Record one change: the affected camera, a description, and its grade.
@@ -24,7 +41,7 @@ impl Audit {
             camera_id,
             what: what.to_string(),
             grade,
-            at_ms: now_ms(),
+            at_ms: self.clock.now_ms(),
         });
     }
 
@@ -50,14 +67,6 @@ impl Audit {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
-}
-
-/// Milliseconds since the Unix epoch (0 if the clock reads before it).
-fn now_ms() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
 }
 
 #[cfg(test)]

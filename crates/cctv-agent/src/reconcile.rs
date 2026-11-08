@@ -24,15 +24,9 @@ use cctv_core::{
 };
 
 use crate::audit::Audit;
+use crate::clock::{Clock, SystemClock};
 use crate::policy::{Policy, PolicyTracker, PolicyVerdict};
-
-/// Milliseconds since Unix epoch.
-fn now_ms() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
-}
+use std::sync::Arc;
 
 /// Below this confidence the observation is not trusted enough to act on.
 const CONFIDENCE_FLOOR: f32 = 0.3;
@@ -167,9 +161,10 @@ pub trait CommandRelay: std::fmt::Debug + Send {
 
 /// Brings a fleet's observed state back to the desired state, recording each
 /// remediation it applies.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Reconciler {
     audit: Audit,
+    clock: Arc<dyn Clock>,
     desired: BTreeMap<String, CameraDesired>,
     errors: BTreeMap<String, CameraError>,
     group_profiles: BTreeMap<String, RecordingProfile>,
@@ -182,11 +177,23 @@ pub struct Reconciler {
     policy_tracker: PolicyTracker,
 }
 
+impl Default for Reconciler {
+    fn default() -> Self {
+        Self::new(Audit::new())
+    }
+}
+
 impl Reconciler {
-    /// Create a reconciler that records changes in `audit`.
+    /// Create a reconciler that records changes in `audit`, using the default system clock.
     pub fn new(audit: Audit) -> Self {
+        Self::with_clock(audit, Arc::new(SystemClock))
+    }
+
+    /// Create a reconciler with a custom clock.
+    pub fn with_clock(audit: Audit, clock: Arc<dyn Clock>) -> Self {
         Self {
             audit,
+            clock,
             desired: BTreeMap::new(),
             errors: BTreeMap::new(),
             group_profiles: BTreeMap::new(),
@@ -315,7 +322,7 @@ impl Reconciler {
 
         let (verdict, policy_id) = if let Some(ref policy) = self.policy {
             (
-                policy.evaluate(candidate, now_ms(), &mut self.policy_tracker),
+                policy.evaluate(candidate, self.clock.now_ms(), &mut self.policy_tracker),
                 Some(policy.id.clone()),
             )
         } else {
@@ -438,7 +445,7 @@ impl Reconciler {
 
         let (verdict, policy_id) = if let Some(ref policy) = self.policy {
             (
-                policy.evaluate(candidate, now_ms(), &mut self.policy_tracker),
+                policy.evaluate(candidate, self.clock.now_ms(), &mut self.policy_tracker),
                 Some(policy.id.clone()),
             )
         } else {
@@ -697,7 +704,8 @@ mod tests {
     }
 
     fn reconciler() -> Reconciler {
-        Reconciler::new(Audit::new())
+        let clock = Arc::new(crate::clock::MockClock::new(1000));
+        Reconciler::with_clock(Audit::with_clock(clock.clone()), clock)
     }
 
     #[test]
@@ -1136,6 +1144,8 @@ mod tests {
         // Window in the past: 1_000 to 2_000 ms.
         let window = ScheduleWindow::new(1_000, 2_000);
         let mut r = reconciler().with_policy(Policy::scheduled(window));
+        // Ensure clock is set to something outside the window
+        r.clock = std::sync::Arc::new(crate::clock::MockClock::new(500));
         r.set_desired("cam-sched", CameraDesired::Armed);
         let mut camera = observed("cam-sched", CameraStateCurrent::On, 1.0);
 
