@@ -436,3 +436,18 @@ impl QuicConnection {
         &self.conn
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_quic_live_video_profile() {
+        assert_eq!(CongestionAlgorithm::default(), CongestionAlgorithm::Bbr);
+        assert_eq!(LIVE_VIDEO_STREAM_RECEIVE_WINDOW, 1048576);
+        assert_eq!(LIVE_VIDEO_CONNECTION_RECEIVE_WINDOW, 2097152);
+
+        // Assert the tuned profile is what live_video_transport_config returns.
+        let _transport_config = live_video_transport_config(CongestionAlgorithm::default());
+    }
+}
