@@ -20,6 +20,8 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-08
+
 ### Added
 
 - **`cctv-pair` crate** (new): device pairing ceremony and trust store —
@@ -302,6 +304,8 @@ All twelve crates are versioned and released together, plus `ezviz-openapi`
   `CameraError` taxonomy, the confidence-carrying camera state machine and the
   mock backend with its conformance suite.
 
-[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Zakarialabib/cctv-rs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Zakarialabib/cctv-rs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zakarialabib/cctv-rs/releases/tag/v0.1.0

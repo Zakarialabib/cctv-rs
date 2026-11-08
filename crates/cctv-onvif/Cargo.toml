@@ -4,6 +4,7 @@ description = "ONVIF (Device / Media / PTZ) driver for cctv-rs: SOAP 1.2 builder
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
