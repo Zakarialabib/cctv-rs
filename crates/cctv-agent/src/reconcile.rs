@@ -491,6 +491,7 @@ impl Reconciler {
 
     /// Reconcile a whole fleet, in camera-id order.
     pub fn reconcile_all(&mut self, fleet: &mut [CameraState]) -> Vec<Remediation> {
+        self.policy_tracker.begin_tick();
         fleet.sort_by(|a, b| a.id.cmp(&b.id));
         fleet
             .iter_mut()
@@ -1178,5 +1179,117 @@ mod tests {
         assert_eq!(audit.len(), 1);
         assert!(audit[0].what.contains("[policy:repair] dry_run"));
         assert_eq!(audit[0].grade, Grade::Notify.as_u8());
+    }
+
+    #[test]
+    fn test_policy_hysteresis() {
+        use crate::policy::Policy;
+        use crate::policy::PolicyTracker;
+        use crate::reconcile::{Action, Grade, Remediation};
+
+        let policy = Policy::repair(Grade::Disable).with_hysteresis_ms(5000);
+        let mut tracker = PolicyTracker::new();
+
+        let mut candidate = Remediation {
+            camera_id: "cam-hyst".to_string(),
+            grade: Grade::Reconfigure,
+            action: Action::Advance(crate::reconcile::CameraStateCurrent::Streaming),
+            reason: "test".to_string(),
+        };
+
+        // First tick at 1000ms. Should be suppressed by hysteresis.
+        let verdict = policy.evaluate(candidate.clone(), 1000, &mut tracker);
+        assert!(!verdict.is_executable());
+        if let crate::policy::PolicyVerdict::Suppressed {
+            remediation,
+            reason,
+        } = verdict
+        {
+            assert_eq!(remediation.action, Action::Hold);
+            assert!(reason.contains("hysteresis"));
+        } else {
+            panic!("expected suppressed");
+        }
+
+        // Second tick at 4000ms. Still suppressed (elapsed 3000 < 5000).
+        let verdict2 = policy.evaluate(candidate.clone(), 4000, &mut tracker);
+        assert!(!verdict2.is_executable());
+
+        // Third tick at 6500ms. Now authorized (elapsed 5500 >= 5000).
+        let verdict3 = policy.evaluate(candidate.clone(), 6500, &mut tracker);
+        assert!(verdict3.is_executable());
+        if let crate::policy::PolicyVerdict::Apply(rem) = verdict3 {
+            assert_eq!(
+                rem.action,
+                Action::Advance(crate::reconcile::CameraStateCurrent::Streaming)
+            );
+        } else {
+            panic!("expected apply");
+        }
+
+        // If candidate becomes not actionable, first_seen_ms is cleared.
+        candidate.action = Action::Hold;
+        candidate.grade = Grade::None;
+        let _ = policy.evaluate(candidate.clone(), 7000, &mut tracker);
+        assert!(!tracker.first_seen_ms.contains_key("cam-hyst"));
+    }
+
+    #[test]
+    fn test_policy_rollout_cap() {
+        use crate::policy::Policy;
+        use crate::policy::PolicyTracker;
+        use crate::reconcile::{Action, Grade, Remediation};
+
+        let policy = Policy::repair(Grade::Disable).with_rollout_cap(2);
+        let mut tracker = PolicyTracker::new();
+        tracker.begin_tick();
+
+        let candidate1 = Remediation {
+            camera_id: "cam-1".to_string(),
+            grade: Grade::Reconfigure,
+            action: Action::Advance(crate::reconcile::CameraStateCurrent::Streaming),
+            reason: "test".to_string(),
+        };
+        let candidate2 = Remediation {
+            camera_id: "cam-2".to_string(),
+            grade: Grade::Reconfigure,
+            action: Action::Advance(crate::reconcile::CameraStateCurrent::Streaming),
+            reason: "test".to_string(),
+        };
+        let candidate3 = Remediation {
+            camera_id: "cam-3".to_string(),
+            grade: Grade::Reconfigure,
+            action: Action::Advance(crate::reconcile::CameraStateCurrent::Streaming),
+            reason: "test".to_string(),
+        };
+
+        // First two apply.
+        assert!(policy
+            .evaluate(candidate1, 1000, &mut tracker)
+            .is_executable());
+        assert!(policy
+            .evaluate(candidate2, 1000, &mut tracker)
+            .is_executable());
+
+        // Third is suppressed due to rollout cap.
+        let verdict3 = policy.evaluate(candidate3, 1000, &mut tracker);
+        assert!(!verdict3.is_executable());
+        if let crate::policy::PolicyVerdict::Suppressed { reason, .. } = verdict3 {
+            assert!(reason.contains("rollout cap"));
+        } else {
+            panic!("expected suppressed");
+        }
+
+        // New tick clears limit.
+        tracker.begin_tick();
+        let candidate3_retry = Remediation {
+            camera_id: "cam-3".to_string(),
+            grade: Grade::Reconfigure,
+            action: Action::Advance(crate::reconcile::CameraStateCurrent::Streaming),
+            reason: "test".to_string(),
+        };
+        assert!(policy
+            .evaluate(candidate3_retry, 2000, &mut tracker)
+            .is_executable());
     }
 }
